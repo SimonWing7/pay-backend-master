@@ -217,5 +217,35 @@ class InvoiceController extends Controller
         return redirect()->route('merchant.invoices.index')
             ->with('success', 'Invoice deleted successfully');
     }
+
+    public function archive(Request $request, int $id): RedirectResponse
+    {
+        $merchantId = $request->user()->id;
+        $invoice = $this->invoiceService->getById($id, $merchantId);
+
+        if (!$invoice) {
+            abort(404, 'Invoice not found');
+        }
+
+        $this->invoiceService->update($invoice, ['status' => \App\Enums\InvoiceStatus::Archived->value]);
+
+        return redirect()->route('merchant.invoices.index')
+            ->with('success', 'Payment link archived.');
+    }
+
+    public function unarchive(Request $request, int $id): RedirectResponse
+    {
+        $merchantId = $request->user()->id;
+        $invoice = $this->invoiceService->getById($id, $merchantId);
+
+        if (!$invoice) {
+            abort(404, 'Invoice not found');
+        }
+
+        $this->invoiceService->update($invoice, ['status' => \App\Enums\InvoiceStatus::Draft->value]);
+
+        return redirect()->route('merchant.invoices.index', ['status' => 30])
+            ->with('success', 'Payment link restored to draft.');
+    }
 }
 
