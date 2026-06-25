@@ -2,17 +2,17 @@
 
 namespace App\Enums;
 
-enum InvoiceStatus: int
+enum PaymentStatus: int
 {
-    case Draft = 0;
-    case Paid = 10;
+    case Initiated = 0;
+    case Complete = 10;
     case Failed = 20;
 
     public function label(): string
     {
         return match ($this) {
-            self::Draft => 'Draft',
-            self::Paid => 'Paid',
+            self::Initiated => 'Initiated',
+            self::Complete => 'Complete',
             self::Failed => 'Failed',
         };
     }

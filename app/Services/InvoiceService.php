@@ -19,12 +19,8 @@ class InvoiceService extends Service
             ->with(['consumer', 'invoiceDetails.product', 'groups']);
 
         // Apply filters
-        if (isset($filters['status']) && $filters['status'] !== '' && $filters['status'] !== null) {
-            // Show only the selected status (including Archived if explicitly chosen)
+        if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
-        } else {
-            // By default exclude archived links
-            $query->where('status', '!=', InvoiceStatus::Archived->value);
         }
 
         if (isset($filters['consumer_id'])) {
@@ -45,7 +41,7 @@ class InvoiceService extends Service
             $query->whereDate('created_at', '<=', $filters['date_to']);
         }
 
-        if (!empty($filters['search'])) {
+        if (isset($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('uuid', 'like', "%{$search}%")
