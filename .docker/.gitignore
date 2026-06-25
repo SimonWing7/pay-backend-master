@@ -1,0 +1,11 @@
+# Ignore logs
+nginx/logs/*
+!nginx/logs/.gitkeep
+
+# Ignore override files
+docker-compose.override.yml
+
+# Ignore environment files
+.env.docker.local
+.env
+

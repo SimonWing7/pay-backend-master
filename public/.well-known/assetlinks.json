@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.edfundo.pay",
+      "sha256_cert_fingerprints": [
+        "DFDE62420FF971EE45A41F3B2673E5915DCFF7DA786CB315B73E607C00A7BE47"
+      ]
+    }
+  }
+]

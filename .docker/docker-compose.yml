@@ -1,0 +1,73 @@
+services:
+  efp_backend:
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
+    container_name: efp_backend
+    restart: unless-stopped
+    working_dir: /var/www
+    tty: true
+    ports:
+      - "9000:9000"
+    volumes:
+      - efp_volume:/var/www/storage
+    networks:
+      - efp_network
+    depends_on:
+      efp_mysql:
+        condition: service_healthy
+      efp_redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+
+  efp_mysql:
+    image: mysql:8.0
+    container_name: efp_mysql
+    restart: unless-stopped
+    environment:
+      - "MYSQL_DATABASE=efp"
+      - "MYSQL_ROOT_PASSWORD=efp_password"
+    volumes:
+      - efp_mysql_data:/var/lib/mysql
+    networks:
+      - efp_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p efp_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  efp_redis:
+    image: redis:alpine
+    container_name: efp_redis
+    restart: unless-stopped
+    volumes:
+      - efp_redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - efp_network
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+
+volumes:
+  efp_mysql_data:
+    driver: local
+  efp_redis_data:
+    driver: local
+  efp_volume:
+    driver: local
+
+networks:
+  efp_network:
+    driver: bridge
+
