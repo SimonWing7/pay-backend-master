@@ -17,19 +17,34 @@
 
 {{-- Share Link Banner --}}
 <div class="card p-6 mb-6">
-    <p class="form-label mb-2">Payment Link</p>
-    <div class="flex items-center gap-3">
-        <input type="text"
-            id="paymentLink"
-            value="{{ route('public.invoice.show', $invoice->uuid) }}"
-            readonly
-            class="form-input bg-gray-50 font-mono text-sm flex-1">
-        <button onclick="copyPaymentLink('{{ route('public.invoice.show', $invoice->uuid) }}')"
-            class="btn-primary flex-shrink-0" id="copyButton">
-            <i class="fas fa-copy"></i> Copy
-        </button>
+    <div class="flex flex-col lg:flex-row gap-6 items-start">
+
+        {{-- Link + actions --}}
+        <div class="flex-1">
+            <p class="form-label mb-2">Payment Link</p>
+            <div class="flex items-center gap-3 mb-3">
+                <input type="text"
+                    id="paymentLink"
+                    value="{{ route('public.invoice.show', $invoice->uuid) }}"
+                    readonly
+                    class="form-input bg-gray-50 font-mono text-sm flex-1">
+                <button onclick="copyPaymentLink('{{ route('public.invoice.show', $invoice->uuid) }}')"
+                    class="btn-primary flex-shrink-0" id="copyButton">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <p class="text-xs text-gray-400">Share this link via WhatsApp, email, or display the QR code for in-person payments.</p>
+        </div>
+
+        {{-- QR Code --}}
+        <div class="flex flex-col items-center gap-3 flex-shrink-0">
+            <div id="qrcode" class="p-3 bg-white border border-gray-200 rounded-xl shadow-sm"></div>
+            <button onclick="printQR()" class="btn-secondary text-sm py-2 px-4">
+                <i class="fas fa-print"></i> Print QR
+            </button>
+        </div>
+
     </div>
-    <p class="text-xs text-gray-400 mt-2">Share this link with your customer to collect payment</p>
 </div>
 
 {{-- Info Grid --}}
@@ -126,7 +141,20 @@
 @endif
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
+const paymentUrl = "{{ route('public.invoice.show', $invoice->uuid) }}";
+
+// Generate QR code
+new QRCode(document.getElementById('qrcode'), {
+    text: paymentUrl,
+    width: 160,
+    height: 160,
+    colorDark: '#000026',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+});
+
 function copyPaymentLink(link) {
     const button = document.getElementById('copyButton');
     navigator.clipboard.writeText(link).then(function() {
@@ -139,6 +167,30 @@ function copyPaymentLink(link) {
         button.innerHTML = '<i class="fas fa-check"></i> Copied!';
         setTimeout(function() { button.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 2000);
     });
+}
+
+function printQR() {
+    const qrCanvas = document.querySelector('#qrcode canvas') || document.querySelector('#qrcode img');
+    const title = "{{ addslashes($invoice->invoiceDetails->first()?->title ?? 'Payment') }}";
+    const amount = "AED {{ number_format($invoice->total_fee, 2) }}";
+    const win = window.open('', '_blank');
+    win.document.write(`
+        <html><head><title>QR Code — ${title}</title>
+        <style>
+            body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+            h2 { color: #000026; margin-bottom: 4px; }
+            p { color: #6b7280; margin: 0 0 20px; font-size: 14px; }
+        </style></head>
+        <body>
+            <h2>${title}</h2>
+            <p>${amount}</p>
+            ${qrCanvas ? (qrCanvas.tagName === 'CANVAS' ? `<img src="${qrCanvas.toDataURL()}" width="240">` : `<img src="${qrCanvas.src}" width="240">`) : ''}
+            <p style="margin-top:16px;font-size:12px;color:#9ca3af;">Scan to pay via Edfundo Pay</p>
+        </body></html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
 }
 </script>
 @endpush

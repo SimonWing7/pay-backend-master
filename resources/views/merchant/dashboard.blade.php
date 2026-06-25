@@ -28,7 +28,7 @@
                 <i class="fas fa-tag"></i> Add Product
             </a>
             <a href="{{ route('merchant.consumers.create') }}" class="btn-secondary justify-center py-3">
-                <i class="fas fa-user-plus"></i> Add Customer
+                <i class="fas fa-user-plus"></i> Add Individual
             </a>
         </div>
     </div>
@@ -63,7 +63,7 @@
         <a href="{{ route('merchant.consumers.index') }}" class="stat-card hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;">Customers</p>
+                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;">Individuals</p>
                     <p style="font-size: 28px; font-weight: 800; color: #000026; margin-top: 4px;">{{ $stats['consumers'] }}</p>
                 </div>
                 <div class="stat-icon">

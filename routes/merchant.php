@@ -68,6 +68,7 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
     // Payments management
     Route::prefix('payments')->name('payments.')->group(function () {
         Route::get('/', [App\Http\Controllers\Merchant\PaymentController::class, 'index'])->name('index');
+        Route::get('/export/csv', [App\Http\Controllers\Merchant\PaymentController::class, 'exportCsv'])->name('export.csv');
         Route::get('/{id}', [App\Http\Controllers\Merchant\PaymentController::class, 'show'])->name('show');
     });
     

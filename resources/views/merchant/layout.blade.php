@@ -284,12 +284,6 @@
                 <span>Customers</span>
             </a>
 
-            <a href="{{ route('merchant.groups.index') }}"
-               class="nav-link {{ request()->routeIs('merchant.groups*') ? 'active' : '' }}">
-                <i class="fas fa-layer-group"></i>
-                <span>Groups</span>
-            </a>
-
             <a href="{{ route('merchant.products.index') }}"
                class="nav-link {{ request()->routeIs('merchant.products*') ? 'active' : '' }}">
                 <i class="fas fa-tag"></i>

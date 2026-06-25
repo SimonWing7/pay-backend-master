@@ -9,9 +9,9 @@ use Illuminate\Database\Eloquent\Collection;
 
 class PaymentService extends Service
 {
-    public function getAll(?int $merchantId = null, array $filters = [], string $sortBy = 'created_at', string $sortDir = 'desc', int $perPage = 15)
+    private function buildPaymentQuery(?int $merchantId, array $filters, string $sortBy, string $sortDir)
     {
-        $query = AppUserPayment::with(['appUser', 'invoice.merchant', 'invoice.consumer']);
+        $query = AppUserPayment::with(['appUser', 'invoice.merchant', 'invoice.consumer', 'invoice.invoiceDetails']);
 
         if ($merchantId) {
             $query->whereHas('invoice', function ($q) use ($merchantId) {
@@ -20,19 +20,19 @@ class PaymentService extends Service
         }
 
         // Apply filters
-        if (isset($filters['status'])) {
+        if (isset($filters['status']) && $filters['status'] !== '' && $filters['status'] !== null) {
             $query->where('status', $filters['status']);
         }
 
-        if (isset($filters['date_from'])) {
+        if (!empty($filters['date_from'])) {
             $query->whereDate('created_at', '>=', $filters['date_from']);
         }
 
-        if (isset($filters['date_to'])) {
+        if (!empty($filters['date_to'])) {
             $query->whereDate('created_at', '<=', $filters['date_to']);
         }
 
-        if (isset($filters['search'])) {
+        if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('token', 'like', "%{$search}%")
@@ -53,8 +53,19 @@ class PaymentService extends Service
         $sortDir = in_array(strtolower($sortDir), ['asc', 'desc']) ? strtolower($sortDir) : 'desc';
         $query->orderBy($sortBy, $sortDir);
 
-        // Apply pagination
-        return $query->paginate($perPage)->withQueryString();
+        return $query;
+    }
+
+    public function getAll(?int $merchantId = null, array $filters = [], string $sortBy = 'created_at', string $sortDir = 'desc', int $perPage = 15)
+    {
+        return $this->buildPaymentQuery($merchantId, $filters, $sortBy, $sortDir)
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    public function getAllForExport(?int $merchantId = null, array $filters = [], string $sortBy = 'created_at', string $sortDir = 'desc'): Collection
+    {
+        return $this->buildPaymentQuery($merchantId, $filters, $sortBy, $sortDir)->get();
     }
 
     public function getById(int $id, ?int $merchantId = null): ?AppUserPayment
