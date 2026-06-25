@@ -61,6 +61,8 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
         Route::get('/{id}/edit', [App\Http\Controllers\Merchant\InvoiceController::class, 'edit'])->name('edit');
         Route::put('/{id}', [App\Http\Controllers\Merchant\InvoiceController::class, 'update'])->name('update');
         Route::delete('/{id}', [App\Http\Controllers\Merchant\InvoiceController::class, 'delete'])->name('delete');
+        Route::post('/{id}/archive', [App\Http\Controllers\Merchant\InvoiceController::class, 'archive'])->name('archive');
+        Route::post('/{id}/unarchive', [App\Http\Controllers\Merchant\InvoiceController::class, 'unarchive'])->name('unarchive');
     });
     
     // Payments management

@@ -51,15 +51,16 @@ class InvoiceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            'consumer_id' => 'required_without:group_id|exists:consumers,id',
-            'group_id' => 'required_without:consumer_id|exists:groups,id',
-            'total_fee' => 'required|numeric|min:0',
-            'invoice_details' => 'required|array|min:1',
-            'invoice_details.*.product_id' => 'required|exists:products,id',
-            'invoice_details.*.fee' => 'required|numeric|min:0',
-            'invoice_details.*.title' => 'sometimes|string',
-            'group_ids' => 'nullable|array',
-            'group_ids.*' => 'exists:groups,id',
+            'consumer_id'                   => 'nullable|exists:consumers,id',
+            'total_fee'                     => 'required|numeric|min:0.01',
+            'invoice_details'               => 'required|array|min:1',
+            'invoice_details.*.product_id'  => 'nullable|exists:products,id',
+            'invoice_details.*.fee'         => 'required|numeric|min:0.01',
+            'invoice_details.*.title'       => 'required|string|max:255',
+            'link_type'                     => 'nullable|string|in:open,personal',
+            'new_consumer_name'             => 'nullable|string|max:255',
+            'new_consumer_email'            => 'nullable|email|max:255',
+            'new_consumer_mobile'           => 'nullable|string|max:50',
         ]);
 
         if ($validator->fails()) {
@@ -71,22 +72,40 @@ class InvoiceController extends Controller
         $data = $validator->validated();
         $data['merchant_id'] = $request->user()->id;
 
-        // If group_id is provided, create invoices for all consumers in the group (one invoice per consumer)
-        if (isset($data['group_id'])) {
-            // Remove consumer_id if it exists when creating for group
-            unset($data['consumer_id']);
-            
-            $invoices = $this->invoiceService->createForGroup($data);
-            $count = $invoices->count();
-            
-            return redirect()->route('merchant.invoices.index')
-                ->with('success', "Successfully created {$count} invoice(s) for all consumers in the group");
+        // If personal link with a new individual, create them on the fly (or reuse if email already exists)
+        if (
+            $request->input('link_type') === 'personal' &&
+            !$request->input('consumer_id') &&
+            $request->input('new_consumer_name')
+        ) {
+            $email  = $request->input('new_consumer_email') ?: null;
+            $mobile = $request->input('new_consumer_mobile') ?: null;
+
+            // Check if an individual with the same email or mobile already exists for this merchant
+            $consumer = \App\Models\Consumer::where('merchant_id', $data['merchant_id'])
+                ->where(function ($q) use ($email, $mobile) {
+                    if ($email)  $q->orWhere('email', $email);
+                    if ($mobile) $q->orWhere('mobile_number', $mobile);
+                })
+                ->first();
+
+            // Create them only if no match found
+            if (!$consumer) {
+                $consumer = \App\Models\Consumer::create([
+                    'merchant_id'   => $data['merchant_id'],
+                    'name'          => $request->input('new_consumer_name'),
+                    'email'         => $email,
+                    'mobile_number' => $mobile,
+                ]);
+            }
+
+            $data['consumer_id'] = $consumer->id;
         }
 
         $this->invoiceService->create($data);
 
         return redirect()->route('merchant.invoices.index')
-            ->with('success', 'Invoice created successfully');
+            ->with('success', 'Payment link created successfully');
     }
 
     public function createBulk(Request $request): View
@@ -158,9 +177,15 @@ class InvoiceController extends Controller
             abort(404, 'Invoice not found');
         }
 
+        // Status can only be changed by the payment callback, never by the merchant manually
+        if ($invoice->status->value === 10) {
+            // Paid invoices are fully locked
+            return redirect()->route('merchant.invoices.show', $invoice->id)
+                ->with('info', 'Paid payment links cannot be edited.');
+        }
+
         $validator = Validator::make($request->all(), [
-            'total_fee' => 'sometimes|numeric|min:0',
-            'status' => 'sometimes|integer',
+            'total_fee' => 'sometimes|numeric|min:0.01',
         ]);
 
         if ($validator->fails()) {
@@ -169,7 +194,10 @@ class InvoiceController extends Controller
                 ->withInput();
         }
 
-        $this->invoiceService->update($invoice, $validator->validated());
+        // Never allow status to be changed via this endpoint
+        $updateData = collect($validator->validated())->except(['status'])->toArray();
+
+        $this->invoiceService->update($invoice, $updateData);
 
         return redirect()->route('merchant.invoices.index')
             ->with('success', 'Invoice updated successfully');
@@ -188,6 +216,36 @@ class InvoiceController extends Controller
 
         return redirect()->route('merchant.invoices.index')
             ->with('success', 'Invoice deleted successfully');
+    }
+
+    public function archive(Request $request, int $id): RedirectResponse
+    {
+        $merchantId = $request->user()->id;
+        $invoice = $this->invoiceService->getById($id, $merchantId);
+
+        if (!$invoice) {
+            abort(404, 'Invoice not found');
+        }
+
+        $this->invoiceService->update($invoice, ['status' => \App\Enums\InvoiceStatus::Archived->value]);
+
+        return redirect()->route('merchant.invoices.index')
+            ->with('success', 'Payment link archived.');
+    }
+
+    public function unarchive(Request $request, int $id): RedirectResponse
+    {
+        $merchantId = $request->user()->id;
+        $invoice = $this->invoiceService->getById($id, $merchantId);
+
+        if (!$invoice) {
+            abort(404, 'Invoice not found');
+        }
+
+        $this->invoiceService->update($invoice, ['status' => \App\Enums\InvoiceStatus::Draft->value]);
+
+        return redirect()->route('merchant.invoices.index', ['status' => 30])
+            ->with('success', 'Payment link restored to draft.');
     }
 }
 
