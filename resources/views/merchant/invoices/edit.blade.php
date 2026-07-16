@@ -25,7 +25,7 @@
             $statusClass = 'background: rgba(239,68,68,0.1); color: #991b1b; border: 1px solid rgba(239,68,68,0.3);';
             $statusIcon  = 'fa-times-circle';
         } else {
-            $statusLabel = 'Draft';
+            $statusLabel = 'Pending';
             $statusClass = 'background: rgba(107,114,128,0.1); color: #374151; border: 1px solid rgba(107,114,128,0.25);';
             $statusIcon  = 'fa-clock';
         }
@@ -67,6 +67,19 @@
                 @endif
             </div>
 
+            <div class="mb-6">
+                <label for="reference" class="form-label">Reference <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input type="text" name="reference" id="reference"
+                    value="{{ old('reference', $invoice->reference) }}"
+                    class="form-input @error('reference') border-red-400 @enderror"
+                    placeholder="e.g. TERM1-2025"
+                    maxlength="100">
+                <p class="text-xs text-gray-400 mt-1">Your own code for reconciliation — appears in the payments CSV export.</p>
+                @error('reference')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
             <div class="flex items-center gap-3">
                 <a href="{{ route('merchant.invoices.show', $invoice->id) }}" class="btn-secondary flex-1 justify-center">Cancel</a>
                 @if(!$isPaid)
@@ -81,7 +94,7 @@
     {{-- Info panel --}}
     <div class="card p-5 mt-4" style="background: linear-gradient(135deg, rgba(61,1,189,0.04), rgba(0,189,255,0.04));">
         <p class="text-xs font-semibold text-gray-600 mb-1"><i class="fas fa-info-circle text-blue-400 mr-1"></i> How payment status works</p>
-        <p class="text-xs text-gray-500">Payment links start as <strong>Draft</strong>. When a payer completes their payment via the Edfundo app, the link is automatically marked as <strong>Paid</strong> and recorded in your payments history. This ensures accurate reconciliation.</p>
+        <p class="text-xs text-gray-500">Payment links start as <strong>Pending</strong>. When a payer completes their payment, the link is automatically marked as <strong>Paid</strong> and recorded in your payments history. This ensures accurate reconciliation.</p>
     </div>
 
 </div>

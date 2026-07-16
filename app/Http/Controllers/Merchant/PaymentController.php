@@ -48,17 +48,18 @@ class PaymentController extends Controller
 
         $filename = 'payments-' . now()->format('Y-m-d') . '.csv';
 
-        $csv = "Date,Individual,Payment Link Title,Amount (AED),Status\n";
+        $csv = "Date,Individual,Payment Link Title,Reference,Amount (AED),Status\n";
         foreach ($payments as $payment) {
             $date = $payment->created_at->format('d/m/Y H:i');
             $individual = $payment->invoice->consumer->name ?? '—';
             $title = $payment->invoice->invoiceDetails->first()?->title ?? '—';
+            $reference = $payment->invoice->reference ?? '';
             $amount = number_format($payment->invoice->total_fee ?? 0, 2);
             $status = $payment->status->label();
 
             $csv .= implode(',', array_map(
                 fn($v) => '"' . str_replace('"', '""', $v) . '"',
-                [$date, $individual, $title, $amount, $status]
+                [$date, $individual, $title, $reference, $amount, $status]
             )) . "\n";
         }
 

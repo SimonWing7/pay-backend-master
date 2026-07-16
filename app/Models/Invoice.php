@@ -23,6 +23,9 @@ class Invoice extends Model
         'merchant_id',
         'status',
         'uuid',
+        'return_url',
+        'cancel_url',
+        'reference',
     ];
 
     /**

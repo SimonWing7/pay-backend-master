@@ -45,7 +45,8 @@ class InvoiceController extends Controller
         $consumers = \App\Models\Consumer::where('merchant_id', $merchantId)->get();
         $products = \App\Models\Product::where('merchant_id', $merchantId)->get();
         $groups = \App\Models\Group::where('merchant_id', $merchantId)->with('consumers')->get();
-        return view('merchant.invoices.create', compact('consumers', 'products', 'groups'));
+        $preselectedConsumerId = $request->get('consumer_id');
+        return view('merchant.invoices.create', compact('consumers', 'products', 'groups', 'preselectedConsumerId'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -58,6 +59,7 @@ class InvoiceController extends Controller
             'invoice_details.*.fee'         => 'required|numeric|min:0.01',
             'invoice_details.*.title'       => 'required|string|max:255',
             'link_type'                     => 'nullable|string|in:open,personal',
+            'reference'                     => 'nullable|string|max:100',
             'new_consumer_name'             => 'nullable|string|max:255',
             'new_consumer_email'            => 'nullable|email|max:255',
             'new_consumer_mobile'           => 'nullable|string|max:50',
@@ -186,6 +188,7 @@ class InvoiceController extends Controller
 
         $validator = Validator::make($request->all(), [
             'total_fee' => 'sometimes|numeric|min:0.01',
+            'reference' => 'nullable|string|max:100',
         ]);
 
         if ($validator->fails()) {

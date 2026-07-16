@@ -116,17 +116,21 @@
                     </div>
 
                     <div class="mb-4">
-                        <label for="name" class="form-label">Full Name</label>
+                        <label for="name" class="form-label">
+                            Full Name <span style="color:#dc2626;">*</span>
+                        </label>
                         <input type="text" name="name" id="name"
-                            value="{{ old('name') }}"
+                            value="{{ old('name') }}" required
                             class="form-input"
                             placeholder="Your full name">
                     </div>
 
                     <div class="mb-6">
-                        <label for="mobile_number" class="form-label">Mobile Number</label>
+                        <label for="mobile_number" class="form-label">
+                            Mobile Number <span style="color:#dc2626;">*</span>
+                        </label>
                         <input type="text" name="mobile_number" id="mobile_number"
-                            value="{{ old('mobile_number') }}"
+                            value="{{ old('mobile_number') }}" required
                             class="form-input"
                             placeholder="+971 50 000 0000">
                     </div>

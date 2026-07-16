@@ -21,7 +21,7 @@
 
         <select name="status" class="form-input text-sm py-2 w-40">
             <option value="">All Active</option>
-            <option value="0"  {{ request('status') === '0'  ? 'selected' : '' }}>Draft</option>
+            <option value="0"  {{ request('status') === '0'  ? 'selected' : '' }}>Pending</option>
             <option value="10" {{ request('status') === '10' ? 'selected' : '' }}>Paid</option>
             <option value="20" {{ request('status') === '20' ? 'selected' : '' }}>Failed</option>
             <option value="30" {{ request('status') === '30' ? 'selected' : '' }}>Archived</option>
@@ -109,7 +109,7 @@
                     @elseif($invoice->status->value === 30)
                         <span class="badge-warning" style="background:rgba(107,114,128,0.1);color:#374151;">Archived</span>
                     @else
-                        <span class="badge-warning">Draft</span>
+                        <span class="badge-warning">Pending</span>
                     @endif
                 </td>
                 <td class="text-sm text-gray-500">{{ $invoice->created_at->format('d M Y') }}</td>

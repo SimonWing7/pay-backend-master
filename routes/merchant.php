@@ -74,8 +74,14 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
     
     // Settings
     Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/profile', [App\Http\Controllers\Merchant\MerchantController::class, 'showProfile'])->name('profile');
+        Route::post('/profile', [App\Http\Controllers\Merchant\MerchantController::class, 'updateProfile'])->name('profile.post');
+        Route::post('/profile/regenerate-webhook-secret', [App\Http\Controllers\Merchant\MerchantController::class, 'regenerateWebhookSecret'])->name('profile.regenerate-webhook-secret');
         Route::get('/password', [App\Http\Controllers\Merchant\MerchantController::class, 'showSettingsChangePasswordForm'])->name('password');
         Route::post('/password', [App\Http\Controllers\Merchant\MerchantController::class, 'settingsChangePassword'])->name('password.post');
+        Route::get('/api-keys', [App\Http\Controllers\Merchant\ApiKeyController::class, 'index'])->name('api-keys');
+        Route::post('/api-keys', [App\Http\Controllers\Merchant\ApiKeyController::class, 'store'])->name('api-keys.store');
+        Route::delete('/api-keys/{id}', [App\Http\Controllers\Merchant\ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
     });
 });
 

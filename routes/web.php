@@ -16,6 +16,11 @@ Route::post('/invoice/{uuid}/pay', [App\Http\Controllers\PublicInvoiceController
 // NymCard redirect flow return URL (customer lands here after completing payment on NymCard's page)
 Route::get('/payment/return', [App\Http\Controllers\PublicInvoiceController::class, 'paymentReturn'])->name('public.payment.return');
 
+// Developer documentation
+Route::get('/developers', function () {
+    return view('public.developers');
+})->name('public.developers');
+
 // Public product purchase page
 Route::get('/product/{uuid}', [App\Http\Controllers\PublicProductController::class, 'show'])->name('public.product');
 Route::post('/product/{uuid}', [App\Http\Controllers\PublicProductController::class, 'store'])->name('public.product.store');

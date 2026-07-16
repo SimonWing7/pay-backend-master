@@ -124,14 +124,15 @@ class PublicInvoiceController extends Controller
     }
 
     /**
-     * Handle the return from NymCard's redirect flow.
-     * NymCard redirects back here after the customer completes (or cancels) payment.
-     * The actual status update comes via webhook; this page just shows a waiting/confirmation screen.
+     * Handle the return from the payment provider's redirect flow.
+     * The provider redirects back here after the customer completes (or cancels) payment.
+     * The actual status update comes via webhook; this page shows a waiting/confirmation screen.
+     * If the invoice has a return_url or cancel_url set, we redirect the customer there instead.
      */
-    public function paymentReturn(Request $request): View
+    public function paymentReturn(Request $request): View|RedirectResponse
     {
         $resourceId = $request->query('resourceId');
-        $status = $request->query('status');
+        $status     = $request->query('status');
 
         $payment = null;
         $invoice = null;
@@ -146,6 +147,48 @@ class PublicInvoiceController extends Controller
             }
         }
 
+        // If the invoice has a return/cancel URL, redirect the customer back to the merchant's site
+        if ($invoice) {
+            $isPaid     = $invoice->status === InvoiceStatus::Paid;
+            $isFailed   = $invoice->status === InvoiceStatus::Failed;
+            $statusLabel = $isPaid ? 'paid' : ($isFailed ? 'failed' : 'pending');
+
+            if ($isPaid && $invoice->return_url) {
+                $redirectUrl = $this->appendQueryParams($invoice->return_url, [
+                    'status'          => 'paid',
+                    'payment_link_id' => $invoice->uuid,
+                ]);
+                return redirect($redirectUrl);
+            }
+
+            if ($isFailed && $invoice->cancel_url) {
+                $redirectUrl = $this->appendQueryParams($invoice->cancel_url, [
+                    'status'          => 'failed',
+                    'payment_link_id' => $invoice->uuid,
+                ]);
+                return redirect($redirectUrl);
+            }
+        }
+
         return view('public.payment-return', compact('payment', 'invoice', 'status', 'resourceId'));
+    }
+
+    /**
+     * Append query parameters to a URL, preserving any that already exist.
+     */
+    private function appendQueryParams(string $url, array $params): string
+    {
+        $parsed   = parse_url($url);
+        $existing = [];
+        if (!empty($parsed['query'])) {
+            parse_str($parsed['query'], $existing);
+        }
+        $merged = array_merge($existing, $params);
+
+        $base = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '');
+        if (!empty($parsed['port'])) $base .= ':' . $parsed['port'];
+        if (!empty($parsed['path'])) $base .= $parsed['path'];
+
+        return $base . '?' . http_build_query($merged);
     }
 }

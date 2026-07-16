@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Collection;
 
 class PaymentService extends Service
 {
+    public function __construct(protected WebhookService $webhookService) {}
+
     private function buildPaymentQuery(?int $merchantId, array $filters, string $sortBy, string $sortDir)
     {
         $query = AppUserPayment::with(['appUser', 'invoice.merchant', 'invoice.consumer', 'invoice.invoiceDetails']);
@@ -279,7 +281,15 @@ class PaymentService extends Service
             'status' => PaymentStatus::Complete
         ]);
 
-        return $payment->fresh();
+        $payment = $payment->fresh(['invoice.merchant', 'invoice.consumer', 'invoice.invoiceDetails']);
+
+        // Fire webhook to merchant if configured
+        $merchant = $payment->invoice?->merchant;
+        if ($merchant) {
+            $this->webhookService->dispatch($merchant, 'payment.completed', $this->buildWebhookPayload($payment));
+        }
+
+        return $payment;
     }
 
     /**
@@ -310,7 +320,41 @@ class PaymentService extends Service
             ]);
         }
 
-        return $payment->fresh();
+        $payment = $payment->fresh(['invoice.merchant', 'invoice.consumer', 'invoice.invoiceDetails']);
+
+        // Fire webhook to merchant if configured
+        $merchant = $payment->invoice?->merchant;
+        if ($merchant) {
+            $this->webhookService->dispatch($merchant, 'payment.failed', $this->buildWebhookPayload($payment));
+        }
+
+        return $payment;
+    }
+
+    /**
+     * Build the data payload sent to merchant webhooks.
+     */
+    private function buildWebhookPayload(AppUserPayment $payment): array
+    {
+        $invoice  = $payment->invoice;
+        $consumer = $invoice?->consumer;
+
+        return [
+            'payment_link_id' => $invoice?->uuid,
+            'payment_id'      => $payment->id,
+            'amount'          => (float) ($invoice?->total_fee ?? 0),
+            'currency'        => 'AED',
+            'status'          => $payment->status === PaymentStatus::Complete ? 'paid' : 'failed',
+            'description'     => $invoice?->invoiceDetails?->first()?->title,
+            'customer'        => $consumer ? [
+                'name'   => $consumer->name,
+                'email'  => $consumer->email,
+                'mobile' => $consumer->mobile_number,
+            ] : null,
+            'paid_at' => $payment->status === PaymentStatus::Complete
+                ? $payment->updated_at?->toIso8601String()
+                : null,
+        ];
     }
 
     /**

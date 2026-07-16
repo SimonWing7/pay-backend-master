@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         
         $middleware->alias([
             'merchant.password.change' => \App\Http\Middleware\RequirePasswordChange::class,
+            'merchant.api.auth'        => \App\Http\Middleware\MerchantApiAuthenticate::class,
         ]);
         
         // Configure API authentication to return JSON instead of redirecting

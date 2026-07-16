@@ -27,6 +27,16 @@ class Merchant extends Authenticatable
         'merchant_trading_name',
         'category_code',
         'sic_code',
+        'support_email',
+        'support_phone',
+        'website',
+        'webhook_url',
+        'webhook_secret',
+        'fallback_type',
+        'fallback_payment_url',
+        'fallback_bank_name',
+        'fallback_account_name',
+        'fallback_reference_note',
     ];
 
     /**

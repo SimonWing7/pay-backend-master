@@ -74,6 +74,12 @@
                     <span class="badge-warning">{{ $invoice->status->label() }}</span>
                 @endif
             </div>
+            @if($invoice->reference)
+            <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Reference</p>
+                <p class="text-sm font-mono font-semibold text-gray-800">{{ $invoice->reference }}</p>
+            </div>
+            @endif
             <div>
                 <p class="text-xs text-gray-400 font-medium mb-1">Created</p>
                 <p class="text-sm text-gray-600">{{ $invoice->created_at->format('d M Y, H:i') }}</p>

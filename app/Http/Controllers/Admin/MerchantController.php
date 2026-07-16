@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\MerchantApiKey;
 use App\Services\MerchantService;
+use App\Services\WebhookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -38,14 +40,23 @@ class MerchantController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:merchants,email',
-            'password' => 'required|string|min:8',
-            'is_active' => 'sometimes|boolean',
-            'iban' => 'nullable|string|max:34',
-            'merchant_trading_name' => 'nullable|string|max:255',
-            'category_code' => 'nullable|string|max:10',
-            'sic_code' => 'nullable|string|max:10',
+            'name'                    => 'required|string|max:255',
+            'email'                   => 'required|email|unique:merchants,email',
+            'password'                => 'required|string|min:8',
+            'is_active'               => 'sometimes|boolean',
+            'iban'                    => 'nullable|string|max:34',
+            'merchant_trading_name'   => 'nullable|string|max:255',
+            'category_code'           => 'nullable|string|max:10',
+            'sic_code'                => 'nullable|string|max:10',
+            'support_email'           => 'nullable|email|max:255',
+            'support_phone'           => 'nullable|string|max:50',
+            'website'                 => 'nullable|url|max:2048',
+            'webhook_url'             => 'nullable|url|max:2048',
+            'fallback_type'           => 'nullable|in:,payment_gateway,bank_transfer',
+            'fallback_payment_url'    => 'nullable|url|max:2048',
+            'fallback_bank_name'      => 'nullable|string|max:255',
+            'fallback_account_name'   => 'nullable|string|max:255',
+            'fallback_reference_note' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -54,7 +65,29 @@ class MerchantController extends Controller
                 ->withInput($request->except('password'));
         }
 
-        $this->merchantService->create($validator->validated());
+        $data = $validator->validated();
+
+        // Normalise empty string to null for fallback_type
+        if (isset($data['fallback_type']) && $data['fallback_type'] === '') {
+            $data['fallback_type'] = null;
+        }
+
+        // Clear fields that don't apply to the chosen fallback type
+        if (($data['fallback_type'] ?? null) !== 'payment_gateway') {
+            $data['fallback_payment_url'] = null;
+        }
+        if (($data['fallback_type'] ?? null) !== 'bank_transfer') {
+            $data['fallback_bank_name']      = null;
+            $data['fallback_account_name']   = null;
+            $data['fallback_reference_note'] = null;
+        }
+
+        // Auto-generate a webhook secret if a URL is provided at creation time
+        if (!empty($data['webhook_url'])) {
+            $data['webhook_secret'] = WebhookService::generateSecret();
+        }
+
+        $this->merchantService->create($data);
 
         return redirect()->route('admin.merchants.index')
             ->with('success', 'Merchant created successfully');
@@ -68,7 +101,12 @@ class MerchantController extends Controller
             abort(404, 'Merchant not found');
         }
 
-        return view('admin.merchants.show', compact('merchant'));
+        $apiKeys = MerchantApiKey::where('merchant_id', $id)
+            ->whereNull('deleted_at')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.merchants.show', compact('merchant', 'apiKeys'));
     }
 
     public function edit(int $id): View
@@ -91,14 +129,23 @@ class MerchantController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:merchants,email,' . $id,
-            'password' => 'nullable|string|min:8',
-            'is_active' => 'sometimes|boolean',
-            'iban' => 'nullable|string|max:34',
-            'merchant_trading_name' => 'nullable|string|max:255',
-            'category_code' => 'nullable|string|max:10',
-            'sic_code' => 'nullable|string|max:10',
+            'name'                    => 'sometimes|string|max:255',
+            'email'                   => 'sometimes|email|unique:merchants,email,' . $id,
+            'password'                => 'nullable|string|min:8',
+            'is_active'               => 'sometimes|boolean',
+            'iban'                    => 'nullable|string|max:34',
+            'merchant_trading_name'   => 'nullable|string|max:255',
+            'category_code'           => 'nullable|string|max:10',
+            'sic_code'                => 'nullable|string|max:10',
+            'support_email'           => 'nullable|email|max:255',
+            'support_phone'           => 'nullable|string|max:50',
+            'website'                 => 'nullable|url|max:2048',
+            'webhook_url'             => 'nullable|url|max:2048',
+            'fallback_type'           => 'nullable|in:,payment_gateway,bank_transfer',
+            'fallback_payment_url'    => 'nullable|url|max:2048',
+            'fallback_bank_name'      => 'nullable|string|max:255',
+            'fallback_account_name'   => 'nullable|string|max:255',
+            'fallback_reference_note' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -107,9 +154,38 @@ class MerchantController extends Controller
                 ->withInput($request->except('password'));
         }
 
-        $this->merchantService->update($merchant, $validator->validated());
+        $data = $validator->validated();
 
-        return redirect()->route('admin.merchants.index')
+        // Normalise empty string to null for fallback_type
+        if (isset($data['fallback_type']) && $data['fallback_type'] === '') {
+            $data['fallback_type'] = null;
+        }
+
+        // Clear gateway URL when not using payment_gateway
+        if (($data['fallback_type'] ?? null) !== 'payment_gateway') {
+            $data['fallback_payment_url'] = null;
+        }
+
+        // Clear transfer fields when not using bank_transfer
+        if (($data['fallback_type'] ?? null) !== 'bank_transfer') {
+            $data['fallback_bank_name']      = null;
+            $data['fallback_account_name']   = null;
+            $data['fallback_reference_note'] = null;
+        }
+
+        // Auto-generate webhook secret when a URL is being set and none exists yet
+        if (!empty($data['webhook_url']) && empty($merchant->webhook_secret)) {
+            $data['webhook_secret'] = WebhookService::generateSecret();
+        }
+
+        // Clear the secret when the webhook URL is removed
+        if (isset($data['webhook_url']) && empty($data['webhook_url'])) {
+            $data['webhook_secret'] = null;
+        }
+
+        $this->merchantService->update($merchant, $data);
+
+        return redirect()->route('admin.merchants.show', $id)
             ->with('success', 'Merchant updated successfully');
     }
 
@@ -144,4 +220,3 @@ class MerchantController extends Controller
             ->with('success', "Merchant {$status} successfully");
     }
 }
-

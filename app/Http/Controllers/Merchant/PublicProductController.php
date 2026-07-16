@@ -44,9 +44,9 @@ class PublicProductController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
             'email' => 'required|email',
-            'mobile_number' => 'nullable|string',
+            'mobile_number' => 'required|string',
         ]);
 
         if ($validator->fails()) {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Merchant;
 use App\Http\Controllers\Controller;
 use App\Services\MerchantService;
 use App\Services\PaymentService;
+use App\Services\WebhookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -123,6 +124,83 @@ class MerchantController extends Controller
 
         return redirect()->route('merchant.dashboard')
             ->with('success', 'Password changed successfully');
+    }
+
+    public function showProfile(): View
+    {
+        $merchant = auth('merchants')->user();
+        return view('merchant.settings.profile', compact('merchant'));
+    }
+
+    public function updateProfile(Request $request): RedirectResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'merchant_trading_name'  => 'required|string|max:255',
+            'support_email'          => 'nullable|email|max:255',
+            'support_phone'          => 'nullable|string|max:50',
+            'website'                => 'nullable|url|max:255',
+            'webhook_url'            => 'nullable|url|max:2048',
+            // Fallback payment method
+            'fallback_type'          => 'nullable|in:,payment_gateway,bank_transfer',
+            'fallback_payment_url'   => 'nullable|url|max:2048',
+            'fallback_bank_name'     => 'nullable|string|max:255',
+            'fallback_account_name'  => 'nullable|string|max:255',
+            'fallback_reference_note'=> 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $merchant = auth('merchants')->user();
+        $data     = $validator->validated();
+
+        // Normalise empty string to null for fallback_type
+        if (isset($data['fallback_type']) && $data['fallback_type'] === '') {
+            $data['fallback_type'] = null;
+        }
+
+        // Clear gateway URL when not using payment_gateway
+        if (($data['fallback_type'] ?? null) !== 'payment_gateway') {
+            $data['fallback_payment_url'] = null;
+        }
+
+        // Clear transfer fields when not using bank_transfer
+        if (($data['fallback_type'] ?? null) !== 'bank_transfer') {
+            $data['fallback_bank_name']      = null;
+            $data['fallback_account_name']   = null;
+            $data['fallback_reference_note'] = null;
+        }
+
+        // Auto-generate a webhook secret the first time a webhook URL is set
+        if (!empty($data['webhook_url']) && empty($merchant->webhook_secret)) {
+            $data['webhook_secret'] = WebhookService::generateSecret();
+        }
+
+        // If webhook URL is cleared, remove the secret too
+        if (empty($data['webhook_url'])) {
+            $data['webhook_secret'] = null;
+        }
+
+        $merchant->update($data);
+
+        return redirect()->route('merchant.settings.profile')
+            ->with('success', 'Settings updated successfully.');
+    }
+
+    public function regenerateWebhookSecret(Request $request): RedirectResponse
+    {
+        $merchant = auth('merchants')->user();
+
+        if (empty($merchant->webhook_url)) {
+            return redirect()->route('merchant.settings.profile')
+                ->with('error', 'Set a webhook URL before generating a secret.');
+        }
+
+        $merchant->update(['webhook_secret' => WebhookService::generateSecret()]);
+
+        return redirect()->route('merchant.settings.profile')
+            ->with('success', 'Webhook secret regenerated. Update your server with the new value.');
     }
 
     public function showSettingsChangePasswordForm(): View

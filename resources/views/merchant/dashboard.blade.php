@@ -2,7 +2,7 @@
 
 @section('title', 'Dashboard')
 @section('page-title', 'Dashboard')
-@section('page-subtitle', 'Welcome back, {{ auth("merchants")->user()->name }}')
+@section('page-subtitle')Welcome back, {{ auth('merchants')->user()->name }}@endsection
 
 @section('topbar-actions')
     <a href="{{ route('merchant.invoices.create') }}" class="btn-primary">

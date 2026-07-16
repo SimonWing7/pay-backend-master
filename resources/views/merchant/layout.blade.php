@@ -292,7 +292,7 @@
 
             <div class="nav-section-label">Account</div>
 
-            <a href="{{ route('merchant.settings.password') }}"
+            <a href="{{ route('merchant.settings.profile') }}"
                class="nav-link {{ request()->routeIs('merchant.settings*') ? 'active' : '' }}">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>

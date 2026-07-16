@@ -13,3 +13,15 @@ Route::prefix('v1')->name('v1.')->group(function () {
 // NymCard Webhook (public endpoint, no auth required)
 Route::post('/webhooks/nymcard', [App\Http\Controllers\Api\NymCardWebhookController::class, 'handle'])
     ->name('webhooks.nymcard');
+
+// -----------------------------------------------------------------------
+// Merchant REST API — authenticated with API keys (Authorization: Bearer epk_live_…)
+// -----------------------------------------------------------------------
+Route::prefix('v1')->name('merchant.api.')->middleware('merchant.api.auth')->group(function () {
+    // Payment links
+    Route::post('/payment-links',        [App\Http\Controllers\Api\MerchantApiController::class, 'createPaymentLink'])->name('payment-links.create');
+    Route::get('/payment-links/{uuid}',  [App\Http\Controllers\Api\MerchantApiController::class, 'getPaymentLink'])->name('payment-links.show');
+
+    // Payments
+    Route::get('/payments',              [App\Http\Controllers\Api\MerchantApiController::class, 'listPayments'])->name('payments.index');
+});

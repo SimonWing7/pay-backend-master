@@ -129,11 +129,22 @@
                     </div>
                 </div>
 
-                <div>
-                    <label class="form-label">Due Date <span class="text-gray-400 font-normal">(optional)</span></label>
-                    <input type="date" name="due_date"
-                        value="{{ old('due_date') }}"
-                        class="form-input" style="max-width:220px;">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="form-label">Due Date <span class="text-gray-400 font-normal">(optional)</span></label>
+                        <input type="date" name="due_date"
+                            value="{{ old('due_date') }}"
+                            class="form-input">
+                    </div>
+                    <div>
+                        <label class="form-label">Reference <span class="text-gray-400 font-normal">(optional)</span></label>
+                        <input type="text" name="reference"
+                            value="{{ old('reference') }}"
+                            class="form-input"
+                            placeholder="e.g. TERM1-2025"
+                            maxlength="100">
+                        <p class="text-xs text-gray-400 mt-1">Your own code for reconciliation.</p>
+                    </div>
                 </div>
             </div>
 
@@ -172,7 +183,7 @@
                         <select name="consumer_id" id="consumer_id" class="form-input">
                             <option value="">Choose an individual…</option>
                             @foreach($consumers as $consumer)
-                                <option value="{{ $consumer->id }}" {{ old('consumer_id') == $consumer->id ? 'selected' : '' }}>
+                                <option value="{{ $consumer->id }}" {{ (old('consumer_id') ?? $preselectedConsumerId) == $consumer->id ? 'selected' : '' }}>
                                     {{ $consumer->name }}@if($consumer->email) ({{ $consumer->email }})@endif
                                 </option>
                             @endforeach
@@ -312,10 +323,20 @@ document.getElementById('new_consumer_name').addEventListener('input', function(
     document.getElementById('summaryIndividual').textContent = this.value.trim() || '—';
 });
 
-// Restore state on old() if validation failed
+// Restore state on old() if validation failed, or pre-select from consumer profile
 document.addEventListener('DOMContentLoaded', function() {
     const storedType = document.getElementById('link_type').value;
-    if (storedType === 'personal') selectLinkType('personal');
+    @if($preselectedConsumerId && !old('link_type'))
+        // Came from a customer profile — switch to personal and lock it in
+        selectLinkType('personal');
+        const sel = document.getElementById('consumer_id');
+        const opt = sel.options[sel.selectedIndex];
+        if (opt && opt.value) {
+            document.getElementById('summaryIndividual').textContent = opt.text;
+        }
+    @else
+        if (storedType === 'personal') selectLinkType('personal');
+    @endif
     syncTotal();
 
     @if(old('link_type') === 'personal' && old('new_consumer_name'))

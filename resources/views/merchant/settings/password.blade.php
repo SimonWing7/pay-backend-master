@@ -1,10 +1,13 @@
 @extends('merchant.layout')
 
-@section('title', 'Settings')
+@section('title', 'Settings — Change Password')
 @section('page-title', 'Settings')
-@section('page-subtitle', 'Manage your account security')
+@section('page-subtitle', 'Manage your account and business details')
 
 @section('content')
+
+@include('merchant.settings._tabs')
+
 <div class="max-w-lg">
     <div class="card p-6">
         <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-5">Change Password</h3>
