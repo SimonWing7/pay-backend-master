@@ -372,15 +372,21 @@ function switchIndividualTab(tab) {
 }
 
 // Watch existing consumer select for summary
-document.getElementById('consumer_id').addEventListener('change', function() {
-    const opt = this.options[this.selectedIndex];
-    document.getElementById('summaryIndividual').textContent = opt.value ? opt.text : '—';
-});
+const consumerSelect = document.getElementById('consumer_id');
+if (consumerSelect) {
+    consumerSelect.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        document.getElementById('summaryIndividual').textContent = opt.value ? opt.text : '—';
+    });
+}
 
 // Watch new individual name field for summary
-document.getElementById('new_consumer_name').addEventListener('input', function() {
-    document.getElementById('summaryIndividual').textContent = this.value.trim() || '—';
-});
+const newConsumerName = document.getElementById('new_consumer_name');
+if (newConsumerName) {
+    newConsumerName.addEventListener('input', function() {
+        document.getElementById('summaryIndividual').textContent = this.value.trim() || '—';
+    });
+}
 
 // ---- Custom Fields ----
 const MAX_CUSTOM_FIELDS = 5;
