@@ -6,8 +6,8 @@
     <title>Complete Payment - {{ $invoice->merchant->name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    {{-- NymCard Web SDK --}}
-    <script src="https://web-sdk.nymcard.com/openfinance/latest/nymcard-openfinance.js"></script>
+    {{-- Lean LinkSDK --}}
+    <script src="https://cdn.leantech.me/link/sdk/web/latest/Lean.min.js"></script>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen flex flex-col items-center justify-start py-8 px-4 sm:px-6 lg:px-8">
@@ -27,19 +27,17 @@
                 </div>
             </div>
 
-            <!-- Loading state (shown while SDK initialises) -->
+            <!-- Loading state (shown while Lean SDK initialises) -->
             <div id="sdkLoading" class="bg-white rounded-lg shadow-lg p-8 text-center">
                 <div class="flex flex-col items-center space-y-4">
                     <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                     </svg>
-                    <p class="text-gray-600 font-medium">Loading secure bank connection…</p>
+                    <p class="text-gray-600 font-medium">Launching secure bank connection…</p>
+                    <p class="text-sm text-gray-400">You will be redirected to your bank momentarily.</p>
                 </div>
             </div>
-
-            <!-- NymCard Web SDK renders here -->
-            <div id="nymcard-openfinance" class="bg-white rounded-lg shadow-lg overflow-hidden" style="display:none; min-height: 500px;"></div>
 
             <!-- Error state -->
             <div id="sdkError" class="hidden bg-red-50 border border-red-200 rounded-lg p-6 text-center">
@@ -70,70 +68,76 @@
     </div>
 
     <script>
-        const sdkToken = @json($sdkToken);
-        const resourceId = @json($resourceId);
-        const invoiceUuid = @json($invoice->uuid);
-        const returnUrl = @json(route('public.payment.return'));
+        const paymentIntentId = @json($paymentIntentId);
+        const leanAppToken    = @json($leanAppToken);
+        const leanSandbox     = @json($leanSandbox);
+        const invoiceUuid     = @json($invoice->uuid);
+        const returnUrl       = @json(route('public.payment.return'));
 
         function showError(message) {
             document.getElementById('sdkLoading').style.display = 'none';
-            document.getElementById('nymcard-openfinance').style.display = 'none';
             document.getElementById('sdkError').classList.remove('hidden');
             if (message) {
                 document.getElementById('sdkErrorMessage').textContent = message;
             }
         }
 
-        function collectDeviceInformation() {
-            return {
-                browserAcceptHeader: navigator.languages ? navigator.languages.join(',') : navigator.language,
-                browserColorDepth: String(screen.colorDepth),
-                browserJavaEnabled: String(navigator.javaEnabled ? navigator.javaEnabled() : false),
-                browserLanguage: navigator.language,
-                browserScreenHeight: String(screen.height),
-                browserScreenWidth: String(screen.width),
-                browserTimeZone: String(new Date().getTimezoneOffset()),
-                browserUserAgent: navigator.userAgent,
-                browserJavascriptEnabled: 'true',
-            };
-        }
-
         document.addEventListener('DOMContentLoaded', function () {
-            if (typeof NymCardOpenFinance === 'undefined') {
+            if (typeof Lean === 'undefined') {
                 showError('Payment SDK could not be loaded. Please check your connection and try again.');
                 return;
             }
 
-            try {
-                const deviceInformation = collectDeviceInformation();
+            if (!paymentIntentId) {
+                showError('No payment session found. Please go back and try again.');
+                return;
+            }
 
-                NymCardOpenFinance.init({
-                    token: sdkToken,
-                    deviceInformation: deviceInformation,
-                    containerId: 'nymcard-openfinance',
-                    onReady: function () {
-                        document.getElementById('sdkLoading').style.display = 'none';
-                        document.getElementById('nymcard-openfinance').style.display = 'block';
-                    },
-                    onSuccess: function (data) {
-                        // Payment flow completed successfully — redirect to return page
-                        window.location.href = returnUrl + '?resourceId=' + encodeURIComponent(resourceId || '') + '&status=success';
-                    },
-                    onFailure: function (data) {
-                        // Payment flow failed
-                        window.location.href = returnUrl + '?resourceId=' + encodeURIComponent(resourceId || '') + '&status=failed';
-                    },
-                    onCancel: function () {
-                        // User cancelled — return to invoice page
-                        window.location.href = '/invoice/' + invoiceUuid;
-                    },
-                    onError: function (error) {
-                        console.error('NymCard SDK error:', error);
-                        showError('A payment error occurred. Please go back and try again.');
+            try {
+                Lean.pay({
+                    app_token:          leanAppToken,
+                    payment_intent_id:  paymentIntentId,
+                    sandbox:            leanSandbox ? 'true' : 'false',
+
+                    callback: function (response) {
+                        /*
+                         * Lean SDK callback statuses:
+                         *   SUCCESS   — customer completed the bank flow
+                         *   CANCELLED — customer closed / went back
+                         *   FAILED    — SDK-level error
+                         *   ERROR     — unexpected error
+                         *
+                         * Note: SUCCESS here means the customer authorised the payment in their
+                         * banking app. Actual settlement confirmation comes via Lean webhook
+                         * (iso_status = ACCEPTED_SETTLEMENT_COMPLETED). We show a "payment
+                         * submitted" screen and the webhook updates the final status.
+                         */
+                        const status = (response && response.status)
+                            ? response.status.toLowerCase()
+                            : 'unknown';
+
+                        if (status === 'success') {
+                            window.location.href = returnUrl
+                                + '?intent_id=' + encodeURIComponent(paymentIntentId)
+                                + '&status=success';
+                        } else if (status === 'cancelled') {
+                            // Return to invoice so the customer can try again
+                            window.location.href = '/invoice/' + invoiceUuid + '?cancelled=1';
+                        } else {
+                            // failed / error / unknown
+                            window.location.href = returnUrl
+                                + '?intent_id=' + encodeURIComponent(paymentIntentId)
+                                + '&status=failed';
+                        }
                     },
                 });
+
+                // Hide loading spinner once Lean has been called
+                // (Lean opens its own overlay — our page just sits behind it)
+                document.getElementById('sdkLoading').style.display = 'none';
+
             } catch (e) {
-                console.error('NymCard init exception:', e);
+                console.error('Lean.pay() exception:', e);
                 showError('The payment session could not be started. Please go back and try again.');
             }
         });

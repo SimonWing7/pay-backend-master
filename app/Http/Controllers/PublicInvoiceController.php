@@ -6,7 +6,7 @@ use App\Enums\InvoiceStatus;
 use App\Enums\PaymentStatus;
 use App\Models\AppUserPayment;
 use App\Models\Invoice;
-use App\Services\NymCardService;
+use App\Services\LeanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -28,13 +28,15 @@ class PublicInvoiceController extends Controller
     }
 
     /**
-     * Initiate a web-based Open Finance payment for an invoice.
-     * Creates an AppUserPayment record (with app_user_id = null for web payments),
-     * calls NymCard to initiate the payment, then either:
-     *   - Redirect flow: redirects the customer to NymCard's hosted page
-     *   - Embedded flow: redirects to our payment-process page with the sdkToken
+     * Initiate a web-based Open Finance payment for an invoice via Lean.
+     *
+     * Flow:
+     * 1. Validate customer fields (name, email, mobile + any custom fields)
+     * 2. Create a Lean payment intent (server-side API call)
+     * 3. Store an AppUserPayment record with the intent ID
+     * 4. Render payment-process.blade.php — Lean SDK picks up from there
      */
-    public function pay(string $uuid, NymCardService $nymCard): RedirectResponse|View
+    public function pay(string $uuid, LeanService $lean, Request $request): RedirectResponse|View
     {
         $invoice = Invoice::where('uuid', $uuid)
             ->with(['merchant', 'consumer', 'invoiceDetails.product'])
@@ -46,99 +48,92 @@ class PublicInvoiceController extends Controller
 
         if ($invoice->status !== InvoiceStatus::Draft) {
             return redirect()->route('public.invoice.show', $uuid)
-                ->with('error', 'This invoice cannot be paid — it has already been paid or failed.');
+                ->with('error', 'This invoice cannot be paid — it has already been paid or is no longer active.');
         }
 
-        try {
-            $paymentData = $nymCard->buildWebPaymentRequest($invoice);
-        } catch (\Exception $e) {
-            Log::error('Failed to build web payment request', [
-                'invoice_uuid' => $uuid,
-                'error' => $e->getMessage(),
-            ]);
+        // ── Validate customer fields ──────────────────────────────────────────
+        $rules = [
+            'customer_name'   => 'required|string|max:255',
+            'customer_email'  => 'required|email|max:255',
+            'customer_mobile' => 'required|string|max:50',
+            'custom_fields'   => 'nullable|array',
+        ];
 
-            return redirect()->route('public.invoice.show', $uuid)
-                ->with('error', 'Payment could not be initiated. Please contact the merchant.');
+        if ($invoice->custom_fields) {
+            foreach ($invoice->custom_fields as $field) {
+                $key = 'custom_fields.' . $field['label'];
+                $rules[$key] = !empty($field['required']) ? 'required|string|max:500' : 'nullable|string|max:500';
+            }
         }
 
-        $result = $nymCard->initiatePayment($paymentData);
+        $validated = $request->validate($rules);
+
+        // ── Create Lean payment intent ────────────────────────────────────────
+        $result = $lean->createPaymentIntent($invoice);
 
         if (!$result['success']) {
-            Log::error('NymCard initiate payment failed for web flow', [
+            Log::error('Lean payment intent creation failed', [
                 'invoice_uuid' => $uuid,
-                'error' => $result['error'],
+                'error'        => $result['error'],
             ]);
 
             return redirect()->route('public.invoice.show', $uuid)
                 ->with('error', 'Payment could not be initiated. Please try again or contact the merchant.');
         }
 
-        $data = $result['data'];
+        $paymentIntentId = $result['payment_intent_id'];
 
-        // Create the payment record (no AppUser for web payments)
+        // ── Persist payment record ────────────────────────────────────────────
         $payment = AppUserPayment::create([
-            'app_user_id' => null,
-            'invoice_id' => $invoice->id,
-            'payment_channel' => 'web',
-            'status' => PaymentStatus::Initiated,
-            'nymcard_resource_id' => $data['resourceId'] ?? null,
-            'nymcard_user_id' => $data['userId'] ?? null,
-            'nymcard_token' => $data['token'] ?? null,
-            'nymcard_metadata' => $data,
+            'app_user_id'            => null,
+            'invoice_id'             => $invoice->id,
+            'payment_channel'        => 'web',
+            'status'                 => PaymentStatus::Initiated,
+            'customer_name'          => $validated['customer_name'] ?? null,
+            'customer_email'         => $validated['customer_email'] ?? null,
+            'customer_mobile'        => $validated['customer_mobile'] ?? null,
+            'custom_field_values'    => !empty($validated['custom_fields']) ? $validated['custom_fields'] : null,
+            'lean_payment_intent_id' => $paymentIntentId,
+            'lean_metadata'          => $result['data'],
         ]);
 
-        // Redirect flow: NymCard returns a hosted redirectUri
-        if (!empty($data['redirectUri'])) {
-            Log::info('NymCard redirect flow initiated', [
-                'invoice_uuid' => $uuid,
-                'payment_id' => $payment->id,
-                'redirect_uri' => $data['redirectUri'],
-            ]);
-
-            return redirect($data['redirectUri']);
-        }
-
-        // Embedded flow: NymCard returns an sdkToken for the Web SDK
-        if (!empty($data['token'])) {
-            Log::info('NymCard embedded flow initiated', [
-                'invoice_uuid' => $uuid,
-                'payment_id' => $payment->id,
-            ]);
-
-            return view('public.payment-process', [
-                'invoice' => $invoice,
-                'payment' => $payment,
-                'sdkToken' => $data['token'],
-                'resourceId' => $data['resourceId'] ?? null,
-            ]);
-        }
-
-        // Unexpected response shape
-        Log::error('NymCard response missing token and redirectUri', [
-            'invoice_uuid' => $uuid,
-            'data' => $data,
+        Log::info('Lean payment initiated', [
+            'invoice_uuid'      => $uuid,
+            'payment_id'        => $payment->id,
+            'payment_intent_id' => $paymentIntentId,
         ]);
 
-        return redirect()->route('public.invoice.show', $uuid)
-            ->with('error', 'Payment could not be initiated. Please try again.');
+        // ── Render the payment-process page (Lean SDK takes it from here) ─────
+        return view('public.payment-process', [
+            'invoice'          => $invoice,
+            'payment'          => $payment,
+            'paymentIntentId'  => $paymentIntentId,
+            'leanAppToken'     => $lean->getAppToken(),
+            'leanSandbox'      => $lean->isSandbox(),
+        ]);
     }
 
     /**
-     * Handle the return from the payment provider's redirect flow.
-     * The provider redirects back here after the customer completes (or cancels) payment.
-     * The actual status update comes via webhook; this page shows a waiting/confirmation screen.
-     * If the invoice has a return_url or cancel_url set, we redirect the customer there instead.
+     * Handle return from the Lean SDK callback redirect.
+     *
+     * The payment-process page redirects here after Lean's callback fires.
+     * The actual authoritative status comes via webhook; this page shows the
+     * customer a pending/success/failed screen.
+     *
+     * Query params:
+     *   intent_id — the Lean payment_intent_id (new flow)
+     *   status    — 'success', 'failed', or 'cancelled' (from our frontend callback)
      */
     public function paymentReturn(Request $request): View|RedirectResponse
     {
-        $resourceId = $request->query('resourceId');
-        $status     = $request->query('status');
+        $intentId  = $request->query('intent_id');
+        $status    = $request->query('status');
 
         $payment = null;
         $invoice = null;
 
-        if ($resourceId) {
-            $payment = AppUserPayment::where('nymcard_resource_id', $resourceId)
+        if ($intentId) {
+            $payment = AppUserPayment::where('lean_payment_intent_id', $intentId)
                 ->with('invoice.merchant')
                 ->first();
 
@@ -147,11 +142,10 @@ class PublicInvoiceController extends Controller
             }
         }
 
-        // If the invoice has a return/cancel URL, redirect the customer back to the merchant's site
+        // ── Merchant return/cancel URL redirects ──────────────────────────────
         if ($invoice) {
-            $isPaid     = $invoice->status === InvoiceStatus::Paid;
-            $isFailed   = $invoice->status === InvoiceStatus::Failed;
-            $statusLabel = $isPaid ? 'paid' : ($isFailed ? 'failed' : 'pending');
+            $isPaid   = $invoice->status === InvoiceStatus::Paid;
+            $isFailed = $invoice->status === InvoiceStatus::Failed;
 
             if ($isPaid && $invoice->return_url) {
                 $redirectUrl = $this->appendQueryParams($invoice->return_url, [
@@ -170,7 +164,7 @@ class PublicInvoiceController extends Controller
             }
         }
 
-        return view('public.payment-return', compact('payment', 'invoice', 'status', 'resourceId'));
+        return view('public.payment-return', compact('payment', 'invoice', 'status', 'intentId'));
     }
 
     /**

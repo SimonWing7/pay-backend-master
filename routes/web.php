@@ -13,8 +13,11 @@ require __DIR__.'/merchant.php';
 Route::get('/invoice/{uuid}', [App\Http\Controllers\PublicInvoiceController::class, 'show'])->name('public.invoice.show');
 Route::post('/invoice/{uuid}/pay', [App\Http\Controllers\PublicInvoiceController::class, 'pay'])->name('public.invoice.pay');
 
-// NymCard redirect flow return URL (customer lands here after completing payment on NymCard's page)
+// Lean return URL (customer lands here after Lean SDK callback redirects)
 Route::get('/payment/return', [App\Http\Controllers\PublicInvoiceController::class, 'paymentReturn'])->name('public.payment.return');
+
+// Lean webhook (CSRF excluded in bootstrap/app.php — Lean signs requests with HMAC-SHA256)
+Route::post('/webhook/lean', [App\Http\Controllers\LeanWebhookController::class, 'handle'])->name('webhook.lean');
 
 // Developer documentation
 Route::get('/developers', function () {

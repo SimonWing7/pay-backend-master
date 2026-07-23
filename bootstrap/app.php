@@ -13,6 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Exclude Lean webhook from CSRF — Lean signs requests with HMAC-SHA256 instead
+        $middleware->validateCsrfTokens(except: [
+            'webhook/lean',
+        ]);
+
         $middleware->web(append: [
             // \App\Http\Middleware\Authenticate::class,
         ]);

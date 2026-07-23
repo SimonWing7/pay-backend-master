@@ -11,7 +11,7 @@
     <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-lg w-full space-y-6">
 
-            @if($status === 'success' || ($payment && $payment->status->value === 10))
+            @if($status === 'success' || ($payment && $payment->status === \App\Enums\PaymentStatus::Complete))
 
             {{-- Payment completed successfully --}}
             <div class="bg-white rounded-lg shadow-lg p-8 text-center">
@@ -46,7 +46,7 @@
                 </div>
             </div>
 
-            @elseif($status === 'failed' || ($payment && $payment->status->value === 20))
+            @elseif($status === 'failed' || ($payment && $payment->status === \App\Enums\PaymentStatus::Failed))
 
             {{-- Payment failed --}}
             <div class="bg-white rounded-lg shadow-lg p-8 text-center">
