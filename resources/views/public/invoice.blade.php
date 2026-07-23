@@ -150,6 +150,75 @@
 
                 <form method="POST" action="{{ route('public.invoice.pay', $invoice->uuid) }}" id="paymentForm">
                     @csrf
+
+                    {{-- Customer details fields --}}
+                    <div class="mb-5 space-y-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide mb-3" style="color:#9ca3af;">Your Details</p>
+
+                        @if($errors->any())
+                        <div class="p-3 rounded-xl text-xs" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;">
+                            <ul class="space-y-1">
+                                @foreach($errors->all() as $error)
+                                    <li><i class="fas fa-exclamation-circle mr-1"></i>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        @endif
+
+                        <div>
+                            <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">
+                                Full Name <span style="color:#ef4444;">*</span>
+                            </label>
+                            <input type="text" name="customer_name" value="{{ old('customer_name') }}" required
+                                placeholder="e.g. Sarah Al Mansouri"
+                                style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
+                        </div>
+
+                        <div>
+                            <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">
+                                Email Address <span style="color:#ef4444;">*</span>
+                            </label>
+                            <input type="email" name="customer_email" value="{{ old('customer_email') }}" required
+                                placeholder="you@example.com"
+                                style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
+                        </div>
+
+                        <div>
+                            <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">
+                                Mobile Number <span style="color:#ef4444;">*</span>
+                            </label>
+                            <input type="tel" name="customer_mobile" value="{{ old('customer_mobile') }}" required
+                                placeholder="+971 50 000 0000"
+                                style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
+                        </div>
+
+                        @if($invoice->custom_fields && count($invoice->custom_fields) > 0)
+                            @foreach($invoice->custom_fields as $field)
+                            @php $fieldKey = 'custom_field_' . \Illuminate\Support\Str::slug($field['label'], '_'); @endphp
+                            <div>
+                                <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">
+                                    {{ $field['label'] }}
+                                    @if(!empty($field['required']))
+                                        <span style="color:#ef4444;">*</span>
+                                    @else
+                                        <span style="color:#9ca3af;font-weight:400;"> (optional)</span>
+                                    @endif
+                                </label>
+                                <input type="text"
+                                    name="custom_fields[{{ $field['label'] }}]"
+                                    value="{{ old('custom_fields.' . $field['label']) }}"
+                                    {{ !empty($field['required']) ? 'required' : '' }}
+                                    placeholder="{{ $field['label'] }}"
+                                    style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
+                            </div>
+                            @endforeach
+                        @endif
+                    </div>
+
                     <button type="submit" id="payButton" class="pay-btn">
                         <i class="fas fa-university"></i>
                         Pay AED {{ number_format($invoice->total_fee, 2) }} by Bank

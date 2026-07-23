@@ -26,6 +26,7 @@ class Invoice extends Model
         'return_url',
         'cancel_url',
         'reference',
+        'custom_fields',
     ];
 
     /**
@@ -55,6 +56,7 @@ class Invoice extends Model
         return [
             'total_fee' => 'double',
             'status' => InvoiceStatus::class,
+            'custom_fields' => 'array',
         ];
     }
 

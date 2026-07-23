@@ -146,6 +146,79 @@
 </div>
 @endif
 
+{{-- Payments on this invoice --}}
+@if($invoice->appUserPayments && $invoice->appUserPayments->count() > 0)
+<div class="card overflow-hidden mt-6">
+    <div class="px-6 py-4 border-b border-gray-100">
+        <h3 class="text-sm font-semibold text-gray-700">Payments</h3>
+    </div>
+    <div class="divide-y divide-gray-50">
+        @foreach($invoice->appUserPayments as $payment)
+        <div class="px-6 py-5">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="stat-icon" style="width:36px;height:36px;font-size:13px;border-radius:8px;flex-shrink:0;">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-800">#{{ $payment->id }}</p>
+                        <p class="text-xs text-gray-400 font-mono">{{ substr($payment->token ?? '', 0, 16) }}{{ strlen($payment->token ?? '') > 16 ? '…' : '' }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-400">{{ $payment->created_at->format('d M Y, H:i') }}</span>
+                    @if($payment->status->value === 10)
+                        <span class="badge-success">{{ $payment->status->label() }}</span>
+                    @elseif($payment->status->value === 20)
+                        <span class="badge-danger">{{ $payment->status->label() }}</span>
+                    @else
+                        <span class="badge-warning">{{ $payment->status->label() }}</span>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Customer details collected at payment time --}}
+            @if($payment->customer_name || $payment->customer_email || $payment->customer_mobile || $payment->custom_field_values)
+            <div class="mt-3 rounded-xl p-4" style="background:#f8f9ff;border:1px solid #eef0f5;">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Customer Details</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    @if($payment->customer_name)
+                    <div>
+                        <p class="text-xs text-gray-400 font-medium mb-0.5">Name</p>
+                        <p class="text-sm font-semibold text-gray-800">{{ $payment->customer_name }}</p>
+                    </div>
+                    @endif
+                    @if($payment->customer_email)
+                    <div>
+                        <p class="text-xs text-gray-400 font-medium mb-0.5">Email</p>
+                        <p class="text-sm text-gray-700">{{ $payment->customer_email }}</p>
+                    </div>
+                    @endif
+                    @if($payment->customer_mobile)
+                    <div>
+                        <p class="text-xs text-gray-400 font-medium mb-0.5">Mobile</p>
+                        <p class="text-sm text-gray-700">{{ $payment->customer_mobile }}</p>
+                    </div>
+                    @endif
+                </div>
+                @if($payment->custom_field_values && count($payment->custom_field_values) > 0)
+                <div class="mt-3 pt-3 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    @foreach($payment->custom_field_values as $label => $value)
+                    <div>
+                        <p class="text-xs text-gray-400 font-medium mb-0.5">{{ $label }}</p>
+                        <p class="text-sm text-gray-700">{{ $value ?: '—' }}</p>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+            @endif
+        </div>
+        @endforeach
+    </div>
+</div>
+@endif
+
 @push('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>

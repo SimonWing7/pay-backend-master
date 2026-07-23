@@ -22,6 +22,10 @@ class AppUserPayment extends Model
         'token',
         'status',
         'payment_channel',
+        'customer_name',
+        'customer_email',
+        'customer_mobile',
+        'custom_field_values',
         'nymcard_resource_id',
         'nymcard_token',
         'nymcard_user_id',
@@ -43,6 +47,7 @@ class AppUserPayment extends Model
     {
         return [
             'status' => PaymentStatus::class,
+            'custom_field_values' => 'array',
             'nymcard_metadata' => 'array',
             'flow_success_data' => 'array',
             'flow_failure_data' => 'array',

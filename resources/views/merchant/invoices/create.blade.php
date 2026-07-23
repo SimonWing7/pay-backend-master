@@ -148,6 +148,65 @@
                 </div>
             </div>
 
+            {{-- Customer Fields --}}
+            <div class="card p-6">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Customer Fields</h3>
+                <p class="text-xs text-gray-400 mb-4">Collected from customers before they pay. The three mandatory fields are always shown.</p>
+
+                {{-- Mandatory fields (read-only display) --}}
+                <div class="mb-5">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Mandatory Fields</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#f0f1f5;color:#4b5563;border:1px solid #e2e5ef;">
+                            <i class="fas fa-lock text-gray-400" style="font-size:10px;"></i> Name
+                        </span>
+                        <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#f0f1f5;color:#4b5563;border:1px solid #e2e5ef;">
+                            <i class="fas fa-lock text-gray-400" style="font-size:10px;"></i> Email
+                        </span>
+                        <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#f0f1f5;color:#4b5563;border:1px solid #e2e5ef;">
+                            <i class="fas fa-lock text-gray-400" style="font-size:10px;"></i> Mobile Number
+                        </span>
+                    </div>
+                </div>
+
+                {{-- Custom fields --}}
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Custom Fields <span class="text-gray-400 font-normal normal-case">(up to 5)</span></p>
+                    <div id="customFieldsList" class="space-y-3 mb-3">
+                        {{-- Restored custom fields on validation failure --}}
+                        @if(old('custom_fields'))
+                            @foreach(old('custom_fields') as $idx => $cf)
+                            <div class="custom-field-row flex items-center gap-3">
+                                <input type="text"
+                                    name="custom_fields[{{ $idx }}][label]"
+                                    value="{{ $cf['label'] ?? '' }}"
+                                    placeholder="Field label, e.g. Child name"
+                                    class="form-input flex-1 text-sm"
+                                    maxlength="100">
+                                <label class="flex items-center gap-1.5 text-xs font-medium text-gray-600 cursor-pointer flex-shrink-0">
+                                    <input type="hidden" name="custom_fields[{{ $idx }}][required]" value="0">
+                                    <input type="checkbox"
+                                        name="custom_fields[{{ $idx }}][required]"
+                                        value="1"
+                                        {{ !empty($cf['required']) ? 'checked' : '' }}
+                                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                    Required
+                                </label>
+                                <button type="button" onclick="removeCustomField(this)"
+                                    class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0" title="Remove field">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            @endforeach
+                        @endif
+                    </div>
+                    <button type="button" id="addCustomFieldBtn" onclick="addCustomField()"
+                        class="btn-secondary text-sm py-2">
+                        <i class="fas fa-plus"></i> Add field
+                    </button>
+                </div>
+            </div>
+
             {{-- Link Type --}}
             <div class="card p-6">
                 <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Link Type</h3>
@@ -322,6 +381,62 @@ document.getElementById('consumer_id').addEventListener('change', function() {
 document.getElementById('new_consumer_name').addEventListener('input', function() {
     document.getElementById('summaryIndividual').textContent = this.value.trim() || '—';
 });
+
+// ---- Custom Fields ----
+const MAX_CUSTOM_FIELDS = 5;
+
+function getCustomFieldCount() {
+    return document.querySelectorAll('#customFieldsList .custom-field-row').length;
+}
+
+function updateAddFieldBtn() {
+    const btn = document.getElementById('addCustomFieldBtn');
+    btn.disabled = getCustomFieldCount() >= MAX_CUSTOM_FIELDS;
+    btn.style.opacity = btn.disabled ? '0.5' : '';
+    btn.style.cursor = btn.disabled ? 'not-allowed' : '';
+}
+
+function addCustomField() {
+    if (getCustomFieldCount() >= MAX_CUSTOM_FIELDS) return;
+    const idx = Date.now(); // unique index
+    const list = document.getElementById('customFieldsList');
+    const row = document.createElement('div');
+    row.className = 'custom-field-row flex items-center gap-3';
+    row.innerHTML = `
+        <input type="text"
+            name="custom_fields[${idx}][label]"
+            placeholder="Field label, e.g. Child name"
+            class="form-input flex-1 text-sm"
+            maxlength="100">
+        <label class="flex items-center gap-1.5 text-xs font-medium text-gray-600 cursor-pointer flex-shrink-0">
+            <input type="hidden" name="custom_fields[${idx}][required]" value="0">
+            <input type="checkbox"
+                name="custom_fields[${idx}][required]"
+                value="1"
+                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+            Required
+        </label>
+        <button type="button" onclick="removeCustomField(this)"
+            class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0" title="Remove field">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    list.appendChild(row);
+    updateAddFieldBtn();
+    row.querySelector('input[type="text"]').focus();
+}
+
+function removeCustomField(btn) {
+    btn.closest('.custom-field-row').remove();
+    updateAddFieldBtn();
+}
+
+// Initialise button state on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateAddFieldBtn();
+});
+
+// ---- End Custom Fields ----
 
 // Restore state on old() if validation failed, or pre-select from consumer profile
 document.addEventListener('DOMContentLoaded', function() {

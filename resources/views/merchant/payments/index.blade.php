@@ -58,6 +58,7 @@
         <thead>
             <tr>
                 <th class="text-left">Payment</th>
+                <th class="text-left">Customer</th>
                 <th class="text-left">Individual</th>
                 <th class="text-left">Payment Link</th>
                 <th class="text-left">Amount</th>
@@ -80,6 +81,14 @@
                             <div class="text-xs text-gray-400 font-mono">{{ substr($payment->token, 0, 16) }}…</div>
                         </div>
                     </div>
+                </td>
+                <td>
+                    @if($payment->customer_name)
+                    <div class="text-sm font-medium text-gray-800">{{ $payment->customer_name }}</div>
+                    <div class="text-xs text-gray-400">{{ $payment->customer_email ?? '' }}</div>
+                    @else
+                    <span class="text-sm text-gray-400">—</span>
+                    @endif
                 </td>
                 <td class="text-sm text-gray-600">{{ $payment->invoice->consumer->name ?? '—' }}</td>
                 <td class="text-sm text-gray-700">{{ $title ?? '—' }}</td>
@@ -104,7 +113,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="7" class="text-center py-16">
+                <td colspan="8" class="text-center py-16">
                     <div class="stat-icon mx-auto mb-4" style="width:52px;height:52px;font-size:20px;">
                         <i class="fas fa-credit-card"></i>
                     </div>
