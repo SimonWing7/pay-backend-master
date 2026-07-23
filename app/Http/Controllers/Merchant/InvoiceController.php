@@ -52,17 +52,20 @@ class InvoiceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            'consumer_id'                   => 'nullable|exists:consumers,id',
-            'total_fee'                     => 'required|numeric|min:0.01',
-            'invoice_details'               => 'required|array|min:1',
-            'invoice_details.*.product_id'  => 'nullable|exists:products,id',
-            'invoice_details.*.fee'         => 'required|numeric|min:0.01',
-            'invoice_details.*.title'       => 'required|string|max:255',
-            'link_type'                     => 'nullable|string|in:open,personal',
-            'reference'                     => 'nullable|string|max:100',
-            'new_consumer_name'             => 'nullable|string|max:255',
-            'new_consumer_email'            => 'nullable|email|max:255',
-            'new_consumer_mobile'           => 'nullable|string|max:50',
+            'consumer_id'                       => 'nullable|exists:consumers,id',
+            'total_fee'                         => 'required|numeric|min:0.01',
+            'invoice_details'                   => 'required|array|min:1',
+            'invoice_details.*.product_id'      => 'nullable|exists:products,id',
+            'invoice_details.*.fee'             => 'required|numeric|min:0.01',
+            'invoice_details.*.title'           => 'required|string|max:255',
+            'link_type'                         => 'nullable|string|in:open,personal',
+            'reference'                         => 'nullable|string|max:100',
+            'new_consumer_name'                 => 'nullable|string|max:255',
+            'new_consumer_email'                => 'nullable|email|max:255',
+            'new_consumer_mobile'               => 'nullable|string|max:50',
+            'custom_fields'                     => 'nullable|array|max:5',
+            'custom_fields.*.label'             => 'required_with:custom_fields.*|string|max:100',
+            'custom_fields.*.required'          => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -73,6 +76,24 @@ class InvoiceController extends Controller
 
         $data = $validator->validated();
         $data['merchant_id'] = $request->user()->id;
+
+        // Normalise custom_fields: filter empty labels and cast required to bool
+        if (!empty($data['custom_fields'])) {
+            $data['custom_fields'] = collect($data['custom_fields'])
+                ->filter(fn($f) => !empty($f['label']))
+                ->map(fn($f) => [
+                    'label'    => trim($f['label']),
+                    'required' => (bool) ($f['required'] ?? false),
+                ])
+                ->values()
+                ->toArray();
+
+            if (empty($data['custom_fields'])) {
+                $data['custom_fields'] = null;
+            }
+        } else {
+            $data['custom_fields'] = null;
+        }
 
         // If personal link with a new individual, create them on the fly (or reuse if email already exists)
         if (
@@ -187,8 +208,11 @@ class InvoiceController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'total_fee' => 'sometimes|numeric|min:0.01',
-            'reference' => 'nullable|string|max:100',
+            'total_fee'                => 'sometimes|numeric|min:0.01',
+            'reference'                => 'nullable|string|max:100',
+            'custom_fields'            => 'nullable|array|max:5',
+            'custom_fields.*.label'    => 'required_with:custom_fields.*|string|max:100',
+            'custom_fields.*.required' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -199,6 +223,24 @@ class InvoiceController extends Controller
 
         // Never allow status to be changed via this endpoint
         $updateData = collect($validator->validated())->except(['status'])->toArray();
+
+        // Normalise custom_fields: filter empty labels and cast required to bool
+        if (!empty($updateData['custom_fields'])) {
+            $updateData['custom_fields'] = collect($updateData['custom_fields'])
+                ->filter(fn($f) => !empty($f['label']))
+                ->map(fn($f) => [
+                    'label'    => trim($f['label']),
+                    'required' => (bool) ($f['required'] ?? false),
+                ])
+                ->values()
+                ->toArray();
+
+            if (empty($updateData['custom_fields'])) {
+                $updateData['custom_fields'] = null;
+            }
+        } else {
+            $updateData['custom_fields'] = null;
+        }
 
         $this->invoiceService->update($invoice, $updateData);
 
