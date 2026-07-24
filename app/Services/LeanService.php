@@ -43,6 +43,7 @@ class LeanService extends Service
                 'grant_type'    => 'client_credentials',
                 'client_id'     => $this->appToken,
                 'client_secret' => $this->clientSecret,
+                'scope'         => 'api',
             ]);
 
             if (!$response->successful()) {
