@@ -50,6 +50,12 @@
         {{-- Card --}}
         <div style="background: white; border-radius: 16px; padding: 36px; box-shadow: 0 4px 24px rgba(0,0,38,0.08); border: 1px solid #eef0f5;">
 
+            @if(session('status'))
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 20px;">
+                    <p>{{ session('status') }}</p>
+                </div>
+            @endif
+
             @if($errors->any())
                 <div style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 20px;">
                     @foreach($errors->all() as $error)

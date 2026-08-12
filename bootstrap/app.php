@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Session\TokenMismatchException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'merchant.password.change' => \App\Http\Middleware\RequirePasswordChange::class,
             'merchant.api.auth'        => \App\Http\Middleware\MerchantApiAuthenticate::class,
+            'referral.signature'       => \App\Http\Middleware\VerifyEdfundoReferralSignature::class,
         ]);
         
         // Configure API authentication to return JSON instead of redirecting
@@ -58,5 +60,21 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => 'Route not found.',
                 ], 404);
             }
+        });
+
+        // A stale/invalid CSRF token (e.g. an expired session) means the user
+        // isn't meaningfully authenticated anymore — send them to login instead
+        // of showing the raw 419 error page.
+        $exceptions->render(function (TokenMismatchException $e, $request) {
+            if ($request->is('api/*') || $request->is('v1/*') || $request->expectsJson() || $request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Your session has expired.',
+                ], 419);
+            }
+
+            $loginRoute = $request->is('admin*') ? 'admin.login' : 'merchant.login';
+
+            return redirect()->route($loginRoute)
+                ->with('status', 'Your session expired. Please log in again.');
         });
     })->create();

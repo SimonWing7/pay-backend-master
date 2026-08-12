@@ -34,5 +34,12 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
         Route::get('/', [App\Http\Controllers\Admin\AppUserController::class, 'index'])->name('index');
         Route::get('/{id}', [App\Http\Controllers\Admin\AppUserController::class, 'show'])->name('show');
     });
+
+    // Referrals management
+    Route::prefix('referrals')->name('referrals.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\ReferralController::class, 'index'])->name('index');
+        Route::get('/export', [App\Http\Controllers\Admin\ReferralController::class, 'export'])->name('export');
+        Route::post('/{id}/settle', [App\Http\Controllers\Admin\ReferralController::class, 'settle'])->name('settle');
+    });
 });
 

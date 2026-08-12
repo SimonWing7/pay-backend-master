@@ -40,6 +40,9 @@ class WebhookService
                     'X-Edfundo-Signature'  => $signature,
                     'User-Agent'           => 'EdfundoPay-Webhook/1.0',
                 ])
+                // Force IPv4 so merchants can reliably IP-whitelist this server
+                // (it's dual-stack and would otherwise default to IPv6 outbound).
+                ->withOptions(['curl' => [CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4]])
                 ->send('POST', $merchant->webhook_url, ['body' => $payload]);
 
             if (!$response->successful()) {
