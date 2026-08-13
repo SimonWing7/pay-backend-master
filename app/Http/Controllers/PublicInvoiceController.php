@@ -139,16 +139,20 @@ class PublicInvoiceController extends Controller
             }
         }
 
+        $merchantReturnUrl = null;
+
         if ($invoice) {
             $isPaid   = $invoice->status === InvoiceStatus::Paid;
             $isFailed = $invoice->status === InvoiceStatus::Failed;
 
+            // Paid invoices with a return_url no longer redirect immediately —
+            // the reward page below shows first, with a "Back to {merchant}"
+            // link that carries the customer onward from here instead.
             if ($isPaid && $invoice->return_url) {
-                $redirectUrl = $this->appendQueryParams($invoice->return_url, [
+                $merchantReturnUrl = $this->appendQueryParams($invoice->return_url, [
                     'status'          => 'paid',
                     'payment_link_id' => $invoice->uuid,
                 ]);
-                return redirect($redirectUrl);
             }
 
             if ($isFailed && $invoice->cancel_url) {
@@ -181,7 +185,8 @@ class PublicInvoiceController extends Controller
 
         return view('public.payment-return', compact(
             'payment', 'invoice', 'status', 'intentId',
-            'leanAppToken', 'leanCustomerId', 'leanCustomerToken', 'leanSandbox'
+            'leanAppToken', 'leanCustomerId', 'leanCustomerToken', 'leanSandbox',
+            'merchantReturnUrl'
         ));
     }
 
