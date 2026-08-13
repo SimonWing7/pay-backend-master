@@ -197,15 +197,6 @@ class MerchantController extends Controller
         }
         unset($data['logo']);
 
-        // Handle logo upload
-        if ($request->hasFile('logo')) {
-            if ($merchant->logo_path) {
-                Storage::disk('public')->delete($merchant->logo_path);
-            }
-            $data['logo_path'] = $request->file('logo')->store('logos', 'public');
-        }
-        unset($data['logo']);
-
         $merchant->update($data);
 
         return redirect()->route('merchant.settings.profile')
