@@ -140,4 +140,3 @@ class ConsumerController extends Controller
             ->with('success', 'Consumer deleted successfully');
     }
 }
-

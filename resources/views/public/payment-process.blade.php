@@ -6,14 +6,11 @@
     <title>Complete Payment - {{ $invoice->merchant->name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    {{-- Lean LinkSDK --}}
-    <script src="https://cdn.leantech.me/link/sdk/web/latest/Lean.min.js"></script>
+    <script src="https://cdn.leantech.me/link/loader/prod/ae/latest/lean-link-loader.min.js"></script>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen flex flex-col items-center justify-start py-8 px-4 sm:px-6 lg:px-8">
         <div class="max-w-2xl w-full space-y-6">
-
-            <!-- Header -->
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <div class="flex items-center justify-between">
                     <div>
@@ -26,8 +23,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Loading state (shown while Lean SDK initialises) -->
             <div id="sdkLoading" class="bg-white rounded-lg shadow-lg p-8 text-center">
                 <div class="flex flex-col items-center space-y-4">
                     <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -38,8 +33,6 @@
                     <p class="text-sm text-gray-400">You will be redirected to your bank momentarily.</p>
                 </div>
             </div>
-
-            <!-- Error state -->
             <div id="sdkError" class="hidden bg-red-50 border border-red-200 rounded-lg p-6 text-center">
                 <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-3"></i>
                 <p class="text-lg font-semibold text-red-800">Something went wrong</p>
@@ -49,8 +42,6 @@
                     Go Back
                 </a>
             </div>
-
-            <!-- Footer -->
             <div class="text-center text-sm text-gray-500">
                 <div class="flex items-center justify-center space-x-4 mb-2">
                     <div class="flex items-center space-x-1">
@@ -66,13 +57,15 @@
             </div>
         </div>
     </div>
-
     <script>
-        const paymentIntentId = @json($paymentIntentId);
-        const leanAppToken    = @json($leanAppToken);
-        const leanSandbox     = @json($leanSandbox);
-        const invoiceUuid     = @json($invoice->uuid);
-        const returnUrl       = @json(route('public.payment.return'));
+        const paymentIntentId    = @json($paymentIntentId);
+        const leanAppToken       = @json($leanAppToken);
+        const leanSandbox        = @json($leanSandbox);
+        const leanCustomerToken  = @json($leanCustomerToken);
+        const invoiceUuid        = @json($invoice->uuid);
+        const baseReturnUrl      = @json(route('public.payment.return'));
+        const successRedirectUrl = baseReturnUrl + '?intent_id=' + encodeURIComponent(paymentIntentId) + '&status=success';
+        const failRedirectUrl    = baseReturnUrl + '?intent_id=' + encodeURIComponent(paymentIntentId) + '&status=failed';
 
         function showError(message) {
             document.getElementById('sdkLoading').style.display = 'none';
@@ -87,55 +80,34 @@
                 showError('Payment SDK could not be loaded. Please check your connection and try again.');
                 return;
             }
-
             if (!paymentIntentId) {
                 showError('No payment session found. Please go back and try again.');
                 return;
             }
-
             try {
-                Lean.pay({
-                    app_token:          leanAppToken,
-                    payment_intent_id:  paymentIntentId,
-                    sandbox:            leanSandbox ? 'true' : 'false',
-
+                Lean.checkout({
+                    app_token:            leanAppToken,
+                    payment_intent_id:    paymentIntentId,
+                    access_token:         leanCustomerToken || undefined,
+                    success_redirect_url: successRedirectUrl,
+                    fail_redirect_url:    failRedirectUrl,
+                    sandbox:              leanSandbox,
                     callback: function (response) {
-                        /*
-                         * Lean SDK callback statuses:
-                         *   SUCCESS   — customer completed the bank flow
-                         *   CANCELLED — customer closed / went back
-                         *   FAILED    — SDK-level error
-                         *   ERROR     — unexpected error
-                         *
-                         * Note: SUCCESS here means the customer authorised the payment in their
-                         * banking app. Actual settlement confirmation comes via Lean webhook
-                         * (iso_status = ACCEPTED_SETTLEMENT_COMPLETED). We show a "payment
-                         * submitted" screen and the webhook updates the final status.
-                         */
                         const status = (response && response.status)
-                            ? response.status.toLowerCase()
-                            : 'unknown';
-
-                        if (status === 'success') {
-                            window.location.href = returnUrl
-                                + '?intent_id=' + encodeURIComponent(paymentIntentId)
-                                + '&status=success';
-                        } else if (status === 'cancelled') {
-                            // Return to invoice so the customer can try again
+                            ? response.status.toUpperCase()
+                            : 'UNKNOWN';
+                        if (status === 'SUCCESS') {
+                            window.location.href = successRedirectUrl;
+                        } else if (status === 'CANCELLED') {
                             window.location.href = '/invoice/' + invoiceUuid + '?cancelled=1';
+                        } else if (status === 'REDIRECT') {
+                            // Lean is redirecting to bank — do nothing
                         } else {
-                            // failed / error / unknown
-                            window.location.href = returnUrl
-                                + '?intent_id=' + encodeURIComponent(paymentIntentId)
-                                + '&status=failed';
+                            window.location.href = failRedirectUrl;
                         }
                     },
                 });
-
-                // Hide loading spinner once Lean has been called
-                // (Lean opens its own overlay — our page just sits behind it)
                 document.getElementById('sdkLoading').style.display = 'none';
-
             } catch (e) {
                 console.error('Lean.pay() exception:', e);
                 showError('The payment session could not be started. Please go back and try again.');

@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'edfundo_referral' => [
+        'secret' => env('EDFUNDO_REFERRAL_SIGNING_SECRET'),
+    ],
+
 ];

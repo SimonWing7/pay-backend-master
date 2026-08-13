@@ -10,6 +10,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Auth\Events\PasswordReset;
 
 class MerchantController extends Controller
 {
@@ -140,6 +145,7 @@ class MerchantController extends Controller
             'support_phone'          => 'nullable|string|max:50',
             'website'                => 'nullable|url|max:255',
             'webhook_url'            => 'nullable|url|max:2048',
+            'logo'                   => 'nullable|image|mimes:jpeg,jpg,png,svg,webp|max:2048',
             // Fallback payment method
             'fallback_type'          => 'nullable|in:,payment_gateway,bank_transfer',
             'fallback_payment_url'   => 'nullable|url|max:2048',
@@ -181,6 +187,24 @@ class MerchantController extends Controller
         if (empty($data['webhook_url'])) {
             $data['webhook_secret'] = null;
         }
+
+        // Handle logo upload
+        if ($request->hasFile('logo')) {
+            if ($merchant->logo_path) {
+                Storage::disk('public')->delete($merchant->logo_path);
+            }
+            $data['logo_path'] = $request->file('logo')->store('logos', 'public');
+        }
+        unset($data['logo']);
+
+        // Handle logo upload
+        if ($request->hasFile('logo')) {
+            if ($merchant->logo_path) {
+                Storage::disk('public')->delete($merchant->logo_path);
+            }
+            $data['logo_path'] = $request->file('logo')->store('logos', 'public');
+        }
+        unset($data['logo']);
 
         $merchant->update($data);
 
@@ -236,5 +260,58 @@ class MerchantController extends Controller
         return redirect()->route('merchant.settings.password')
             ->with('success', 'Password changed successfully');
     }
-}
 
+    public function showForgotPasswordForm(): View
+    {
+        return view('merchant.forgot-password');
+    }
+
+    public function sendResetLink(Request $request): RedirectResponse
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $status = Password::broker('merchants')->sendResetLink(
+            $request->only('email')
+        );
+
+        return $status === Password::RESET_LINK_SENT
+            ? back()->with('status', 'If that email is registered, a reset link is on its way.')
+            : back()->withErrors(['email' => __($status)]);
+    }
+
+    public function showResetPasswordForm(Request $request, string $token): View
+    {
+        return view('merchant.reset-password', [
+            'token' => $token,
+            'email' => $request->email,
+        ]);
+    }
+
+    public function resetPassword(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'token'                 => 'required',
+            'email'                 => 'required|email',
+            'password'              => 'required|min:8|confirmed',
+            'password_confirmation' => 'required',
+        ]);
+
+        $status = Password::broker('merchants')->reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($merchant, $password) {
+                $merchant->forceFill([
+                    'password'             => Hash::make($password),
+                    'remember_token'       => Str::random(60),
+                    'must_change_password' => false,
+                ])->save();
+
+                event(new PasswordReset($merchant));
+            }
+        );
+
+        return $status === Password::PASSWORD_RESET
+            ? redirect()->route('merchant.login')->with('status', 'Password reset successfully. Please sign in.')
+            : back()->withErrors(['email' => [__($status)]]);
+    }
+
+}

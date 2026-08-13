@@ -306,6 +306,11 @@
                 <p class="text-white/40 text-xs font-medium">Signed in as</p>
                 <p class="text-white/80 text-sm font-semibold truncate">{{ auth('merchants')->user()->name }}</p>
             </div>
+            <a href="{{ route('merchant.referrals.index') }}"
+               class="nav-link {{ request()->routeIs('merchant.referrals*') ? 'active' : '' }}">
+                <i class="fas fa-gift"></i>
+                <span>Referrals</span>
+            </a>
             <form method="POST" action="{{ route('merchant.logout') }}">
                 @csrf
                 <button type="submit" class="sidebar-logout">

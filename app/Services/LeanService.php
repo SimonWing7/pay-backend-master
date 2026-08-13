@@ -30,10 +30,6 @@ class LeanService extends Service
     // OAuth2 — get a cached access token via client_credentials
     // -------------------------------------------------------------------------
 
-    /**
-     * Get an OAuth2 access token from Lean's auth server.
-     * Token is cached for `lean.token_cache_ttl` seconds to minimise round-trips.
-     */
     public function getAccessToken(): string
     {
         $cacheKey = 'lean_access_token';
@@ -65,19 +61,48 @@ class LeanService extends Service
     }
 
     // -------------------------------------------------------------------------
+    // Customers
+    // -------------------------------------------------------------------------
+
+    public function createOrGetCustomer(string $appUserId): string
+    {
+        $accessToken = $this->getAccessToken();
+
+        $response = Http::withToken($accessToken)
+            ->post("{$this->baseUrl}/customers/v1", [
+                'app_user_id' => $appUserId,
+            ]);
+
+        $data = $response->json();
+
+        if (!empty($data['customer_id'])) {
+            return $data['customer_id'];
+        }
+
+        if ($response->status() === 409) {
+            $fetch   = Http::withToken($accessToken)
+                ->get("{$this->baseUrl}/customers/v1", ['app_user_id' => $appUserId]);
+            $fetched = $fetch->json();
+
+            if (!empty($fetched['data'][0]['customer_id'])) {
+                return $fetched['data'][0]['customer_id'];
+            }
+        }
+
+        Log::error('Lean: failed to create/get customer', [
+            'app_user_id' => $appUserId,
+            'status'      => $response->status(),
+            'body'        => $response->body(),
+        ]);
+
+        throw new \RuntimeException('Lean: could not create or retrieve customer.');
+    }
+
+    // -------------------------------------------------------------------------
     // Payment Intents
     // -------------------------------------------------------------------------
 
-    /**
-     * Create a Lean payment intent for an invoice.
-     *
-     * Returns array with:
-     *   'success' => bool
-     *   'payment_intent_id' => string  (on success)
-     *   'data' => array                (full response, on success)
-     *   'error' => string              (on failure)
-     */
-    public function createPaymentIntent(Invoice $invoice): array
+    public function createPaymentIntent(Invoice $invoice, string $customerEmail = ''): array
     {
         try {
             $accessToken = $this->getAccessToken();
@@ -85,31 +110,37 @@ class LeanService extends Service
             return ['success' => false, 'error' => $e->getMessage()];
         }
 
-        // Lean amounts are in the smallest currency unit (fils for AED: 1 AED = 100 fils)
-        $amountInFils = (int) round($invoice->total_fee * 100);
+        try {
+            $appUserId      = $customerEmail ?: 'guest-inv-' . $invoice->id;
+            $leanCustomerId = $this->createOrGetCustomer($appUserId);
+        } catch (\RuntimeException $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
 
-        // Use per-merchant destination if set, otherwise fall back to global config
+        $amount = round($invoice->total_fee, 2);
+
         $destinationId = $invoice->merchant->lean_destination_id ?? $this->paymentDestinationId;
 
         if (empty($destinationId)) {
             Log::error('Lean: no payment_destination_id configured', [
-                'invoice_id' => $invoice->id,
+                'invoice_id'  => $invoice->id,
                 'merchant_id' => $invoice->merchant_id,
             ]);
             return ['success' => false, 'error' => 'No Lean payment destination configured for this merchant.'];
         }
 
         $payload = [
-            'amount'                 => $amountInFils,
+            'amount'                 => $amount,
             'currency'               => 'AED',
             'payment_destination_id' => $destinationId,
-            'description'            => 'Payment link #' . ($invoice->reference ?: $invoice->id) . ' — ' . $invoice->merchant->name,
-            'merchant_order_id'      => 'INV-' . $invoice->id,
+            'customer_id'            => $leanCustomerId,
+            'purpose_code'            => 'GDS',
+            'description'            => substr('Pay ' . ($invoice->reference ?: $invoice->id) . ' ' . $invoice->merchant->name, 0, 32),
         ];
 
         Log::info('Lean: creating payment intent', [
             'invoice_id'  => $invoice->id,
-            'amount_fils' => $amountInFils,
+            'amount_aed'  => $amount,
         ]);
 
         try {
@@ -125,6 +156,7 @@ class LeanService extends Service
                 return [
                     'success'           => true,
                     'payment_intent_id' => $data['payment_intent_id'] ?? null,
+                    'lean_customer_id'  => $leanCustomerId,
                     'data'              => $data,
                 ];
             }
@@ -151,33 +183,49 @@ class LeanService extends Service
     }
 
     // -------------------------------------------------------------------------
+    // Customer-scoped tokens (required by LinkSDK Lean.pay() and captureRedirect())
+    // -------------------------------------------------------------------------
+
+    public function getCustomerToken(string $leanCustomerId): string
+    {
+        $response = Http::asForm()->post("{$this->authUrl}/oauth2/token", [
+            'grant_type'    => 'client_credentials',
+            'client_id'     => $this->appToken,
+            'client_secret' => $this->clientSecret,
+            'scope'         => 'customer.' . $leanCustomerId,
+        ]);
+
+        if (!$response->successful()) {
+            Log::error('Lean: failed to obtain customer-scoped token', [
+                'lean_customer_id' => $leanCustomerId,
+                'status'           => $response->status(),
+                'body'             => $response->body(),
+            ]);
+            throw new \RuntimeException('Lean: could not generate customer token: ' . $response->body());
+        }
+
+        $json = $response->json();
+
+        if (empty($json['access_token'])) {
+            throw new \RuntimeException('Lean: customer token response missing access_token');
+        }
+
+        return $json['access_token'];
+    }
+
+    // -------------------------------------------------------------------------
     // Webhook signature verification
     // -------------------------------------------------------------------------
 
-    /**
-     * Verify a Lean webhook HMAC-SHA256 signature.
-     *
-     * Lean signs the raw request body with the webhook secret using HMAC-SHA256.
-     * The signature is sent in the 'lean-signature' header.
-     *
-     * Expected header format: "t=<timestamp>,v1=<hex_hmac>"
-     * Or simply: "<hex_hmac>"
-     *
-     * @param  string  $rawBody   The raw (undecoded) request body
-     * @param  string  $signature The value of the 'lean-signature' header
-     * @return bool
-     */
     public function verifyWebhookSignature(string $rawBody, string $signature): bool
     {
         $secret = config('lean.webhook_secret');
 
         if (empty($secret)) {
-            // If no secret configured, skip verification (development only)
             Log::warning('Lean webhook: no webhook secret configured — skipping signature check');
             return true;
         }
 
-        // Parse "t=1234567890,v1=abc..." format (Stripe-style)
         if (str_contains($signature, 'v1=')) {
             $parts = [];
             foreach (explode(',', $signature) as $part) {
@@ -186,11 +234,10 @@ class LeanService extends Service
             }
             $hmacHex = $parts['v1'] ?? '';
         } else {
-            // Plain hex HMAC
-            $hmacHex = $signature;
+            $hmacHex = preg_replace('/^sha[0-9]+=/', '', $signature);
         }
 
-        $expected = hash_hmac('sha256', $rawBody, $secret);
+        $expected = hash_hmac('sha512', $rawBody, $secret);
 
         return hash_equals($expected, strtolower($hmacHex));
     }
@@ -199,17 +246,11 @@ class LeanService extends Service
     // Helpers
     // -------------------------------------------------------------------------
 
-    /**
-     * The app_token (client_id) used in the frontend Lean.pay() call.
-     */
     public function getAppToken(): string
     {
         return $this->appToken;
     }
 
-    /**
-     * Whether to run in sandbox mode (used in frontend Lean.pay() call).
-     */
     public function isSandbox(): bool
     {
         return $this->sandbox;

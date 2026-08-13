@@ -6,23 +6,21 @@
     <title>Payment {{ $status === 'success' ? 'Complete' : 'Update' }} - EdFundo Pay</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.leantech.me/link/loader/prod/ae/latest/lean-link-loader.min.js"></script>
 </head>
 <body class="bg-gray-50">
-    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-lg w-full space-y-6">
+    <div class="min-h-screen flex items-center justify-center py-3 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-lg w-full space-y-4">
 
             @if($status === 'success' || ($payment && $payment->status === \App\Enums\PaymentStatus::Complete))
-
-            {{-- Payment completed successfully --}}
-            <div class="bg-white rounded-lg shadow-lg p-8 text-center">
-                <div class="mx-auto h-20 w-20 rounded-full bg-green-100 flex items-center justify-center mb-6">
-                    <i class="fas fa-check text-4xl text-green-600"></i>
+            <div class="bg-white rounded-lg shadow-lg p-6 text-center">
+                <div class="mx-auto h-14 w-14 rounded-full bg-green-100 flex items-center justify-center mb-6">
+                    <i class="fas fa-check text-2xl text-green-600"></i>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">Payment Submitted</h1>
-                <p class="text-gray-500 mb-6">
+                <h1 class="text-xl font-bold text-gray-900 mb-1">Payment Submitted</h1>
+                <p class="text-gray-500 mb-3">
                     Your bank transfer has been initiated. The payment will be confirmed once your bank processes it.
                 </p>
-
                 @if($invoice)
                 <div class="bg-gray-50 rounded-lg p-4 text-left mb-6">
                     <div class="flex justify-between items-center mb-2">
@@ -39,25 +37,41 @@
                     </div>
                 </div>
                 @endif
-
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    You'll receive a confirmation once the payment clears. This usually takes a few seconds for UAE bank transfers.
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 mb-6">
+                    <i class="fas fa-envelope mr-2"></i>
+                    A payment confirmation receipt will be sent to
+                    @if(isset($payment) && $payment && $payment->customer_email)
+                        <span class="font-semibold">{{ $payment->customer_email }}</span>
+                    @else
+                        your email address
+                    @endif
+                    once the payment clears.
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-md">
+                    <div class="bg-gradient-to-br from-amber-400 to-orange-500 p-4 text-white text-center">
+                        <div class="text-3xl mb-2">&#127873;</div>
+                        <p class="text-xs font-semibold uppercase tracking-widest opacity-80 mb-1">Congratulations!</p>
+                        <p class="text-sm opacity-90 mb-1">You've earned a reward</p>
+                        <p class="text-3xl font-extrabold mb-2">AED 50</p>
+                        <p class="text-sm opacity-90 mb-3 leading-relaxed">Sign up for an Edfundo family money management account to unlock your reward.</p>
+                        <a href="https://edfundo.com/edfundo-pay-rewards/?ref={{ $invoice->merchant->id ?? '' }}&utm_source=edfundo_pay&utm_medium=payment_success"
+                           target="_blank"
+                           class="inline-block bg-white text-orange-600 font-bold py-2 px-6 rounded-full hover:bg-orange-50 transition duration-200 text-sm shadow">
+                            Claim your AED 50 reward &#8594;
+                        </a>
+                    </div>
                 </div>
             </div>
 
             @elseif($status === 'failed' || ($payment && $payment->status === \App\Enums\PaymentStatus::Failed))
-
-            {{-- Payment failed --}}
-            <div class="bg-white rounded-lg shadow-lg p-8 text-center">
-                <div class="mx-auto h-20 w-20 rounded-full bg-red-100 flex items-center justify-center mb-6">
-                    <i class="fas fa-times text-4xl text-red-600"></i>
+            <div class="bg-white rounded-lg shadow-lg p-6 text-center">
+                <div class="mx-auto h-14 w-14 rounded-full bg-red-100 flex items-center justify-center mb-6">
+                    <i class="fas fa-times text-2xl text-red-600"></i>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h1>
-                <p class="text-gray-500 mb-6">
+                <h1 class="text-xl font-bold text-gray-900 mb-1">Payment Failed</h1>
+                <p class="text-gray-500 mb-3">
                     The payment could not be completed. Please try again or contact the merchant.
                 </p>
-
                 @if($invoice)
                 <a href="{{ route('public.invoice.show', $invoice->uuid) }}"
                    class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 mb-3">
@@ -67,20 +81,17 @@
             </div>
 
             @else
-
-            {{-- Processing / unknown status — webhook will update shortly --}}
-            <div class="bg-white rounded-lg shadow-lg p-8 text-center">
-                <div class="mx-auto h-20 w-20 rounded-full bg-yellow-100 flex items-center justify-center mb-6">
+            <div class="bg-white rounded-lg shadow-lg p-6 text-center">
+                <div class="mx-auto h-14 w-14 rounded-full bg-yellow-100 flex items-center justify-center mb-6">
                     <svg class="animate-spin h-10 w-10 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                     </svg>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">Processing Payment</h1>
-                <p class="text-gray-500 mb-6">
+                <h1 class="text-xl font-bold text-gray-900 mb-1">Processing Payment</h1>
+                <p class="text-gray-500 mb-3">
                     We're confirming your payment with your bank. This should only take a moment.
                 </p>
-
                 @if($invoice)
                 <div class="bg-gray-50 rounded-lg p-4 text-left mb-6">
                     <div class="flex justify-between items-center mb-2">
@@ -92,21 +103,49 @@
                         <span class="text-sm font-semibold text-blue-600">AED {{ number_format($invoice->total_fee, 2) }}</span>
                     </div>
                 </div>
-
                 <p class="text-xs text-gray-400">
                     You can also check your invoice status at any time:
                     <a href="{{ route('public.invoice.show', $invoice->uuid) }}" class="text-blue-500 underline">View Invoice</a>
                 </p>
                 @endif
             </div>
-
             @endif
 
-            <!-- Footer -->
             <div class="text-center text-sm text-gray-500">
                 <p>Powered by <span class="font-semibold text-blue-600">EdFundo Pay</span></p>
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const params           = new URLSearchParams(window.location.search);
+            const consentAttemptId = params.get('consent_attempt_id');
+            if (!consentAttemptId) return;
+            if (typeof Lean === 'undefined') {
+                console.warn('Lean SDK not available on return page');
+                return;
+            }
+            const leanAppToken      = @json($leanAppToken ?? '');
+            const leanCustomerId    = @json($leanCustomerId ?? '');
+            const leanCustomerToken = @json($leanCustomerToken ?? '');
+            const leanSandbox       = @json($leanSandbox ?? false);
+            try {
+                Lean.captureRedirect({
+                    app_token:              leanAppToken,
+                    customer_id:            leanCustomerId || undefined,
+                    access_token:           leanCustomerToken || undefined,
+                    consent_attempt_id:     consentAttemptId,
+                    granular_status_code:   params.get('granular_status_code') ?? undefined,
+                    status_additional_info: params.get('status_additional_info') ?? undefined,
+                    sandbox:                leanSandbox,
+                    callback: function (response) {
+                        console.log('Lean captureRedirect callback:', response && response.status);
+                    },
+                });
+            } catch (e) {
+                console.error('Lean.captureRedirect() exception:', e);
+            }
+        });
+    </script>
 </body>
 </html>

@@ -36,7 +36,7 @@
         .badge-success { background: #ecfdf5; color: #059669; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
         .badge-warning { background: #fffbeb; color: #d97706; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
         .badge-danger  { background: #fef2f2; color: #dc2626; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
-
+    
         .pay-btn-altareq {
             background: none;
             border: none;

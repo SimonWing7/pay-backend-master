@@ -12,7 +12,7 @@
     <div class="card p-6">
         <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-5">Business Profile</h3>
 
-        <form method="POST" action="{{ route('merchant.settings.profile.post') }}">
+        <form method="POST" action="{{ route('merchant.settings.profile.post') }}" enctype="multipart/form-data">
             @csrf
 
             {{-- Trading Name --}}
@@ -80,6 +80,26 @@
                 @enderror
             </div>
 
+            {{-- Business Logo --}}
+            <div class="mb-6">
+                <label class="form-label">Business Logo</label>
+                @if($merchant->logo_path)
+                    <div class="mb-3 flex items-center gap-4">
+                        <img src="{{ $merchant->logo_url }}" alt="Current logo" style="width:64px;height:64px;object-fit:contain;border-radius:10px;border:1.5px solid #e5e7eb;padding:4px;background:#f9fafb;">
+                        <div>
+                            <p class="text-xs font-medium text-gray-600">Current logo</p>
+                            <p class="text-xs text-gray-400 mt-0.5">Upload a new file to replace it.</p>
+                        </div>
+                    </div>
+                @endif
+                <input type="file" name="logo" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                    class="form-input @error('logo') border-red-400 @enderror"
+                    style="padding:6px 10px;">
+                <p class="text-xs text-gray-400 mt-1">PNG, JPG, SVG or WebP · Max 2 MB · Square or landscape works best.</p>
+                @error('logo')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
             <button type="submit" class="btn-primary w-full justify-center">
                 <i class="fas fa-save"></i> Save Profile
             </button>

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class Merchant extends Authenticatable
 {
@@ -32,6 +33,7 @@ class Merchant extends Authenticatable
         'website',
         'webhook_url',
         'webhook_secret',
+        'logo_path',
         'fallback_type',
         'fallback_payment_url',
         'fallback_bank_name',
@@ -94,5 +96,18 @@ class Merchant extends Authenticatable
     public function groups()
     {
         return $this->hasMany(Group::class);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\MerchantResetPasswordNotification($token, $this->email));
+    }
+
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo_path
+            ? Storage::disk('public')->url($this->logo_path)
+            : null;
     }
 }

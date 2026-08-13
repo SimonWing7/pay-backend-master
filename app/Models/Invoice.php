@@ -26,6 +26,7 @@ class Invoice extends Model
         'return_url',
         'cancel_url',
         'reference',
+        'link_type',
         'custom_fields',
     ];
 

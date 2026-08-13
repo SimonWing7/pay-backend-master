@@ -13,7 +13,7 @@
 @section('content')
 <div class="max-w-lg">
     <div class="card p-6 mb-6">
-        <form method="POST" action="{{ route('admin.merchants.store') }}">
+        <form method="POST" action="{{ route('admin.merchants.store') }}" enctype="multipart/form-data">
             @csrf
 
             {{-- ── Account Details ── --}}
@@ -114,6 +114,17 @@
             <p class="text-xs text-gray-400 mb-5">Shown to payers whose bank is not available in the Open Banking flow.</p>
 
             <div class="mb-5 space-y-2">
+                {{-- Logo --}}
+                <div class="mb-5">
+                    <label class="form-label">Business Logo <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="file" name="logo" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                        class="form-input @error('logo') border-red-400 @enderror"
+                        style="padding:6px 10px;">
+                    <p class="text-xs text-gray-400 mt-1">PNG, JPG, SVG or WebP · Max 2 MB.</p>
+                    @error('logo')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
                 @foreach([''=>['None','Support contact only'],'payment_gateway'=>['Payment Gateway','Redirect to card payment link'],'bank_transfer'=>['Bank Transfer','Show IBAN and account details']] as $val=>$labels)
                 @php $checked = old('fallback_type', '') === $val; @endphp
                 <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors {{ $checked ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-indigo-200' }}">

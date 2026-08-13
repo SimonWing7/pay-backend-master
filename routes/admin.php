@@ -42,4 +42,3 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
         Route::post('/{id}/settle', [App\Http\Controllers\Admin\ReferralController::class, 'settle'])->name('settle');
     });
 });
-

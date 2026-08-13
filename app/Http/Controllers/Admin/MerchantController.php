@@ -8,6 +8,7 @@ use App\Services\MerchantService;
 use App\Services\WebhookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
@@ -85,6 +86,11 @@ class MerchantController extends Controller
         // Auto-generate a webhook secret if a URL is provided at creation time
         if (!empty($data['webhook_url'])) {
             $data['webhook_secret'] = WebhookService::generateSecret();
+        }
+
+        // Handle logo upload
+        if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
+            $data['logo_path'] = $request->file('logo')->store('logos', 'public');
         }
 
         $this->merchantService->create($data);
@@ -181,6 +187,14 @@ class MerchantController extends Controller
         // Clear the secret when the webhook URL is removed
         if (isset($data['webhook_url']) && empty($data['webhook_url'])) {
             $data['webhook_secret'] = null;
+        }
+
+        // Handle logo upload
+        if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
+            if ($merchant->logo_path) {
+                Storage::disk('public')->delete($merchant->logo_path);
+            }
+            $data['logo_path'] = $request->file('logo')->store('logos', 'public');
         }
 
         $this->merchantService->update($merchant, $data);

@@ -25,3 +25,11 @@ Route::prefix('v1')->name('merchant.api.')->middleware(['merchant.api.auth', 'th
     // Payments
     Route::get('/payments',              [App\Http\Controllers\Api\MerchantApiController::class, 'listPayments'])->name('payments.index');
 });
+
+
+// ── Referral webhooks (fired by the Edfundo app) ──────────────────────────────
+Route::middleware(['referral.signature'])->group(function () {
+    Route::post('/referral/registered',   [App\Http\Controllers\Api\ReferralWebhookController::class, 'registered']);
+    Route::post('/referral/subscribed',   [App\Http\Controllers\Api\ReferralWebhookController::class, 'subscribed']);
+    Route::post('/referral/credit-issued',[App\Http\Controllers\Api\ReferralWebhookController::class, 'creditIssued']);
+});

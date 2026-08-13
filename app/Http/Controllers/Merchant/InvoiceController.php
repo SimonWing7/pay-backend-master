@@ -8,6 +8,7 @@ use App\Services\GroupService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class InvoiceController extends Controller
@@ -52,10 +53,10 @@ class InvoiceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            'consumer_id'                       => 'nullable|exists:consumers,id',
+            'consumer_id'                       => ['nullable', Rule::exists('consumers', 'id')->where('merchant_id', $request->user()->id)],
             'total_fee'                         => 'required|numeric|min:0.01',
             'invoice_details'                   => 'required|array|min:1',
-            'invoice_details.*.product_id'      => 'nullable|exists:products,id',
+            'invoice_details.*.product_id'      => ['nullable', Rule::exists('products', 'id')->where('merchant_id', $request->user()->id)],
             'invoice_details.*.fee'             => 'required|numeric|min:0.01',
             'invoice_details.*.title'           => 'required|string|max:255',
             'link_type'                         => 'nullable|string|in:open,personal',
@@ -142,9 +143,9 @@ class InvoiceController extends Controller
     public function storeBulk(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            'product_id' => 'required|exists:products,id',
+            'product_id' => ['required', Rule::exists('products', 'id')->where('merchant_id', $request->user()->id)],
             'consumer_ids' => 'required|array|min:1',
-            'consumer_ids.*' => 'required|exists:consumers,id',
+            'consumer_ids.*' => ['required', Rule::exists('consumers', 'id')->where('merchant_id', $request->user()->id)],
         ]);
 
         if ($validator->fails()) {

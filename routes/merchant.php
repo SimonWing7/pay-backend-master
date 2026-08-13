@@ -5,6 +5,10 @@ use Illuminate\Support\Facades\Route;
 // Merchant login routes (public)
 Route::get('/merchant/login', [App\Http\Controllers\Merchant\MerchantController::class, 'showLoginForm'])->name('merchant.login');
 Route::post('/merchant/login', [App\Http\Controllers\Merchant\MerchantController::class, 'login'])->middleware('throttle:5,1')->name('merchant.login.post');
+Route::get('/merchant/forgot-password',      [App\Http\Controllers\Merchant\MerchantController::class, 'showForgotPasswordForm'])->name('merchant.password.forgot');
+Route::post('/merchant/forgot-password',     [App\Http\Controllers\Merchant\MerchantController::class, 'sendResetLink'])->name('merchant.password.forgot.post');
+Route::get('/merchant/reset-password/{token}', [App\Http\Controllers\Merchant\MerchantController::class, 'showResetPasswordForm'])->name('merchant.password.reset');
+Route::post('/merchant/reset-password',      [App\Http\Controllers\Merchant\MerchantController::class, 'resetPassword'])->name('merchant.password.reset.post');
 Route::post('/merchant/logout', [App\Http\Controllers\Merchant\MerchantController::class, 'logout'])->name('merchant.logout');
 
 // Merchant protected routes
@@ -85,3 +89,9 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
     });
 });
 
+
+// ── Referral tracking ─────────────────────────────────────────────────────────
+Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merchant')->name('merchant.')->group(function () {
+    Route::get('/referrals',        [App\Http\Controllers\Merchant\ReferralController::class, 'index'])->name('referrals.index');
+    Route::get('/referrals/export', [App\Http\Controllers\Merchant\ReferralController::class, 'export'])->name('referrals.export');
+});

@@ -10,6 +10,7 @@ use App\Services\LeanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PublicInvoiceController extends Controller
@@ -27,15 +28,6 @@ class PublicInvoiceController extends Controller
         return view('public.invoice', compact('invoice'));
     }
 
-    /**
-     * Initiate a web-based Open Finance payment for an invoice via Lean.
-     *
-     * Flow:
-     * 1. Validate customer fields (name, email, mobile + any custom fields)
-     * 2. Create a Lean payment intent (server-side API call)
-     * 3. Store an AppUserPayment record with the intent ID
-     * 4. Render payment-process.blade.php — Lean SDK picks up from there
-     */
     public function pay(string $uuid, LeanService $lean, Request $request): RedirectResponse|View
     {
         $invoice = Invoice::where('uuid', $uuid)
@@ -51,7 +43,6 @@ class PublicInvoiceController extends Controller
                 ->with('error', 'This invoice cannot be paid — it has already been paid or is no longer active.');
         }
 
-        // ── Validate customer fields ──────────────────────────────────────────
         $rules = [
             'customer_name'   => 'required|string|max:255',
             'customer_email'  => 'required|email|max:255',
@@ -68,8 +59,7 @@ class PublicInvoiceController extends Controller
 
         $validated = $request->validate($rules);
 
-        // ── Create Lean payment intent ────────────────────────────────────────
-        $result = $lean->createPaymentIntent($invoice);
+        $result = $lean->createPaymentIntent($invoice, $validated['customer_email']);
 
         if (!$result['success']) {
             Log::error('Lean payment intent creation failed', [
@@ -82,8 +72,21 @@ class PublicInvoiceController extends Controller
         }
 
         $paymentIntentId = $result['payment_intent_id'];
+        $leanCustomerId  = $result['lean_customer_id'] ?? null;
 
-        // ── Persist payment record ────────────────────────────────────────────
+        $leanCustomerToken = '';
+        if ($leanCustomerId) {
+            try {
+                $leanCustomerToken = $lean->getCustomerToken($leanCustomerId);
+            } catch (\RuntimeException $e) {
+                Log::warning('Lean: could not generate customer-scoped token', [
+                    'invoice_uuid'     => $uuid,
+                    'lean_customer_id' => $leanCustomerId,
+                    'error'            => $e->getMessage(),
+                ]);
+            }
+        }
+
         $payment = AppUserPayment::create([
             'app_user_id'            => null,
             'invoice_id'             => $invoice->id,
@@ -93,41 +96,35 @@ class PublicInvoiceController extends Controller
             'customer_email'         => $validated['customer_email'] ?? null,
             'customer_mobile'        => $validated['customer_mobile'] ?? null,
             'custom_field_values'    => !empty($validated['custom_fields']) ? $validated['custom_fields'] : null,
+            'token'                  => Str::uuid()->toString(),
             'lean_payment_intent_id' => $paymentIntentId,
-            'lean_metadata'          => $result['data'],
+            'lean_metadata'          => array_merge(
+                $result['data'] ?? [],
+                ['lean_customer_id' => $leanCustomerId]
+            ),
         ]);
 
         Log::info('Lean payment initiated', [
             'invoice_uuid'      => $uuid,
             'payment_id'        => $payment->id,
             'payment_intent_id' => $paymentIntentId,
+            'lean_customer_id'  => $leanCustomerId,
         ]);
 
-        // ── Render the payment-process page (Lean SDK takes it from here) ─────
         return view('public.payment-process', [
-            'invoice'          => $invoice,
-            'payment'          => $payment,
-            'paymentIntentId'  => $paymentIntentId,
-            'leanAppToken'     => $lean->getAppToken(),
-            'leanSandbox'      => $lean->isSandbox(),
+            'invoice'           => $invoice,
+            'payment'           => $payment,
+            'paymentIntentId'   => $paymentIntentId,
+            'leanAppToken'      => $lean->getAppToken(),
+            'leanSandbox'       => $lean->isSandbox(),
+            'leanCustomerToken' => $leanCustomerToken,
         ]);
     }
 
-    /**
-     * Handle return from the Lean SDK callback redirect.
-     *
-     * The payment-process page redirects here after Lean's callback fires.
-     * The actual authoritative status comes via webhook; this page shows the
-     * customer a pending/success/failed screen.
-     *
-     * Query params:
-     *   intent_id — the Lean payment_intent_id (new flow)
-     *   status    — 'success', 'failed', or 'cancelled' (from our frontend callback)
-     */
-    public function paymentReturn(Request $request): View|RedirectResponse
+    public function paymentReturn(Request $request, LeanService $lean): View|RedirectResponse
     {
-        $intentId  = $request->query('intent_id');
-        $status    = $request->query('status');
+        $intentId = $request->query('intent_id');
+        $status   = $request->query('status');
 
         $payment = null;
         $invoice = null;
@@ -142,7 +139,6 @@ class PublicInvoiceController extends Controller
             }
         }
 
-        // ── Merchant return/cancel URL redirects ──────────────────────────────
         if ($invoice) {
             $isPaid   = $invoice->status === InvoiceStatus::Paid;
             $isFailed = $invoice->status === InvoiceStatus::Failed;
@@ -164,12 +160,31 @@ class PublicInvoiceController extends Controller
             }
         }
 
-        return view('public.payment-return', compact('payment', 'invoice', 'status', 'intentId'));
+        $leanCustomerId    = null;
+        $leanCustomerToken = '';
+
+        if ($payment && !empty($payment->lean_metadata['lean_customer_id'])) {
+            $leanCustomerId = $payment->lean_metadata['lean_customer_id'];
+            try {
+                $leanCustomerToken = $lean->getCustomerToken($leanCustomerId);
+            } catch (\RuntimeException $e) {
+                Log::warning('Lean: could not generate customer token on return page', [
+                    'intent_id'        => $intentId,
+                    'lean_customer_id' => $leanCustomerId,
+                    'error'            => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $leanAppToken = $lean->getAppToken();
+        $leanSandbox  = $lean->isSandbox();
+
+        return view('public.payment-return', compact(
+            'payment', 'invoice', 'status', 'intentId',
+            'leanAppToken', 'leanCustomerId', 'leanCustomerToken', 'leanSandbox'
+        ));
     }
 
-    /**
-     * Append query parameters to a URL, preserving any that already exist.
-     */
     private function appendQueryParams(string $url, array $params): string
     {
         $parsed   = parse_url($url);

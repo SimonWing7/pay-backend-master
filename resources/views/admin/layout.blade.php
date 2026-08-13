@@ -290,6 +290,11 @@
                 <p class="text-white/40 text-xs font-medium">Signed in as</p>
                 <p class="text-white/80 text-sm font-semibold truncate">{{ auth('admin')->user()->name }}</p>
             </div>
+            <a href="{{ route('admin.referrals.index') }}"
+               class="nav-link {{ request()->routeIs('admin.referrals*') ? 'active' : '' }}">
+                <i class="fas fa-gift"></i>
+                <span>Referrals</span>
+            </a>
             <form method="POST" action="{{ route('admin.logout') }}">
                 @csrf
                 <button type="submit" class="sidebar-logout">
