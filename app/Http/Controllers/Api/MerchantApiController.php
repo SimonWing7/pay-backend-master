@@ -32,7 +32,10 @@ class MerchantApiController extends Controller
             'customer'         => 'nullable|array',
             'customer.name'    => 'nullable|string|max:255',
             'customer.email'   => 'nullable|email|max:255',
-            'customer.mobile'  => 'nullable|string|max:50',
+            'customer.mobile'            => 'nullable|string|max:50',
+            'custom_fields'            => 'nullable|array',
+            'custom_fields.*.label'    => 'required|string|max:100',
+            'custom_fields.*.required' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -43,6 +46,27 @@ class MerchantApiController extends Controller
         }
 
         $data = $validator->validated();
+
+        // If a reference is provided and an active (not failed/archived)
+        // invoice already exists for it, reuse that one instead of creating
+        // a duplicate. Prevents duplicate payment links from page
+        // refreshes/retried requests, and — more importantly — stops a
+        // customer being asked to pay again for a reference that's
+        // already been paid.
+        if (!empty($data['reference'])) {
+            $existing = Invoice::where('merchant_id', $merchant->id)
+                ->where('reference', $data['reference'])
+                ->whereIn('status', [InvoiceStatus::Draft, InvoiceStatus::Paid])
+                ->with(['consumer', 'invoiceDetails'])
+                ->latest()
+                ->first();
+
+            if ($existing) {
+                return response()->json([
+                    'data' => $this->formatPaymentLink($existing),
+                ], 201);
+            }
+        }
 
         // Resolve or create consumer if customer details were provided
         $consumer = null;
@@ -80,7 +104,8 @@ class MerchantApiController extends Controller
             'status'      => InvoiceStatus::Draft,
             'return_url'  => $data['return_url'] ?? null,
             'cancel_url'  => $data['cancel_url'] ?? null,
-            'reference'   => $data['reference'] ?? null,
+            'reference'    => $data['reference'] ?? null,
+            'custom_fields' => !empty($data['custom_fields']) ? $data['custom_fields'] : null,
         ]);
 
         // Create a single line-item
@@ -172,6 +197,26 @@ class MerchantApiController extends Controller
     // Private helpers
     // -------------------------------------------------------------------------
 
+    /**
+     * The hosted payment page's customer detail fields already fall back to
+     * these query params via request() — that part was built previously,
+     * but nothing ever populated them. Appending them here means a customer
+     * whose name/email/mobile the merchant already captured (e.g. from
+     * their own checkout) doesn't have to retype it on the hosted page.
+     */
+    private function buildPaymentUrl(Invoice $invoice): string
+    {
+        $url = url('/invoice/' . $invoice->uuid);
+
+        $params = array_filter([
+            'customer_name'   => $invoice->consumer?->name,
+            'customer_email'  => $invoice->consumer?->email,
+            'customer_mobile' => $invoice->consumer?->mobile_number,
+        ]);
+
+        return $params ? $url . '?' . http_build_query($params) : $url;
+    }
+
     private function formatPaymentLink(Invoice $invoice): array
     {
         $latestPayment = $invoice->appUserPayments?->sortByDesc('created_at')->first();
@@ -183,7 +228,7 @@ class MerchantApiController extends Controller
 
         return [
             'id'          => $invoice->uuid,
-            'payment_url' => url('/invoice/' . $invoice->uuid),
+            'payment_url' => $this->buildPaymentUrl($invoice),
             'amount'      => (float) $invoice->total_fee,
             'currency'    => 'AED',
             'description' => $invoice->invoiceDetails->first()?->title,
@@ -193,7 +238,8 @@ class MerchantApiController extends Controller
                 'email'  => $invoice->consumer->email,
                 'mobile' => $invoice->consumer->mobile_number,
             ] : null,
-            'reference'  => $invoice->reference,
+            'reference'     => $invoice->reference,
+            'custom_fields' => $invoice->custom_fields ?? [],
             'return_url' => $invoice->return_url,
             'cancel_url' => $invoice->cancel_url,
             'paid_at'    => $paidAt,
