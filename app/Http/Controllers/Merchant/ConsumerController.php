@@ -8,6 +8,7 @@ use App\Services\GroupService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ConsumerController extends Controller
@@ -48,7 +49,9 @@ class ConsumerController extends Controller
             'email' => 'nullable|email',
             'mobile_number' => 'nullable|string',
             'group_ids' => 'nullable|array',
-            'group_ids.*' => 'exists:groups,id',
+            'group_ids.*' => Rule::exists('groups', 'id')->where(
+                fn ($query) => $query->where('merchant_id', $request->user()->id)
+            ),
         ]);
 
         if ($validator->fails()) {
@@ -105,7 +108,9 @@ class ConsumerController extends Controller
             'email' => 'nullable|email',
             'mobile_number' => 'nullable|string',
             'group_ids' => 'nullable|array',
-            'group_ids.*' => 'exists:groups,id',
+            'group_ids.*' => Rule::exists('groups', 'id')->where(
+                fn ($query) => $query->where('merchant_id', $request->user()->id)
+            ),
         ]);
 
         if ($validator->fails()) {

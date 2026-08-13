@@ -8,6 +8,7 @@ use App\Services\ConsumerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class GroupController extends Controller
@@ -38,7 +39,9 @@ class GroupController extends Controller
             'name' => 'required|string|max:255',
             'color' => 'required|string|regex:/^#[0-9A-Fa-f]{6}$/',
             'consumer_ids' => 'nullable|array',
-            'consumer_ids.*' => 'exists:consumers,id',
+            'consumer_ids.*' => Rule::exists('consumers', 'id')->where(
+                fn ($query) => $query->where('merchant_id', $request->user()->id)
+            ),
         ]);
 
         if ($validator->fails()) {
@@ -105,7 +108,9 @@ class GroupController extends Controller
             'name' => 'sometimes|string|max:255',
             'color' => 'sometimes|string|regex:/^#[0-9A-Fa-f]{6}$/',
             'consumer_ids' => 'nullable|array',
-            'consumer_ids.*' => 'exists:consumers,id',
+            'consumer_ids.*' => Rule::exists('consumers', 'id')->where(
+                fn ($query) => $query->where('merchant_id', $request->user()->id)
+            ),
         ]);
 
         if ($validator->fails()) {

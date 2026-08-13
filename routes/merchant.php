@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 // Merchant login routes (public)
 Route::get('/merchant/login', [App\Http\Controllers\Merchant\MerchantController::class, 'showLoginForm'])->name('merchant.login');
-Route::post('/merchant/login', [App\Http\Controllers\Merchant\MerchantController::class, 'login'])->name('merchant.login.post');
+Route::post('/merchant/login', [App\Http\Controllers\Merchant\MerchantController::class, 'login'])->middleware('throttle:5,1')->name('merchant.login.post');
 Route::post('/merchant/logout', [App\Http\Controllers\Merchant\MerchantController::class, 'logout'])->name('merchant.logout');
 
 // Merchant protected routes

@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 // Admin login routes (public)
 Route::get('/admin/login', [App\Http\Controllers\Admin\AdminController::class, 'showLoginForm'])->name('admin.login');
-Route::post('/admin/login', [App\Http\Controllers\Admin\AdminController::class, 'login'])->name('admin.login.post');
+Route::post('/admin/login', [App\Http\Controllers\Admin\AdminController::class, 'login'])->middleware('throttle:5,1')->name('admin.login.post');
 Route::post('/admin/logout', [App\Http\Controllers\Admin\AdminController::class, 'logout'])->name('admin.logout');
 
 // Admin protected routes

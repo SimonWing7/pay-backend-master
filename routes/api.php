@@ -17,7 +17,7 @@ Route::post('/webhooks/nymcard', [App\Http\Controllers\Api\NymCardWebhookControl
 // -----------------------------------------------------------------------
 // Merchant REST API — authenticated with API keys (Authorization: Bearer epk_live_…)
 // -----------------------------------------------------------------------
-Route::prefix('v1')->name('merchant.api.')->middleware('merchant.api.auth')->group(function () {
+Route::prefix('v1')->name('merchant.api.')->middleware(['merchant.api.auth', 'throttle:60,1'])->group(function () {
     // Payment links
     Route::post('/payment-links',        [App\Http\Controllers\Api\MerchantApiController::class, 'createPaymentLink'])->name('payment-links.create');
     Route::get('/payment-links/{uuid}',  [App\Http\Controllers\Api\MerchantApiController::class, 'getPaymentLink'])->name('payment-links.show');
