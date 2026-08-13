@@ -8,10 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Consumer;
 use App\Models\Invoice;
 use App\Models\InvoiceDetail;
+use App\Models\Merchant;
 use App\Models\AppUserPayment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 
 class MerchantApiController extends Controller
 {
@@ -47,12 +50,32 @@ class MerchantApiController extends Controller
 
         $data = $validator->validated();
 
-        // If a reference is provided and an active (not failed/archived)
-        // invoice already exists for it, reuse that one instead of creating
-        // a duplicate. Prevents duplicate payment links from page
-        // refreshes/retried requests, and — more importantly — stops a
-        // customer being asked to pay again for a reference that's
-        // already been paid.
+        // If a reference is provided, guard the whole check-then-create
+        // sequence with a lock keyed on merchant+reference. Without this,
+        // two concurrent requests for the same reference can both pass the
+        // "does it exist yet" check before either has committed its insert,
+        // producing two invoices for what should be one idempotent link.
+        if (!empty($data['reference'])) {
+            try {
+                return Cache::lock("payment-link-create:{$merchant->id}:{$data['reference']}", 10)
+                    ->block(5, fn () => $this->createOrReusePaymentLink($merchant, $data));
+            } catch (LockTimeoutException $e) {
+                return response()->json([
+                    'message' => 'Another request for this reference is already being processed. Please retry.',
+                ], 409);
+            }
+        }
+
+        return $this->createOrReusePaymentLink($merchant, $data);
+    }
+
+    private function createOrReusePaymentLink(Merchant $merchant, array $data): JsonResponse
+    {
+        // If an active (not failed/archived) invoice already exists for
+        // this reference, reuse it instead of creating a duplicate.
+        // Prevents duplicate payment links from page refreshes/retried
+        // requests, and — more importantly — stops a customer being asked
+        // to pay again for a reference that's already been paid.
         if (!empty($data['reference'])) {
             $existing = Invoice::where('merchant_id', $merchant->id)
                 ->where('reference', $data['reference'])
