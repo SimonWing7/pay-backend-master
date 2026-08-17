@@ -63,9 +63,16 @@
         const leanSandbox        = @json($leanSandbox);
         const leanCustomerToken  = @json($leanCustomerToken);
         const invoiceUuid        = @json($invoice->uuid);
+        const cancelUrl          = @json($invoice->cancel_url);
         const baseReturnUrl      = @json(route('public.payment.return'));
         const successRedirectUrl = baseReturnUrl + '?intent_id=' + encodeURIComponent(paymentIntentId) + '&status=success';
         const failRedirectUrl    = baseReturnUrl + '?intent_id=' + encodeURIComponent(paymentIntentId) + '&status=failed';
+        // If the merchant gave us a cancel_url (e.g. their own checkout),
+        // send the customer straight back there so they aren't left on our
+        // page with their order dangling on the merchant's side. Merchants
+        // without one (open payment links) fall back to our own invoice
+        // page, same as before.
+        const cancelledRedirectUrl = cancelUrl || ('/invoice/' + invoiceUuid + '?cancelled=1');
 
         function showError(message) {
             document.getElementById('sdkLoading').style.display = 'none';
@@ -99,7 +106,7 @@
                         if (status === 'SUCCESS') {
                             window.location.href = successRedirectUrl;
                         } else if (status === 'CANCELLED') {
-                            window.location.href = '/invoice/' + invoiceUuid + '?cancelled=1';
+                            window.location.href = cancelledRedirectUrl;
                         } else if (status === 'REDIRECT') {
                             // Lean is redirecting to bank — do nothing
                         } else {
