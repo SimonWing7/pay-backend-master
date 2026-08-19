@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Merchant;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,6 +17,7 @@ class PaymentController extends Controller
 
     public function index(Request $request): View
     {
+        $merchantId = $request->get('merchant_id');
         $filters = [
             'status' => $request->get('status'),
             'date_from' => $request->get('date_from'),
@@ -26,8 +28,10 @@ class PaymentController extends Controller
         $sortDir = $request->get('sort_dir', 'desc');
         $perPage = $request->get('per_page', 15);
 
-        $payments = $this->paymentService->getAll(null, $filters, $sortBy, $sortDir, $perPage);
-        return view('admin.payments.index', compact('payments'));
+        $payments = $this->paymentService->getAll($merchantId ?: null, $filters, $sortBy, $sortDir, $perPage);
+        $merchants = Merchant::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.payments.index', compact('payments', 'merchants'));
     }
 
     public function show(int $id): View

@@ -179,4 +179,55 @@
     @endif
 </div>
 
+{{-- Recent Payments --}}
+<div class="card overflow-hidden mt-6">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div>
+            <h3 class="text-sm font-semibold text-gray-700">Recent Payments</h3>
+            <p class="text-xs text-gray-400 mt-0.5">{{ $recentPayments->total() }} total {{ Str::plural('payment', $recentPayments->total()) }} for this merchant</p>
+        </div>
+        <a href="{{ route('admin.payments.index', ['merchant_id' => $merchant->id]) }}" class="text-xs text-indigo-600 hover:underline font-medium">
+            View All Payments
+        </a>
+    </div>
+
+    @if($recentPayments->isEmpty())
+    <div class="px-6 py-10 text-center">
+        <div class="stat-icon mx-auto mb-3" style="width:40px;height:40px;font-size:16px;">
+            <i class="fas fa-credit-card"></i>
+        </div>
+        <p class="text-sm text-gray-500">No payments yet</p>
+    </div>
+    @else
+    <table class="data-table w-full">
+        <thead>
+            <tr>
+                <th class="text-left">Payment</th>
+                <th class="text-left">Payment Link</th>
+                <th class="text-left">Status</th>
+                <th class="text-left">Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($recentPayments as $payment)
+            <tr class="cursor-pointer" onclick="window.location.href='{{ route('admin.payments.show', $payment->id) }}'">
+                <td class="text-sm font-semibold text-gray-800">#{{ $payment->id }}</td>
+                <td class="text-xs font-mono text-gray-400">{{ substr($payment->invoice->uuid ?? '', 0, 12) }}…</td>
+                <td>
+                    @if($payment->status->value === 10)
+                        <span class="badge-success">{{ $payment->status->label() }}</span>
+                    @elseif($payment->status->value === 20)
+                        <span class="badge-danger">{{ $payment->status->label() }}</span>
+                    @else
+                        <span class="badge-warning">{{ $payment->status->label() }}</span>
+                    @endif
+                </td>
+                <td class="text-sm text-gray-500">{{ $payment->created_at->format('d M Y, H:i') }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
+</div>
+
 @endsection

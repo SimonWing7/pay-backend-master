@@ -11,6 +11,8 @@
     :filters="[
         'search' => true,
         'status' => true,
+        'merchant_id' => true,
+        'merchants' => $merchants,
         'date_from' => true,
         'date_to' => true,
         'status_options' => [0 => 'Initiated', 10 => 'Complete', 20 => 'Failed'],

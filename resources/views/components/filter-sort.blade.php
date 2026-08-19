@@ -44,6 +44,15 @@
         </select>
         @endif
 
+        @if(isset($filters['merchant_id']))
+        <select name="merchant_id" class="form-input text-sm py-2 w-44">
+            <option value="">All Merchants</option>
+            @foreach($filters['merchants'] ?? [] as $merchant)
+            <option value="{{ $merchant->id }}" {{ request('merchant_id') == $merchant->id ? 'selected' : '' }}>{{ $merchant->name }}</option>
+            @endforeach
+        </select>
+        @endif
+
         @if(isset($filters['date_from']))
         <input type="date" name="date_from" value="{{ request('date_from') }}"
             class="form-input text-sm py-2 w-36" title="From date">

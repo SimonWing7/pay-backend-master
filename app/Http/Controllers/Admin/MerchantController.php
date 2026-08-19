@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\MerchantApiKey;
 use App\Services\MerchantService;
+use App\Services\PaymentService;
 use App\Services\WebhookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ use Illuminate\View\View;
 class MerchantController extends Controller
 {
     public function __construct(
-        protected MerchantService $merchantService
+        protected MerchantService $merchantService,
+        protected PaymentService $paymentService
     ) {
     }
 
@@ -112,7 +114,9 @@ class MerchantController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('admin.merchants.show', compact('merchant', 'apiKeys'));
+        $recentPayments = $this->paymentService->getAll($id, [], 'created_at', 'desc', 5);
+
+        return view('admin.merchants.show', compact('merchant', 'apiKeys', 'recentPayments'));
     }
 
     public function edit(int $id): View
