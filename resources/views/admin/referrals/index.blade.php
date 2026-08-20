@@ -4,6 +4,9 @@
 @section('page-subtitle', 'Merchant referral activity and commission ledger')
 
 @section('topbar-actions')
+    <a href="{{ route('admin.referrals.create') }}" class="btn-secondary">
+        <i class="fas fa-plus mr-2"></i>Add Manually
+    </a>
     <a href="{{ route('admin.referrals.import') }}" class="btn-secondary">
         <i class="fas fa-upload mr-2"></i>Import Signups
     </a>

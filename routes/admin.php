@@ -48,6 +48,8 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
         Route::post('/{id}/settle', [App\Http\Controllers\Admin\ReferralController::class, 'settle'])->name('settle');
         Route::get('/import', [App\Http\Controllers\Admin\ReferralImportController::class, 'show'])->name('import');
         Route::post('/import', [App\Http\Controllers\Admin\ReferralImportController::class, 'import'])->name('import.store');
+        Route::get('/create', [App\Http\Controllers\Admin\ReferralController::class, 'create'])->name('create');
+        Route::post('/store', [App\Http\Controllers\Admin\ReferralController::class, 'store'])->name('store');
     });
 
     // Two-factor authentication settings (managing your own 2FA)
