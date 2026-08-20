@@ -29,6 +29,12 @@ class MerchantReferral extends Model
 
     public function merchant(): BelongsTo
     {
-        return $this->belongsTo(Merchant::class, 'merchant_uuid', 'uuid');
+        // "merchant_uuid" is a misnomer left over from an earlier design —
+        // it's actually populated with the merchant's numeric id cast to
+        // string (see Merchant\ReferralController::merchantUuid()), and
+        // merchants have no separate uuid column. Joining against a real
+        // "uuid" column here would throw ("Unknown column") the first time
+        // this relation is eager-loaded against a non-empty result set.
+        return $this->belongsTo(Merchant::class, 'merchant_uuid', 'id');
     }
 }

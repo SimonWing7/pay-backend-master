@@ -44,7 +44,7 @@ class ReferralWebhookController extends Controller
         $data = $request->validate([
             'merchant_uuid'     => 'required|string',
             'edfundo_user_id'   => 'required|string',
-            'subscription_plan' => 'nqllable|string',
+            'subscription_plan' => 'nullable|string',
             'subscribed_at'     => 'nullable|date',
         ]);
 
@@ -73,7 +73,7 @@ class ReferralWebhookController extends Controller
             'merchant_uuid'            => 'required|string',
             'edfundo_user_id'          => 'required|string',
             'nymcard_transaction_ref'  => 'nullable|string',
-            'credit_amount'            => 'nqllable|numeric',
+            'credit_amount'            => 'nullable|numeric',
             'credit_currency'          => 'nullable|string',
             'credited_at'              => 'nullable|date',
         ]);
