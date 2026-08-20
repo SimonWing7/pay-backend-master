@@ -76,9 +76,14 @@ return [
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
-            'username' => env('LOG_SLACK_USERNAME', 'Laravel Log'),
-            'emoji' => env('LOG_SLACK_EMOJI', ':boom:'),
-            'level' => env('LOG_LEVEL', 'critical'),
+            'username' => env('LOG_SLACK_USERNAME', 'Edfundo Pay'),
+            'emoji' => env('LOG_SLACK_EMOJI', ':rotating_light:'),
+            // Deliberately its own env var, not LOG_LEVEL — that one drives
+            // file-log verbosity (kept at debug/info) and reusing it here
+            // would flood Slack with every routine log line the moment the
+            // webhook URL is set. "error" catches real problems (Lean auth
+            // failures, webhook processing errors) without the noise.
+            'level' => env('LOG_SLACK_LEVEL', 'error'),
             'replace_placeholders' => true,
         ],
 

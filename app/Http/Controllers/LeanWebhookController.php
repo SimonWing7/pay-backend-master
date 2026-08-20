@@ -36,7 +36,11 @@ class LeanWebhookController extends Controller
         $signature = $request->header('lean-signature') ?? $request->header('x-lean-signature') ?? '';
 
         if (!$lean->verifyWebhookSignature($rawBody, $signature)) {
-            Log::warning('Lean webhook: invalid signature', [
+            // error, not warning: a mismatched webhook secret silently
+            // breaks every payment confirmation, not just this one request —
+            // worth an immediate alert rather than something only found by
+            // scrolling through logs after customers start complaining.
+            Log::error('Lean webhook: invalid signature', [
                 'signature' => $signature,
                 'ip'        => $request->ip(),
             ]);
