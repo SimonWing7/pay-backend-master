@@ -14,12 +14,12 @@
 
 <div class="card p-6 max-w-2xl">
     <p class="text-sm text-gray-600 mb-6">
-        Upload the daily user export from the main Edfundo app's admin panel (columns including
-        <span class="font-mono text-xs">Email</span>, <span class="font-mono text-xs">User Id</span>,
-        <span class="font-mono text-xs">SignUp Date</span> and <span class="font-mono text-xs">Subscription Status</span>).
-        Each row's email is matched against Edfundo Pay's own paid invoices to attribute the referral to the
-        right merchant — only rows with <span class="font-mono text-xs">Subscription Status = Active</span> count
-        toward commission. Safe to re-upload the same or overlapping export; existing referrals are updated, not duplicated.
+        Upload the daily user export from the main Edfundo app's admin panel. Only rows with
+        <span class="font-mono text-xs">Subscription Status = Active</span> are processed — "Free" and "trial" don't
+        count toward commission. For each Active row, the email <em>or</em> mobile number is matched against
+        Edfundo Pay's own paid invoices dated before that row's <span class="font-mono text-xs">Subscription Start Date</span>
+        to attribute the referral to the right merchant. Safe to re-upload the same or overlapping export — existing
+        referrals are updated, not duplicated, and an already-settled commission is never reverted to earned.
     </p>
 
     @if($errors->any())
