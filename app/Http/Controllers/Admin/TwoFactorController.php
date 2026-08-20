@@ -93,8 +93,19 @@ class TwoFactorController extends Controller
         // admin record until the code is verified.
         $request->session()->put('admin_2fa_setup_secret', $setup['secret']);
 
+        // getQRCodeInline() returns the data-URI value itself, but
+        // whether it already includes the "data:" scheme prefix isn't
+        // guaranteed across library versions — normalize here rather
+        // than assume. What we saw in testing was already base64 text
+        // with the prefix missing, not raw unencoded SVG — so this only
+        // ever prepends the prefix, never re-encodes.
+        $qr = $setup['qr'];
+        if (!str_starts_with($qr, 'data:')) {
+            $qr = 'data:image/svg+xml;base64,' . $qr;
+        }
+
         return view('admin.two-factor.setup', [
-            'qr' => $setup['qr'],
+            'qr' => $qr,
             'secret' => $setup['secret'],
         ]);
     }

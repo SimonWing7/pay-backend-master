@@ -13,7 +13,7 @@
             then enter the 6-digit code it generates to confirm setup.
         </p>
         <div class="flex justify-center bg-gray-50 rounded-lg p-6 mb-4">
-            {!! $qr !!}
+            <img src="{{ $qr }}" alt="Two-factor authentication QR code" style="width: 200px; height: 200px;">
         </div>
         <p class="text-xs text-gray-400 text-center">Can't scan it? Enter this key manually: <span class="font-mono text-gray-600">{{ $secret }}</span></p>
     </div>
