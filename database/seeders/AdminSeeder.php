@@ -13,6 +13,14 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
+        // Hardcoded credentials below — safe for local dev only. Refuse to
+        // run anywhere else so this can't accidentally create a predictable
+        // admin login on staging/production if someone runs db:seed there.
+        if (!app()->environment('local', 'testing')) {
+            $this->command?->warn('AdminSeeder skipped — only runs in local/testing environments.');
+            return;
+        }
+
         Admin::firstOrCreate(
             ['email' => 'admin@edfundo.com'],
             [
