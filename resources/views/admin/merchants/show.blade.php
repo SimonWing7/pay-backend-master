@@ -71,6 +71,14 @@
                 @endif
             </div>
             <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Lean Payment Destination ID</p>
+                @if($merchant->lean_destination_id)
+                    <p class="text-sm font-mono text-gray-700">{{ $merchant->lean_destination_id }}</p>
+                @else
+                    <span class="badge-warning">Not configured — payments fall back to the platform default</span>
+                @endif
+            </div>
+            <div>
                 <p class="text-xs text-gray-400 font-medium mb-1">Merchant Category Code (MCC)</p>
                 <p class="text-sm text-gray-700">{{ $merchant->category_code ?? 'Default (5411)' }}</p>
             </div>

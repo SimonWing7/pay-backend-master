@@ -181,6 +181,16 @@
             </div>
 
             <div class="mb-5">
+                <label for="lean_destination_id" class="form-label">Lean Payment Destination ID</label>
+                <input type="text" name="lean_destination_id" id="lean_destination_id" value="{{ old('lean_destination_id', $merchant->lean_destination_id) }}" placeholder="e.g. dst_a1b2c3d4"
+                    class="form-input @error('lean_destination_id') border-red-400 @enderror">
+                <p class="text-xs text-gray-400 mt-1">Created in the Lean dashboard for this merchant's bank account. If left blank, payments fall back to the platform's default destination — only correct if this merchant hasn't been given their own yet.</p>
+                @error('lean_destination_id')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="mb-5">
                 <label for="category_code" class="form-label">Merchant Category Code (MCC)</label>
                 <input type="text" name="category_code" id="category_code" value="{{ old('category_code', $merchant->category_code) }}" placeholder="5411"
                     class="form-input @error('category_code') border-red-400 @enderror">
