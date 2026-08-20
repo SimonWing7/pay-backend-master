@@ -159,6 +159,19 @@
             background: linear-gradient(135deg, var(--purple), var(--cyan));
             color: white;
             font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .stat-value {
+            font-size: 30px;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            margin-top: 12px;
         }
 
         .gradient-text {

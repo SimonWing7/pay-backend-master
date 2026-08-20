@@ -20,37 +20,28 @@
 {{-- ── Stat cards ──────────────────────────────────────────────────────────── --}}
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;margin-bottom:2rem;">
 
-    <div class="stat-card">
-        <div class="stat-icon" style="background:linear-gradient(135deg,var(--purple),var(--cyan));">
-            <i class="fas fa-users"></i>
-        </div>
-        <div class="stat-value">{{ number_format($totalReferrals) }}</div>
-        <div class="stat-label">Total Referrals</div>
-    </div>
+    @php
+        $statCards = [
+            ['gradient' => 'var(--purple),var(--cyan)', 'icon' => 'fa-users',        'value' => $totalReferrals, 'label' => 'Total Referrals'],
+            ['gradient' => '#ef4444,#dc2626',           'icon' => 'fa-clock',        'value' => $pendingCount,   'label' => 'Pending'],
+            ['gradient' => '#f59e0b,#d97706',           'icon' => 'fa-star',         'value' => $earnedCount,    'label' => 'Commissions Earned'],
+            ['gradient' => '#10b981,#059669',           'icon' => 'fa-check-circle', 'value' => $settledCount,   'label' => 'Settled'],
+        ];
+    @endphp
 
+    @foreach($statCards as $stat)
     <div class="stat-card">
-        <div class="stat-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626);">
-            <i class="fas fa-clock"></i>
+        <div class="flex items-center gap-4">
+            <div class="stat-icon" style="background:linear-gradient(135deg,{{ $stat['gradient'] }});">
+                <i class="fas {{ $stat['icon'] }}"></i>
+            </div>
+            <div class="stat-value" style="background:linear-gradient(135deg,{{ $stat['gradient'] }});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">
+                {{ number_format($stat['value']) }}
+            </div>
         </div>
-        <div class="stat-value">{{ number_format($pendingCount) }}</div>
-        <div class="stat-label">Pending</div>
+        <div class="stat-label">{{ $stat['label'] }}</div>
     </div>
-
-    <div class="stat-card">
-        <div class="stat-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);">
-            <i class="fas fa-star"></i>
-        </div>
-        <div class="stat-value">{{ number_format($earnedCount) }}</div>
-        <div class="stat-label">Commissions Earned</div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon" style="background:linear-gradient(135deg,#10b981,#059669);">
-            <i class="fas fa-check-circle"></i>
-        </div>
-        <div class="stat-value">{{ number_format($settledCount) }}</div>
-        <div class="stat-label">Settled</div>
-    </div>
+    @endforeach
 
 </div>
 
