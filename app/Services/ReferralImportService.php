@@ -150,6 +150,15 @@ class ReferralImportService extends Service
             return null;
         }
 
+        // Excel silently mangles long numeric-looking phone numbers into
+        // lossy scientific notation (e.g. "9.71503E+11") unless the
+        // column is explicitly formatted as text — the original trailing
+        // digits are gone by that point, not just reformatted, so treat
+        // it as unusable rather than extract garbage digits from it.
+        if (preg_match('/^\d(\.\d+)?E\+?\d+$/i', trim($mobile))) {
+            return null;
+        }
+
         $digits = preg_replace('/\D+/', '', $mobile);
 
         return $digits && strlen($digits) >= 9 ? substr($digits, -9) : null;
@@ -204,6 +213,20 @@ class ReferralImportService extends Service
     {
         if (!$value) {
             return null;
+        }
+
+        $value = trim($value);
+
+        // The real export has come through as DD/MM/YYYY (Excel's locale
+        // display formatting) despite the column header claiming
+        // yyyy-MM-DD — try that explicitly first rather than relying on
+        // Carbon's generic slash-date guessing, which assumes US ordering
+        // and would misread or fail on it entirely.
+        foreach (['d/m/Y', 'Y-m-d'] as $format) {
+            $date = Carbon::createFromFormat('!' . $format, $value);
+            if ($date !== false) {
+                return $date;
+            }
         }
 
         try {
