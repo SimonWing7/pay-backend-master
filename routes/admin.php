@@ -7,6 +7,12 @@ Route::get('/admin/login', [App\Http\Controllers\Admin\AdminController::class, '
 Route::post('/admin/login', [App\Http\Controllers\Admin\AdminController::class, 'login'])->middleware('throttle:5,1')->name('admin.login.post');
 Route::post('/admin/logout', [App\Http\Controllers\Admin\AdminController::class, 'logout'])->name('admin.logout');
 
+// 2FA login challenge (public route — reached mid-login, before the admin
+// session exists; gated on the pending-id session key set by
+// AdminController::login(), not by auth:admin middleware).
+Route::get('/admin/two-factor/challenge', [App\Http\Controllers\Admin\TwoFactorController::class, 'showChallenge'])->name('admin.two-factor.challenge');
+Route::post('/admin/two-factor/challenge', [App\Http\Controllers\Admin\TwoFactorController::class, 'verifyChallenge'])->middleware('throttle:5,1')->name('admin.two-factor.challenge.post');
+
 // Admin protected routes
 Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
@@ -40,5 +46,14 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
         Route::get('/', [App\Http\Controllers\Admin\ReferralController::class, 'index'])->name('index');
         Route::get('/export', [App\Http\Controllers\Admin\ReferralController::class, 'export'])->name('export');
         Route::post('/{id}/settle', [App\Http\Controllers\Admin\ReferralController::class, 'settle'])->name('settle');
+    });
+
+    // Two-factor authentication settings (managing your own 2FA)
+    Route::prefix('two-factor')->name('two-factor.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\TwoFactorController::class, 'index'])->name('index');
+        Route::get('/setup', [App\Http\Controllers\Admin\TwoFactorController::class, 'showSetup'])->name('setup');
+        Route::post('/confirm', [App\Http\Controllers\Admin\TwoFactorController::class, 'confirmSetup'])->name('confirm');
+        Route::post('/disable', [App\Http\Controllers\Admin\TwoFactorController::class, 'disable'])->name('disable');
+        Route::post('/recovery-codes', [App\Http\Controllers\Admin\TwoFactorController::class, 'regenerateRecoveryCodes'])->name('recovery-codes');
     });
 });

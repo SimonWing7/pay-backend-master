@@ -295,6 +295,11 @@
                 <i class="fas fa-gift"></i>
                 <span>Referrals</span>
             </a>
+            <a href="{{ route('admin.two-factor.index') }}"
+               class="nav-link {{ request()->routeIs('admin.two-factor*') ? 'active' : '' }}">
+                <i class="fas fa-shield-halved"></i>
+                <span>Security</span>
+            </a>
             <form method="POST" action="{{ route('admin.logout') }}">
                 @csrf
                 <button type="submit" class="sidebar-logout">

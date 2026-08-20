@@ -38,16 +38,25 @@ class AdminController extends Controller
                 ->withInput($request->except('password'));
         }
 
-        $success = $this->adminService->login(
+        $admin = $this->adminService->attemptCredentials(
             $request->input('email'),
             $request->input('password')
         );
 
-        if (!$success) {
+        if (!$admin) {
             return redirect()->back()
                 ->withErrors(['email' => 'Invalid credentials'])
                 ->withInput($request->except('password'));
         }
+
+        if ($admin->hasTwoFactorEnabled()) {
+            // Not logged in yet — stash the pending admin id and route
+            // through the 2FA challenge instead of establishing a session.
+            $request->session()->put('admin_2fa_pending_id', $admin->id);
+            return redirect()->route('admin.two-factor.challenge');
+        }
+
+        $this->adminService->completeLogin($admin);
 
         return redirect()->route('admin.dashboard');
     }
