@@ -78,14 +78,6 @@
                     <span class="badge-warning">Not configured — payments fall back to the platform default</span>
                 @endif
             </div>
-            <div>
-                <p class="text-xs text-gray-400 font-medium mb-1">Merchant Category Code (MCC)</p>
-                <p class="text-sm text-gray-700">{{ $merchant->category_code ?? 'Default (5411)' }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-400 font-medium mb-1">SIC Code</p>
-                <p class="text-sm text-gray-700">{{ $merchant->sic_code ?? 'Default (5411)' }}</p>
-            </div>
         </div>
     </div>
 

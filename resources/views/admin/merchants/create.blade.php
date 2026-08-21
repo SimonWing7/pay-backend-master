@@ -179,25 +179,6 @@
                 @enderror
             </div>
 
-            <div class="mb-5">
-                <label for="category_code" class="form-label">Merchant Category Code (MCC)</label>
-                <input type="text" name="category_code" id="category_code" value="{{ old('category_code') }}" placeholder="5411"
-                    class="form-input @error('category_code') border-red-400 @enderror">
-                <p class="text-xs text-gray-400 mt-1">Default: 5411</p>
-                @error('category_code')
-                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div class="mb-6">
-                <label for="sic_code" class="form-label">SIC Code</label>
-                <input type="text" name="sic_code" id="sic_code" value="{{ old('sic_code') }}" placeholder="5411"
-                    class="form-input @error('sic_code') border-red-400 @enderror">
-                @error('sic_code')
-                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
             <div class="mb-6 flex items-center gap-3 p-4 rounded-lg bg-gray-50 border border-gray-200">
                 <input type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active') ? 'checked' : '' }}
                     class="h-4 w-4 rounded" style="accent-color: #3d01bd;">
