@@ -25,6 +25,8 @@ class Merchant extends Authenticatable
         'is_active',
         'must_change_password',
         'iban',
+        'bank_name',
+        'account_holder_name',
         'lean_destination_id',
         'merchant_trading_name',
         'category_code',

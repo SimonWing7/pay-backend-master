@@ -179,6 +179,25 @@
                 @enderror
             </div>
 
+            <div class="mb-5">
+                <label for="bank_name" class="form-label">Bank Name</label>
+                <input type="text" name="bank_name" id="bank_name" value="{{ old('bank_name') }}" placeholder="e.g. Emirates NBD"
+                    class="form-input @error('bank_name') border-red-400 @enderror">
+                @error('bank_name')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="mb-6">
+                <label for="account_holder_name" class="form-label">Account Holder Name</label>
+                <input type="text" name="account_holder_name" id="account_holder_name" value="{{ old('account_holder_name') }}" placeholder="Exact name as registered with the bank"
+                    class="form-input @error('account_holder_name') border-red-400 @enderror">
+                <p class="text-xs text-gray-400 mt-1">Usually the business name — confirm with the merchant, it must match their bank records exactly.</p>
+                @error('account_holder_name')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
             <div class="mb-6 flex items-center gap-3 p-4 rounded-lg bg-gray-50 border border-gray-200">
                 <input type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active') ? 'checked' : '' }}
                     class="h-4 w-4 rounded" style="accent-color: #3d01bd;">

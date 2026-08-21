@@ -71,6 +71,22 @@
                 @endif
             </div>
             <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Bank Name</p>
+                @if($merchant->bank_name)
+                    <p class="text-sm text-gray-700">{{ $merchant->bank_name }}</p>
+                @else
+                    <span class="badge-warning">Not configured</span>
+                @endif
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Account Holder Name</p>
+                @if($merchant->account_holder_name)
+                    <p class="text-sm text-gray-700">{{ $merchant->account_holder_name }}</p>
+                @else
+                    <span class="badge-warning">Not configured</span>
+                @endif
+            </div>
+            <div>
                 <p class="text-xs text-gray-400 font-medium mb-1">Lean Payment Destination ID</p>
                 @if($merchant->lean_destination_id)
                     <p class="text-sm font-mono text-gray-700">{{ $merchant->lean_destination_id }}</p>
