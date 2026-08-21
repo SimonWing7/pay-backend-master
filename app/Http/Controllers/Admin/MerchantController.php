@@ -61,6 +61,7 @@ class MerchantController extends Controller
             'fallback_bank_name'      => 'nullable|string|max:255',
             'fallback_account_name'   => 'nullable|string|max:255',
             'fallback_reference_note' => 'nullable|string|max:500',
+            'fallback_none_note'      => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -84,6 +85,9 @@ class MerchantController extends Controller
             $data['fallback_bank_name']      = null;
             $data['fallback_account_name']   = null;
             $data['fallback_reference_note'] = null;
+        }
+        if (($data['fallback_type'] ?? null) !== null) {
+            $data['fallback_none_note'] = null;
         }
 
         // Auto-generate a webhook secret if a URL is provided at creation time
@@ -158,6 +162,7 @@ class MerchantController extends Controller
             'fallback_bank_name'      => 'nullable|string|max:255',
             'fallback_account_name'   => 'nullable|string|max:255',
             'fallback_reference_note' => 'nullable|string|max:500',
+            'fallback_none_note'      => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -183,6 +188,9 @@ class MerchantController extends Controller
             $data['fallback_bank_name']      = null;
             $data['fallback_account_name']   = null;
             $data['fallback_reference_note'] = null;
+        }
+        if (($data['fallback_type'] ?? null) !== null) {
+            $data['fallback_none_note'] = null;
         }
 
         // Auto-generate webhook secret when a URL is being set and none exists yet

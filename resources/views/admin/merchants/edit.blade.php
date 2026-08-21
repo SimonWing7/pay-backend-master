@@ -140,6 +140,13 @@
                 @endforeach
             </div>
 
+            <div id="panel-none" class="{{ old('fallback_type', $merchant->fallback_type ?? '') === '' ? '' : 'hidden' }} mb-5">
+                <label class="form-label">Custom Message (optional)</label>
+                <textarea name="fallback_none_note" rows="3" class="form-input"
+                    placeholder="e.g. Please pay the coach directly via debit or credit card.">{{ old('fallback_none_note', $merchant->fallback_none_note) }}</textarea>
+                <p class="text-xs text-gray-400 mt-1">Shown to payers instead of the support email/phone. Leave blank to show support email/phone as usual.</p>
+            </div>
+
             <div id="panel-gateway" class="{{ old('fallback_type', $merchant->fallback_type) === 'payment_gateway' ? '' : 'hidden' }} mb-5">
                 <label class="form-label">Payment Gateway URL</label>
                 <input type="url" name="fallback_payment_url"
@@ -230,6 +237,7 @@
 @push('scripts')
 <script>
 function switchFallback(val) {
+    document.getElementById('panel-none').classList.toggle('hidden', val !== '');
     document.getElementById('panel-gateway').classList.toggle('hidden', val !== 'payment_gateway');
     document.getElementById('panel-transfer').classList.toggle('hidden', val !== 'bank_transfer');
 
