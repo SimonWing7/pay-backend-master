@@ -40,6 +40,7 @@ class Merchant extends Authenticatable
         'fallback_bank_name',
         'fallback_account_name',
         'fallback_reference_note',
+        'fallback_none_note',
     ];
 
     /**

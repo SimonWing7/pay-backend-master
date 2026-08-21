@@ -328,7 +328,11 @@
 
                         @else
                             <p class="text-sm mb-3" style="color:#6b7280;">
-                                Please contact {{ $merchant->merchant_trading_name ?? $merchant->name }} to arrange payment.
+                                @if($merchant->fallback_none_note)
+                                    {{ $merchant->fallback_none_note }}
+                                @else
+                                    Please contact {{ $merchant->merchant_trading_name ?? $merchant->name }} to arrange payment.
+                                @endif
                             </p>
                             <div class="space-y-2">
                                 @if($merchant->support_email)
