@@ -65,8 +65,12 @@ class LeanService extends Service
     // -------------------------------------------------------------------------
 
     /**
-     * Fetch the current list of Open Banking-connected banks from Lean.
-     * Returns only banks that are both active and enabled for payments.
+     * Fetch the current list of banks from Lean, regardless of connection
+     * type — our production account's live, payment-capable banks are
+     * currently REVERSE_ENGINEERED, not OPEN_BANKING, so filtering by
+     * connection type here would exclude everything actually usable.
+     * Availability (active + enabled for payments) is what actually
+     * determines what shows up, not the connection type.
      */
     public function fetchAvailableBanks(): array
     {
@@ -74,9 +78,7 @@ class LeanService extends Service
 
         $response = Http::withToken($accessToken)
             ->timeout(15)
-            ->get("{$this->baseUrl}/banks/v1", [
-                'connection_types' => 'OPEN_BANKING',
-            ]);
+            ->get("{$this->baseUrl}/banks/v1");
 
         if (!$response->successful()) {
             Log::error('Lean: failed to fetch banks list', [
