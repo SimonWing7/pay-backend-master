@@ -61,6 +61,49 @@ class LeanService extends Service
     }
 
     // -------------------------------------------------------------------------
+    // Banks
+    // -------------------------------------------------------------------------
+
+    /**
+     * Fetch the current list of Open Banking-connected banks from Lean.
+     * Returns only banks that are both active and enabled for payments.
+     */
+    public function fetchAvailableBanks(): array
+    {
+        $accessToken = $this->getAccessToken();
+
+        $response = Http::withToken($accessToken)
+            ->timeout(15)
+            ->get("{$this->baseUrl}/banks/v1", [
+                'connection_types' => 'OPEN_BANKING',
+            ]);
+
+        if (!$response->successful()) {
+            Log::error('Lean: failed to fetch banks list', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+            throw new \RuntimeException('Lean: could not fetch banks list: ' . $response->body());
+        }
+
+        $banks = $response->json('data') ?? $response->json() ?? [];
+
+        return array_values(array_filter(array_map(function (array $bank) {
+            $availability = $bank['availability'] ?? [];
+            $isAvailable  = (bool) ($availability['active']['payments'] ?? false)
+                && (bool) ($availability['enabled']['payments'] ?? false);
+
+            return [
+                'identifier'      => $bank['identifier'] ?? null,
+                'name'            => $bank['name'] ?? null,
+                'logo_url'        => $bank['logo'] ?? null,
+                'connection_type' => $bank['connection_type'] ?? null,
+                'is_available'    => $isAvailable,
+            ];
+        }, $banks), fn ($bank) => !empty($bank['identifier']) && !empty($bank['name'])));
+    }
+
+    // -------------------------------------------------------------------------
     // Customers
     // -------------------------------------------------------------------------
 

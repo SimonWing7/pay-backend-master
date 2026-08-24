@@ -14,6 +14,13 @@ Route::prefix('v1')->name('v1.')->group(function () {
 Route::post('/webhooks/nymcard', [App\Http\Controllers\Api\NymCardWebhookController::class, 'handle'])
     ->name('webhooks.nymcard');
 
+// Public, unauthenticated bank list — used by our own hosted checkout page
+// and by merchants' own checkout UIs (Magento, custom platforms) so the
+// "supported banks" list is never hand-maintained per merchant.
+Route::get('/v1/banks', [App\Http\Controllers\Api\BanksController::class, 'index'])
+    ->middleware('throttle:60,1')
+    ->name('banks.index');
+
 // -----------------------------------------------------------------------
 // Merchant REST API — authenticated with API keys (Authorization: Bearer epk_live_…)
 // -----------------------------------------------------------------------

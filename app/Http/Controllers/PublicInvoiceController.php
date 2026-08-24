@@ -6,6 +6,7 @@ use App\Enums\InvoiceStatus;
 use App\Enums\PaymentStatus;
 use App\Models\AppUserPayment;
 use App\Models\Invoice;
+use App\Models\LeanBank;
 use App\Services\LeanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,7 +26,9 @@ class PublicInvoiceController extends Controller
             abort(403, 'This invoice is not available. The merchant account is inactive.');
         }
 
-        return view('public.invoice', compact('invoice'));
+        $liveBanks = LeanBank::where('is_available', true)->orderBy('name')->get(['name']);
+
+        return view('public.invoice', compact('invoice', 'liveBanks'));
     }
 
     public function pay(string $uuid, LeanService $lean, Request $request): RedirectResponse|View

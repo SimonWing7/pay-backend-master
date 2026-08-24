@@ -157,27 +157,23 @@
                 </div>
                 <p class="text-center mb-5" style="font-size:12px;color:#6b7280;">Secure &bull; No card details &bull; No payment fee</p>
 
-                {{-- Live bank availability pills --}}
+                {{-- Live bank availability pills — sourced from the lean_banks cache,
+                     kept fresh by the lean:sync-banks scheduled command and the
+                     bank.availability.updated webhook. Hidden entirely if the
+                     cache is empty (e.g. before the first sync has run) rather
+                     than showing a stale or made-up list. --}}
+                @if($liveBanks->count() > 0)
                 <div class="mb-5">
                     <p class="text-xs font-semibold text-center uppercase tracking-wide mb-3" style="color:#9ca3af;">Live banks</p>
                     <div class="flex flex-wrap justify-center gap-2">
+                        @foreach($liveBanks as $bank)
                         <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;">
-                            <span style="width:7px;height:7px;border-radius:50%;background:#009A44;flex-shrink:0;"></span>Wio Bank
+                            <span style="width:7px;height:7px;border-radius:50%;background:#009A44;flex-shrink:0;"></span>{{ $bank->name }}
                         </span>
-                        <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;">
-                            <span style="width:7px;height:7px;border-radius:50%;background:#009A44;flex-shrink:0;"></span>Mashreq
-                        </span>
-                        <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;">
-                            <span style="width:7px;height:7px;border-radius:50%;background:#009A44;flex-shrink:0;"></span>FAB
-                        </span>
-                        <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;">
-                            <span style="width:7px;height:7px;border-radius:50%;background:#009A44;flex-shrink:0;"></span>CBD
-                        </span>
-                        <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;">
-                            <span style="width:7px;height:7px;border-radius:50%;background:#006A4E;flex-shrink:0;"></span>ADIB
-                        </span>
+                        @endforeach
                     </div>
                 </div>
+                @endif
 
                 <form method="POST" action="{{ route('public.invoice.pay', $invoice->uuid) }}" id="paymentForm">
                     @csrf
