@@ -59,6 +59,14 @@ class LeanWebhookController extends Controller
             'type'              => $payload['type'] ?? 'unknown',
         ]);
 
+        // -- A bank was added or its availability changed — not a payment
+        //    event, refresh the cached bank list immediately instead of
+        //    waiting for the daily sync
+        if (in_array($payload['type'] ?? null, ['bank.availability.new', 'bank.availability.updated'])) {
+            \Illuminate\Support\Facades\Artisan::call('lean:sync-banks');
+            return response()->json(['message' => 'Bank list resynced'], 200);
+        }
+
         if (!$paymentIntentId) {
             Log::warning('Lean webhook: missing payment_intent_id', ['payload' => $payload]);
             return response()->json(['message' => 'Missing payment_intent_id'], 400);
