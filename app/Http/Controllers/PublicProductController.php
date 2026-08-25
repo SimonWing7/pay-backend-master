@@ -43,11 +43,21 @@ class PublicProductController extends Controller
             abort(403, 'This product is not available. The merchant account is inactive.');
         }
 
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email',
             'mobile_number' => 'required|string',
-        ]);
+            'custom_fields' => 'nullable|array',
+        ];
+
+        if ($product->custom_fields) {
+            foreach ($product->custom_fields as $field) {
+                $key = 'custom_fields.' . $field['label'];
+                $rules[$key] = !empty($field['required']) ? 'required|string|max:500' : 'nullable|string|max:500';
+            }
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return redirect()->back()
@@ -80,11 +90,14 @@ class PublicProductController extends Controller
             }
         }
 
-        // Create invoice with product
+        // Create invoice with product — custom_fields schema carries over from
+        // the product so the invoice page still knows what to collect/display,
+        // even though the actual value was already captured here.
         $invoiceData = [
             'consumer_id' => $consumer->id,
             'merchant_id' => $product->merchant_id,
             'total_fee' => $product->fee,
+            'custom_fields' => $product->custom_fields,
             'invoice_details' => [
                 [
                     'product_id' => $product->id,
@@ -96,9 +109,14 @@ class PublicProductController extends Controller
 
         $invoice = $this->invoiceService->create($invoiceData);
 
-        // Redirect to invoice page
-        return redirect()->route('public.invoice.show', $invoice->uuid)
-            ->with('success', 'Invoice created successfully. Please proceed with payment.');
+        // Redirect to invoice page. Custom field values are carried through
+        // as query params — the invoice page already falls back to
+        // request('custom_fields.*') for pre-filling, so the payer doesn't
+        // have to retype what they just entered here.
+        return redirect()->route('public.invoice.show', array_merge(
+            ['uuid' => $invoice->uuid],
+            $request->filled('custom_fields') ? ['custom_fields' => $request->input('custom_fields')] : []
+        ))->with('success', 'Invoice created successfully. Please proceed with payment.');
     }
 }
 

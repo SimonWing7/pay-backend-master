@@ -141,6 +141,28 @@
                             placeholder="+971 50 000 0000">
                     </div>
 
+                    @if($product->custom_fields && count($product->custom_fields) > 0)
+                        @foreach($product->custom_fields as $field)
+                        <div class="mb-4">
+                            <label for="custom_field_{{ $loop->index }}" class="form-label">
+                                {{ $field['label'] }}
+                                @if(!empty($field['required']))
+                                    <span style="color:#dc2626;">*</span>
+                                @else
+                                    <span class="text-gray-400 font-normal"> (optional)</span>
+                                @endif
+                            </label>
+                            <input type="text"
+                                name="custom_fields[{{ $field['label'] }}]"
+                                id="custom_field_{{ $loop->index }}"
+                                value="{{ old('custom_fields.' . $field['label']) }}"
+                                {{ !empty($field['required']) ? 'required' : '' }}
+                                placeholder="{{ $field['label'] }}"
+                                class="form-input">
+                        </div>
+                        @endforeach
+                    @endif
+
                     <button type="submit" class="pay-btn">
                         <i class="fas fa-arrow-right"></i>
                         Continue to Payment — AED {{ number_format($product->fee, 2) }}

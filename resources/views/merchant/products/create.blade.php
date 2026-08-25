@@ -46,6 +46,43 @@
                 @enderror
             </div>
 
+            <div class="mb-6">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Custom Fields <span class="text-gray-400 font-normal normal-case">(up to 5)</span></p>
+                <p class="text-xs text-gray-400 mb-3">Extra info collected from the payer, e.g. "Child's Name" — shown to anyone who pays via this product's link.</p>
+                <div id="customFieldsList" class="space-y-3 mb-3">
+                    {{-- Restored custom fields on validation failure --}}
+                    @if(old('custom_fields'))
+                        @foreach(old('custom_fields') as $idx => $cf)
+                        <div class="custom-field-row flex items-center gap-3">
+                            <input type="text"
+                                name="custom_fields[{{ $idx }}][label]"
+                                value="{{ $cf['label'] ?? '' }}"
+                                placeholder="Field label, e.g. Child name"
+                                class="form-input flex-1 text-sm"
+                                maxlength="100">
+                            <label class="flex items-center gap-1.5 text-xs font-medium text-gray-600 cursor-pointer flex-shrink-0">
+                                <input type="hidden" name="custom_fields[{{ $idx }}][required]" value="0">
+                                <input type="checkbox"
+                                    name="custom_fields[{{ $idx }}][required]"
+                                    value="1"
+                                    {{ !empty($cf['required']) ? 'checked' : '' }}
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                Required
+                            </label>
+                            <button type="button" onclick="removeCustomField(this)"
+                                class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0" title="Remove field">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        @endforeach
+                    @endif
+                </div>
+                <button type="button" id="addCustomFieldBtn" onclick="addCustomField()"
+                    class="btn-secondary text-sm py-2">
+                    <i class="fas fa-plus"></i> Add field
+                </button>
+            </div>
+
             <div class="flex items-center gap-3">
                 <a href="{{ route('merchant.products.index') }}" class="btn-secondary flex-1 justify-center">Cancel</a>
                 <button type="submit" class="btn-primary flex-1 justify-center">
@@ -55,4 +92,60 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+const MAX_CUSTOM_FIELDS = 5;
+
+function getCustomFieldCount() {
+    return document.querySelectorAll('#customFieldsList .custom-field-row').length;
+}
+
+function updateAddFieldBtn() {
+    const btn = document.getElementById('addCustomFieldBtn');
+    btn.disabled = getCustomFieldCount() >= MAX_CUSTOM_FIELDS;
+    btn.style.opacity = btn.disabled ? '0.5' : '';
+    btn.style.cursor = btn.disabled ? 'not-allowed' : '';
+}
+
+function addCustomField() {
+    if (getCustomFieldCount() >= MAX_CUSTOM_FIELDS) return;
+    const idx = Date.now();
+    const list = document.getElementById('customFieldsList');
+    const row = document.createElement('div');
+    row.className = 'custom-field-row flex items-center gap-3';
+    row.innerHTML = `
+        <input type="text"
+            name="custom_fields[${idx}][label]"
+            placeholder="Field label, e.g. Child name"
+            class="form-input flex-1 text-sm"
+            maxlength="100">
+        <label class="flex items-center gap-1.5 text-xs font-medium text-gray-600 cursor-pointer flex-shrink-0">
+            <input type="hidden" name="custom_fields[${idx}][required]" value="0">
+            <input type="checkbox"
+                name="custom_fields[${idx}][required]"
+                value="1"
+                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+            Required
+        </label>
+        <button type="button" onclick="removeCustomField(this)"
+            class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0" title="Remove field">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    list.appendChild(row);
+    updateAddFieldBtn();
+    row.querySelector('input[type="text"]').focus();
+}
+
+function removeCustomField(btn) {
+    btn.closest('.custom-field-row').remove();
+    updateAddFieldBtn();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateAddFieldBtn();
+});
+</script>
+@endpush
 @endsection

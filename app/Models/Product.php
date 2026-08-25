@@ -23,6 +23,7 @@ class Product extends Model
         'fee',
         'uuid',
         'state',
+        'custom_fields',
     ];
 
     /**
@@ -47,7 +48,8 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'fee' => 'double',
+            'fee'           => 'double',
+            'custom_fields' => 'array',
         ];
     }
 

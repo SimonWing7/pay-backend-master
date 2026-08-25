@@ -98,6 +98,7 @@ class InvoiceService extends Service
             'status' => InvoiceStatus::Draft,
             'reference' => $data['reference'] ?? null,
             'link_type' => $data['link_type'] ?? 'personal',
+            'custom_fields' => $data['custom_fields'] ?? null,
         ]);
 
         if (isset($data['invoice_details']) && is_array($data['invoice_details'])) {

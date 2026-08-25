@@ -45,6 +45,9 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'fee' => 'required|numeric|min:0',
+            'custom_fields'                     => 'nullable|array|max:5',
+            'custom_fields.*.label'             => 'required_with:custom_fields.*|string|max:100',
+            'custom_fields.*.required'          => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -56,6 +59,7 @@ class ProductController extends Controller
         $data = $validator->validated();
         $data['merchant_id'] = $request->user()->id;
         $data['state'] = $data['state'] ?? 'active'; // Default to 'active' if not provided
+        $data['custom_fields'] = $this->normaliseCustomFields($data['custom_fields'] ?? null);
 
         $this->productService->create($data);
 
@@ -107,6 +111,9 @@ class ProductController extends Controller
             'description' => 'sometimes|string',
             'fee' => 'sometimes|numeric|min:0',
             'state' => 'sometimes|in:active,archived',
+            'custom_fields'                     => 'nullable|array|max:5',
+            'custom_fields.*.label'             => 'required_with:custom_fields.*|string|max:100',
+            'custom_fields.*.required'          => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -115,7 +122,10 @@ class ProductController extends Controller
                 ->withInput();
         }
 
-        $this->productService->update($product, $validator->validated());
+        $data = $validator->validated();
+        $data['custom_fields'] = $this->normaliseCustomFields($data['custom_fields'] ?? null);
+
+        $this->productService->update($product, $data);
 
         return redirect()->route('merchant.products.index')
             ->with('success', 'Product updated successfully');
@@ -211,6 +221,28 @@ class ProductController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Filter out empty labels and cast 'required' to a real bool, same
+     * normalisation Invoice custom fields already use.
+     */
+    private function normaliseCustomFields(?array $customFields): ?array
+    {
+        if (empty($customFields)) {
+            return null;
+        }
+
+        $normalised = collect($customFields)
+            ->filter(fn ($f) => !empty($f['label']))
+            ->map(fn ($f) => [
+                'label'    => trim($f['label']),
+                'required' => (bool) ($f['required'] ?? false),
+            ])
+            ->values()
+            ->toArray();
+
+        return !empty($normalised) ? $normalised : null;
     }
 }
 
