@@ -142,7 +142,7 @@
     <td align="center" style="padding-top:24px;">
       <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.8;">
         Payments processed securely by <strong style="color:#6b7280;">Edfundo Pay</strong><br>
-        <a href="https://pay.edfundo.com" style="color:#3d01bd;text-decoration:none;">pay.edfundo.com</a>
+        <a href="https://www.edfundo.com" style="color:#3d01bd;text-decoration:none;">www.edfundo.com</a>
       </p>
     </td>
   </tr>
