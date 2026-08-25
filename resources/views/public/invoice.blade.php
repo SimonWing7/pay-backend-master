@@ -405,6 +405,30 @@
     </div>
 
     <script>
+        // Catch the physical browser Back button — e.g. a customer who
+        // reaches this page from a Magento checkout redirect, notices their
+        // bank isn't in the live list, and instinctively hits Back rather
+        // than using an in-page link. Without this, that's a bare
+        // client-side navigation with no server round-trip, so the order
+        // placed before the redirect is never cancelled and the customer's
+        // cart is never restored — they land on what looks like an empty
+        // cart. Routing it through cancel_url instead hits the merchant's
+        // own cancel handling (e.g. Cancel.php -> OrderCancellationHandler),
+        // which cancels the order and restores the cart properly.
+        // Only wired up when the merchant supplied a cancel_url — with no
+        // external cart at stake (e.g. a generic open payment link), there's
+        // nothing to protect and normal back navigation is fine as-is.
+        @if($invoice->cancel_url)
+        (function () {
+            var cancelUrl = @json($invoice->cancel_url);
+            history.pushState(null, '', location.href);
+            window.addEventListener('popstate', function () {
+                history.pushState(null, '', location.href);
+                window.location.href = cancelUrl;
+            });
+        })();
+        @endif
+
         const form = document.getElementById('paymentForm');
         const payButton = document.getElementById('payButton');
         const loadingState = document.getElementById('loadingState');
