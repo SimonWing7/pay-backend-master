@@ -53,9 +53,15 @@
 
             {{-- Merchant header --}}
             <div class="px-6 pt-8 pb-6 text-center border-b border-gray-100">
-                <div class="mx-auto mb-4" style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#3d01bd,#00bdff);display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-store text-white text-xl"></i>
-                </div>
+                @if($product->merchant->logo_path)
+                    <div class="mx-auto mb-4" style="width:64px;height:64px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f9fafb;border:1.5px solid #e5e7eb;">
+                        <img src="{{ $product->merchant->logo_url }}" alt="{{ $product->merchant->merchant_trading_name ?? $product->merchant->name }}" style="width:100%;height:100%;object-fit:contain;padding:6px;">
+                    </div>
+                @else
+                    <div class="mx-auto mb-4" style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#3d01bd,#00bdff);display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-store text-white text-xl"></i>
+                    </div>
+                @endif
                 <h1 class="text-xl font-bold" style="color:#000026;">
                     {{ $product->merchant->merchant_trading_name ?? $product->merchant->name }}
                 </h1>

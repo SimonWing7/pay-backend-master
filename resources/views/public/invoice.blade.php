@@ -196,7 +196,7 @@
                             <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">
                                 Full Name <span style="color:#ef4444;">*</span>
                             </label>
-                            <input type="text" name="customer_name" value="{{ old('customer_name', request('customer_name')) }}" required
+                            <input type="text" name="customer_name" value="{{ old('customer_name', request('customer_name', $invoice->consumer->name ?? null)) }}" required
                                 placeholder="e.g. Sarah Al Mansouri"
                                 style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
                                 onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
@@ -206,7 +206,7 @@
                             <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">
                                 Email Address <span style="color:#ef4444;">*</span>
                             </label>
-                            <input type="email" name="customer_email" value="{{ old('customer_email', request('customer_email')) }}" required
+                            <input type="email" name="customer_email" value="{{ old('customer_email', request('customer_email', $invoice->consumer->email ?? null)) }}" required
                                 placeholder="you@example.com"
                                 style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
                                 onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
@@ -216,7 +216,7 @@
                             <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">
                                 Mobile Number <span style="color:#ef4444;">*</span>
                             </label>
-                            <input type="tel" name="customer_mobile" value="{{ old('customer_mobile', request('customer_mobile', '+971')) }}" required
+                            <input type="tel" name="customer_mobile" value="{{ old('customer_mobile', request('customer_mobile', $invoice->consumer->mobile_number ?? '+971')) }}" required
                                 placeholder="+971 50 000 0000"
                                 style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
                                 onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
