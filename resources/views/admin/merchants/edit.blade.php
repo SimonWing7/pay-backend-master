@@ -83,6 +83,18 @@
             </div>
 
             <div class="mb-5">
+                <label for="receipt_cc_email" class="form-label">Receipt Copy Email <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input type="email" name="receipt_cc_email" id="receipt_cc_email"
+                    value="{{ old('receipt_cc_email', $merchant->receipt_cc_email) }}"
+                    class="form-input @error('receipt_cc_email') border-red-400 @enderror"
+                    placeholder="customercare@theirbusiness.com">
+                <p class="text-xs text-gray-400 mt-1">If set, every customer payment receipt is also BCC'd here for the merchant's own records.</p>
+                @error('receipt_cc_email')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="mb-5">
                 <label for="website" class="form-label">Website</label>
                 <input type="url" name="website" id="website"
                     value="{{ old('website', $merchant->website) }}"

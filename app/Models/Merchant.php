@@ -33,6 +33,7 @@ class Merchant extends Authenticatable
         'sic_code',
         'support_email',
         'support_phone',
+        'receipt_cc_email',
         'website',
         'webhook_url',
         'webhook_secret',

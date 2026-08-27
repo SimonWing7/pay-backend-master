@@ -143,6 +143,7 @@ class MerchantController extends Controller
             'merchant_trading_name'  => 'required|string|max:255',
             'support_email'          => 'nullable|email|max:255',
             'support_phone'          => 'nullable|string|max:50',
+            'receipt_cc_email'       => 'nullable|email|max:255',
             'website'                => 'nullable|url|max:255',
             'webhook_url'            => 'nullable|url|max:2048',
             'logo'                   => 'nullable|image|mimes:jpeg,jpg,png,svg,webp|max:2048',

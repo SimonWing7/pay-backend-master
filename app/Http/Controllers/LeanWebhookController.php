@@ -127,10 +127,18 @@ class LeanWebhookController extends Controller
                     // -- Send payment receipt email -------------------------
                     if (!empty($payment->customer_email)) {
                         try {
-                            Mail::to($payment->customer_email)->send(new PaymentReceipt($payment));
+                            // BCC rather than CC — keeps the merchant's
+                            // internal address out of what the customer sees
+                            // and avoids an accidental reply-all landing on it.
+                            $mail = Mail::to($payment->customer_email);
+                            if (!empty($merchant?->receipt_cc_email)) {
+                                $mail->bcc($merchant->receipt_cc_email);
+                            }
+                            $mail->send(new PaymentReceipt($payment));
                             Log::info('PaymentReceipt email sent', [
                                 'payment_id' => $payment->id,
                                 'email'      => $payment->customer_email,
+                                'bcc'        => $merchant?->receipt_cc_email,
                             ]);
                         } catch (\Throwable $e) {
                             Log::error('PaymentReceipt email failed', [
