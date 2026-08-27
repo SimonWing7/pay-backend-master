@@ -27,6 +27,7 @@
         <thead>
             <tr>
                 <th class="text-left">Payment</th>
+                <th class="text-left">Payer</th>
                 <th class="text-left">Merchant</th>
                 <th class="text-left">Payment Link</th>
                 <th class="text-left">Status</th>
@@ -47,6 +48,10 @@
                             <div class="text-xs text-gray-400 font-mono">{{ substr($payment->token, 0, 16) }}…</div>
                         </div>
                     </div>
+                </td>
+                <td>
+                    <div class="text-sm text-gray-700">{{ $payment->customer_name ?? $payment->invoice->consumer->name ?? '—' }}</div>
+                    <div class="text-xs text-gray-400">{{ $payment->customer_email ?? $payment->invoice->consumer->email ?? '' }}</div>
                 </td>
                 <td class="text-sm text-gray-600">{{ $payment->invoice->merchant->name ?? '—' }}</td>
                 <td class="text-xs font-mono text-gray-400">{{ substr($payment->invoice->uuid ?? '', 0, 12) }}…</td>

@@ -62,6 +62,14 @@
                 <p class="text-sm text-gray-700">{{ $payment->invoice->consumer->name ?? 'Open link (no individual)' }}</p>
             </div>
             <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Payer Email</p>
+                <p class="text-sm text-gray-700">{{ $payment->customer_email ?? $payment->invoice->consumer->email ?? '—' }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Payer Mobile</p>
+                <p class="text-sm text-gray-700">{{ $payment->customer_mobile ?? $payment->invoice->consumer->mobile_number ?? '—' }}</p>
+            </div>
+            <div>
                 <p class="text-xs text-gray-400 font-medium mb-1">Link Status</p>
                 @if($payment->invoice->status->value === 10)
                     <span class="badge-success">Paid</span>
