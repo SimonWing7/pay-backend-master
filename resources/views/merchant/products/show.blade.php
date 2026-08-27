@@ -16,6 +16,14 @@
     <a href="{{ route('merchant.products.edit', $product->id) }}" class="btn-secondary">
         <i class="fas fa-edit"></i> Edit
     </a>
+    <form method="POST" action="{{ route('merchant.products.delete', $product->id) }}" class="inline"
+        onsubmit="return confirm('Delete this product? If it has any payments against it, it will be archived instead of deleted.');">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn-secondary" style="color:#dc2626;">
+            <i class="fas fa-trash"></i> Delete
+        </button>
+    </form>
     <a href="{{ route('merchant.products.index') }}" class="btn-secondary">
         <i class="fas fa-arrow-left"></i> Back
     </a>
