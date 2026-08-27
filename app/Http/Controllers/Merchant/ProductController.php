@@ -34,17 +34,21 @@ class ProductController extends Controller
         return view('merchant.products.index', compact('products'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('merchant.products.create');
+        $entities = \App\Models\MerchantEntity::where('merchant_id', $request->user()->id)->get();
+        return view('merchant.products.create', compact('entities'));
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $merchantId = $request->user()->id;
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'fee' => 'required|numeric|min:0',
+            'merchant_entity_id' => ['nullable', \Illuminate\Validation\Rule::exists('merchant_entities', 'id')->where('merchant_id', $merchantId)],
             'custom_fields'                     => 'nullable|array|max:5',
             'custom_fields.*.label'             => 'required_with:custom_fields.*|string|max:100',
             'custom_fields.*.required'          => 'nullable',
@@ -57,7 +61,7 @@ class ProductController extends Controller
         }
 
         $data = $validator->validated();
-        $data['merchant_id'] = $request->user()->id;
+        $data['merchant_id'] = $merchantId;
         $data['state'] = $data['state'] ?? 'active'; // Default to 'active' if not provided
         $data['custom_fields'] = $this->normaliseCustomFields($data['custom_fields'] ?? null);
 
@@ -94,7 +98,9 @@ class ProductController extends Controller
             abort(404, 'Product not found');
         }
 
-        return view('merchant.products.edit', compact('product'));
+        $entities = \App\Models\MerchantEntity::where('merchant_id', $merchantId)->get();
+
+        return view('merchant.products.edit', compact('product', 'entities'));
     }
 
     public function update(Request $request, int $id): RedirectResponse
@@ -111,6 +117,7 @@ class ProductController extends Controller
             'description' => 'sometimes|string',
             'fee' => 'sometimes|numeric|min:0',
             'state' => 'sometimes|in:active,archived',
+            'merchant_entity_id' => ['nullable', \Illuminate\Validation\Rule::exists('merchant_entities', 'id')->where('merchant_id', $merchantId)],
             'custom_fields'                     => 'nullable|array|max:5',
             'custom_fields.*.label'             => 'required_with:custom_fields.*|string|max:100',
             'custom_fields.*.required'          => 'nullable',

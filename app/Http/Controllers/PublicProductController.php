@@ -96,6 +96,7 @@ class PublicProductController extends Controller
         $invoiceData = [
             'consumer_id' => $consumer->id,
             'merchant_id' => $product->merchant_id,
+            'merchant_entity_id' => $product->merchant_entity_id,
             'total_fee' => $product->fee,
             'custom_fields' => $product->custom_fields,
             'invoice_details' => [

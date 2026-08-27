@@ -94,6 +94,7 @@ class InvoiceService extends Service
         $invoice = Invoice::create([
             'consumer_id' => $data['consumer_id'] ?? null,
             'merchant_id' => $data['merchant_id'],
+            'merchant_entity_id' => $data['merchant_entity_id'] ?? null,
             'total_fee' => $data['total_fee'],
             'status' => InvoiceStatus::Draft,
             'reference' => $data['reference'] ?? null,

@@ -244,6 +244,64 @@
             </div>
         </form>
     </div>
+
+    {{-- Legal entities — separate companies/trade licenses under this one
+         merchant login (e.g. a sports academy operating in both Dubai and
+         Abu Dhabi under different trade licenses but the same bank account).
+         Purely optional: most merchants will never have any of these, and
+         nothing changes for them if so. --}}
+    <div class="card p-6 mt-6">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Entities</h3>
+        <p class="text-xs text-gray-400 mb-4">Separate companies/trade licenses under this merchant, each with their own Lean payment destination. Optional — leave empty if this merchant only operates as one legal entity. When set, the merchant can pick an entity per Product or Payment Link.</p>
+
+        @if($merchant->entities->count() > 0)
+        <div class="space-y-2 mb-5">
+            @foreach($merchant->entities as $entity)
+            <div class="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200">
+                <div>
+                    <p class="text-sm font-semibold text-gray-800">{{ $entity->name }}</p>
+                    <p class="text-xs text-gray-400 font-mono">{{ $entity->lean_destination_id ?: 'No destination set yet' }}</p>
+                </div>
+                <form method="POST" action="{{ route('admin.merchants.entities.destroy', [$merchant->id, $entity->id]) }}"
+                    onsubmit="return confirm('Remove this entity? Any Products/Payment Links using it will fall back to the merchant\'s default destination.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors" title="Remove">
+                        <i class="fas fa-trash text-sm"></i>
+                    </button>
+                </form>
+            </div>
+            @endforeach
+        </div>
+        @endif
+
+        <form method="POST" action="{{ route('admin.merchants.entities.store', $merchant->id) }}" class="space-y-3">
+            @csrf
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="entity_name" class="form-label">Entity Name</label>
+                    <input type="text" name="name" id="entity_name" value="{{ old('name') }}"
+                        placeholder="e.g. Pinnakle Rugby — Abu Dhabi"
+                        class="form-input @error('name', 'entity') border-red-400 @enderror">
+                    @error('name', 'entity')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div>
+                    <label for="entity_lean_destination_id" class="form-label">Lean Destination ID <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="text" name="lean_destination_id" id="entity_lean_destination_id" value="{{ old('lean_destination_id') }}"
+                        placeholder="e.g. dst_a1b2c3d4"
+                        class="form-input @error('lean_destination_id', 'entity') border-red-400 @enderror">
+                    @error('lean_destination_id', 'entity')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+            <button type="submit" class="btn-secondary text-sm">
+                <i class="fas fa-plus"></i> Add Entity
+            </button>
+        </form>
+    </div>
 </div>
 
 @push('scripts')

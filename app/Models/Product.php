@@ -18,6 +18,7 @@ class Product extends Model
      */
     protected $fillable = [
         'merchant_id',
+        'merchant_entity_id',
         'name',
         'description',
         'fee',
@@ -59,6 +60,11 @@ class Product extends Model
     public function merchant()
     {
         return $this->belongsTo(Merchant::class);
+    }
+
+    public function merchantEntity()
+    {
+        return $this->belongsTo(MerchantEntity::class);
     }
 
     /**

@@ -96,6 +96,15 @@ class Merchant extends Authenticatable
     }
 
     /**
+     * Legal entities (companies/trade licenses) under this merchant login —
+     * see MerchantEntity for why this exists.
+     */
+    public function entities()
+    {
+        return $this->hasMany(MerchantEntity::class);
+    }
+
+    /**
      * Get the groups for the merchant.
      */
     public function groups()

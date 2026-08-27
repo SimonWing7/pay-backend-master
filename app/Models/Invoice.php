@@ -21,6 +21,7 @@ class Invoice extends Model
         'total_fee',
         'consumer_id',
         'merchant_id',
+        'merchant_entity_id',
         'status',
         'uuid',
         'return_url',
@@ -75,6 +76,11 @@ class Invoice extends Model
     public function merchant()
     {
         return $this->belongsTo(Merchant::class);
+    }
+
+    public function merchantEntity()
+    {
+        return $this->belongsTo(MerchantEntity::class);
     }
 
     /**

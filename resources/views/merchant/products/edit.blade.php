@@ -44,6 +44,22 @@
                 @enderror
             </div>
 
+            @if($entities->count() > 0)
+            <div class="mb-5">
+                <label for="merchant_entity_id" class="form-label">Entity <span class="text-gray-400 font-normal">(optional)</span></label>
+                <select name="merchant_entity_id" id="merchant_entity_id" class="form-input @error('merchant_entity_id') border-red-400 @enderror">
+                    <option value="">— None —</option>
+                    @foreach($entities as $entity)
+                        <option value="{{ $entity->id }}" {{ old('merchant_entity_id', $product->merchant_entity_id) == $entity->id ? 'selected' : '' }}>{{ $entity->name }}</option>
+                    @endforeach
+                </select>
+                <p class="text-xs text-gray-400 mt-1">Which company this product's payments should route to.</p>
+                @error('merchant_entity_id')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+            @endif
+
             <div class="mb-6">
                 <label for="state" class="form-label">Status</label>
                 <select name="state" id="state" class="form-input @error('state') border-red-400 @enderror">

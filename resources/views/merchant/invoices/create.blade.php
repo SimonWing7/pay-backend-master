@@ -207,6 +207,23 @@
                 </div>
             </div>
 
+            @if($entities->count() > 0)
+            {{-- Entity --}}
+            <div class="card p-6">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Entity</h3>
+                <p class="text-xs text-gray-400 mb-3">Which company this payment link's payments should route to.</p>
+                <select name="merchant_entity_id" id="merchant_entity_id" class="form-input @error('merchant_entity_id') border-red-400 @enderror">
+                    <option value="">— None —</option>
+                    @foreach($entities as $entity)
+                        <option value="{{ $entity->id }}" {{ old('merchant_entity_id') == $entity->id ? 'selected' : '' }}>{{ $entity->name }}</option>
+                    @endforeach
+                </select>
+                @error('merchant_entity_id')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+            @endif
+
             {{-- Link Type --}}
             <div class="card p-6">
                 <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Link Type</h3>

@@ -27,6 +27,11 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
         Route::put('/{id}', [App\Http\Controllers\Admin\MerchantController::class, 'update'])->name('update');
         Route::post('/{id}/toggle-active', [App\Http\Controllers\Admin\MerchantController::class, 'toggleActive'])->name('toggle-active');
         Route::delete('/{id}', [App\Http\Controllers\Admin\MerchantController::class, 'delete'])->name('delete');
+
+        // Legal entities (companies/trade licenses) under a merchant — see
+        // App\Models\MerchantEntity.
+        Route::post('/{merchantId}/entities', [App\Http\Controllers\Admin\MerchantEntityController::class, 'store'])->name('entities.store');
+        Route::delete('/{merchantId}/entities/{entityId}', [App\Http\Controllers\Admin\MerchantEntityController::class, 'destroy'])->name('entities.destroy');
     });
     
     // Payments management

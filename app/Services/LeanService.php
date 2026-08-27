@@ -166,7 +166,13 @@ class LeanService extends Service
 
         $amount = round($invoice->total_fee, 2);
 
-        $destinationId = $invoice->merchant->lean_destination_id ?? $this->paymentDestinationId;
+        // An invoice tagged with a specific entity (a merchant with multiple
+        // trade licenses/companies, e.g. separate Dubai/Abu Dhabi entities)
+        // routes to that entity's own destination first. Falls through to
+        // the merchant's single destination for everyone else, unchanged.
+        $destinationId = $invoice->merchantEntity?->lean_destination_id
+            ?? $invoice->merchant->lean_destination_id
+            ?? $this->paymentDestinationId;
 
         if (empty($destinationId)) {
             Log::error('Lean: no payment_destination_id configured', [

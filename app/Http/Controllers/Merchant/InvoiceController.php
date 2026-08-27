@@ -46,8 +46,9 @@ class InvoiceController extends Controller
         $consumers = \App\Models\Consumer::where('merchant_id', $merchantId)->get();
         $products = \App\Models\Product::where('merchant_id', $merchantId)->get();
         $groups = \App\Models\Group::where('merchant_id', $merchantId)->with('consumers')->get();
+        $entities = \App\Models\MerchantEntity::where('merchant_id', $merchantId)->get();
         $preselectedConsumerId = $request->get('consumer_id');
-        return view('merchant.invoices.create', compact('consumers', 'products', 'groups', 'preselectedConsumerId'));
+        return view('merchant.invoices.create', compact('consumers', 'products', 'groups', 'entities', 'preselectedConsumerId'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -59,6 +60,7 @@ class InvoiceController extends Controller
             'invoice_details.*.product_id'      => ['nullable', Rule::exists('products', 'id')->where('merchant_id', $request->user()->id)],
             'invoice_details.*.fee'             => 'required|numeric|min:0.01',
             'invoice_details.*.title'           => 'required|string|max:255',
+            'merchant_entity_id'                => ['nullable', Rule::exists('merchant_entities', 'id')->where('merchant_id', $request->user()->id)],
             'link_type'                         => 'nullable|string|in:open,personal',
             'reference'                         => 'nullable|string|max:100',
             'new_consumer_name'                 => 'nullable|string|max:255',

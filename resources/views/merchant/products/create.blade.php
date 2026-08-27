@@ -46,6 +46,22 @@
                 @enderror
             </div>
 
+            @if($entities->count() > 0)
+            <div class="mb-6">
+                <label for="merchant_entity_id" class="form-label">Entity <span class="text-gray-400 font-normal">(optional)</span></label>
+                <select name="merchant_entity_id" id="merchant_entity_id" class="form-input @error('merchant_entity_id') border-red-400 @enderror">
+                    <option value="">— None —</option>
+                    @foreach($entities as $entity)
+                        <option value="{{ $entity->id }}" {{ old('merchant_entity_id') == $entity->id ? 'selected' : '' }}>{{ $entity->name }}</option>
+                    @endforeach
+                </select>
+                <p class="text-xs text-gray-400 mt-1">Which company this product's payments should route to.</p>
+                @error('merchant_entity_id')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+            @endif
+
             <div class="mb-6">
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Custom Fields <span class="text-gray-400 font-normal normal-case">(up to 5)</span></p>
                 <p class="text-xs text-gray-400 mb-3">Extra info collected from the payer, e.g. "Child's Name" — shown to anyone who pays via this product's link.</p>
