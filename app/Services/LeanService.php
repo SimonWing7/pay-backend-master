@@ -108,6 +108,64 @@ class LeanService extends Service
     }
 
     // -------------------------------------------------------------------------
+    // Payment Destinations
+    // -------------------------------------------------------------------------
+
+    /**
+     * Create a payment destination in Lean for a merchant's (or entity's)
+     * bank account. bank_identifier is deliberately not sent — Lean
+     * confirmed it's not required for production destinations, the IBAN
+     * alone tells them which institution to route to.
+     */
+    public function createDestination(array $fields): array
+    {
+        try {
+            $accessToken = $this->getAccessToken();
+        } catch (\RuntimeException $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+
+        try {
+            $response = Http::withToken($accessToken)
+                ->timeout(15)
+                ->post("{$this->baseUrl}/payments/v1/destinations", [
+                    'display_name' => $fields['display_name'],
+                    'name'         => $fields['name'],
+                    'address'      => $fields['address'],
+                    'city'         => $fields['city'],
+                    'country'      => 'ARE',
+                    'account_number' => $fields['account_number'],
+                    'swift_code'   => $fields['swift_code'],
+                    'iban'         => $fields['iban'],
+                    'bank_type'    => $fields['bank_type'] ?? 'SME',
+                    'government_identifier' => [
+                        'type'  => 'TRADE_LICENSE_NUMBER',
+                        'value' => $fields['trade_license_number'],
+                    ],
+                ]);
+        } catch (\Throwable $e) {
+            Log::error('Lean: exception during destination creation', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+
+        if (!$response->successful()) {
+            Log::error('Lean: destination creation failed', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+            return [
+                'success' => false,
+                'error'   => $response->json('message') ?? ('Lean returned ' . $response->status()),
+            ];
+        }
+
+        return [
+            'success'        => true,
+            'destination_id' => $response->json('id'),
+        ];
+    }
+
+    // -------------------------------------------------------------------------
     // Customers
     // -------------------------------------------------------------------------
 

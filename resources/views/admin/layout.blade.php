@@ -295,6 +295,12 @@
                 <span>App Users</span>
             </a>
 
+            <a href="{{ route('admin.lean-destinations.create') }}"
+               class="nav-link {{ request()->routeIs('admin.lean-destinations*') ? 'active' : '' }}">
+                <i class="fas fa-university"></i>
+                <span>Lean Destinations</span>
+            </a>
+
         </nav>
 
         {{-- User info + Logout --}}

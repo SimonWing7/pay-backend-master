@@ -222,7 +222,10 @@
                 <label for="lean_destination_id" class="form-label">Lean Payment Destination ID</label>
                 <input type="text" name="lean_destination_id" id="lean_destination_id" value="{{ old('lean_destination_id', $merchant->lean_destination_id) }}" placeholder="e.g. dst_a1b2c3d4"
                     class="form-input @error('lean_destination_id') border-red-400 @enderror">
-                <p class="text-xs text-gray-400 mt-1">Created in the Lean dashboard for this merchant's bank account. If left blank, payments fall back to the platform's default destination — only correct if this merchant hasn't been given their own yet.</p>
+                <p class="text-xs text-gray-400 mt-1">
+                    Created for this merchant's bank account. If left blank, payments fall back to the platform's default destination — only correct if this merchant hasn't been given their own yet.
+                    <a href="{{ route('admin.lean-destinations.create') }}" target="_blank" style="color:#3d01bd;">Create one now &rarr;</a>
+                </p>
                 @error('lean_destination_id')
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                 @enderror
@@ -252,7 +255,10 @@
          nothing changes for them if so. --}}
     <div class="card p-6 mt-6">
         <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Entities</h3>
-        <p class="text-xs text-gray-400 mb-4">Separate companies/trade licenses under this merchant, each with their own Lean payment destination. Optional — leave empty if this merchant only operates as one legal entity. When set, the merchant can pick an entity per Product or Payment Link.</p>
+        <p class="text-xs text-gray-400 mb-4">
+            Separate companies/trade licenses under this merchant, each with their own Lean payment destination. Optional — leave empty if this merchant only operates as one legal entity. When set, the merchant can pick an entity per Product or Payment Link.
+            <a href="{{ route('admin.lean-destinations.create') }}" target="_blank" style="color:#3d01bd;">Create a destination for a new entity &rarr;</a>
+        </p>
 
         @if($merchant->entities->count() > 0)
         <div class="space-y-2 mb-5">

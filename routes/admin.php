@@ -33,7 +33,14 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
         Route::post('/{merchantId}/entities', [App\Http\Controllers\Admin\MerchantEntityController::class, 'store'])->name('entities.store');
         Route::delete('/{merchantId}/entities/{entityId}', [App\Http\Controllers\Admin\MerchantEntityController::class, 'destroy'])->name('entities.destroy');
     });
-    
+
+    // Create a Lean payment destination directly from the dashboard —
+    // replaces the manual Tinker script previously used for this.
+    Route::prefix('lean-destinations')->name('lean-destinations.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\LeanDestinationController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Admin\LeanDestinationController::class, 'store'])->name('store');
+    });
+
     // Payments management
     Route::prefix('payments')->name('payments.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('index');
