@@ -38,6 +38,29 @@
                 <p class="text-xs text-gray-400 font-medium mb-1">Date</p>
                 <p class="text-sm text-gray-700">{{ $payment->created_at->format('d M Y, H:i:s') }}</p>
             </div>
+            @if($payment->lean_payment_intent_id)
+            <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Lean Payment Intent ID</p>
+                <p class="text-xs font-mono text-gray-600 break-all">{{ $payment->lean_payment_intent_id }}</p>
+                <p class="text-xs text-gray-400 mt-1">Reference this when raising a case with Lean support — matches "Payment intent ID" in Lean's own dashboard.</p>
+            </div>
+            @endif
+            @if(!empty($payment->lean_metadata['lean_customer_id']))
+            <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Lean Customer ID</p>
+                <p class="text-xs font-mono text-gray-600 break-all">{{ $payment->lean_metadata['lean_customer_id'] }}</p>
+                <p class="text-xs text-gray-400 mt-1">Matches "Customer ID" in Lean's dashboard.</p>
+            </div>
+            @endif
+            @if($payment->lean_metadata)
+            <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Raw Lean Metadata</p>
+                <details>
+                    <summary class="text-xs cursor-pointer" style="color:#3d01bd;">View raw data (includes Lean's own Payment ID once a webhook has been received)</summary>
+                    <pre class="text-xs font-mono text-gray-600 mt-2 p-3 rounded-lg overflow-x-auto" style="background:#f8f9fc;border:1px solid #eef0f5;white-space:pre-wrap;word-break:break-all;">{{ json_encode($payment->lean_metadata, JSON_PRETTY_PRINT) }}</pre>
+                </details>
+            </div>
+            @endif
         </div>
     </div>
 
