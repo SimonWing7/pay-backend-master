@@ -38,6 +38,13 @@ class PaymentService extends Service
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('token', 'like', "%{$search}%")
+                  // customer_name/email/mobile are what's actually captured
+                  // on real web/hosted-checkout payments — appUser is only
+                  // ever set for the mobile app's own logged-in users, null
+                  // for virtually everything a merchant would ask about.
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_email', 'like', "%{$search}%")
+                  ->orWhere('customer_mobile', 'like', "%{$search}%")
                   ->orWhereHas('appUser', function ($q) use ($search) {
                       $q->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
