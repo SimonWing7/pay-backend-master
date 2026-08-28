@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\AdminService;
-use App\Services\AppUserService;
 use App\Services\PaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +14,6 @@ class AdminController extends Controller
 {
     public function __construct(
         protected AdminService $adminService,
-        protected AppUserService $appUserService,
         protected PaymentService $paymentService
     ) {
     }
@@ -69,12 +67,13 @@ class AdminController extends Controller
 
     public function dashboard(): View
     {
-        $installationStats = $this->appUserService->getInstallationStats(30);
         $paymentStats = $this->paymentService->getPaymentStats(30);
         $totalAmountAllTime = $this->paymentService->getTotalAmountAllTime();
         $totalAmountCurrentMonth = $this->paymentService->getTotalAmountCurrentMonth();
-        
-        return view('admin.dashboard', compact('installationStats', 'paymentStats', 'totalAmountAllTime', 'totalAmountCurrentMonth'));
+        $statusBreakdown = $this->paymentService->getStatusBreakdown();
+        $merchantBreakdown = $this->paymentService->getMerchantBreakdown(10);
+
+        return view('admin.dashboard', compact('paymentStats', 'totalAmountAllTime', 'totalAmountCurrentMonth', 'statusBreakdown', 'merchantBreakdown'));
     }
 }
 

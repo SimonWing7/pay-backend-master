@@ -126,6 +126,54 @@ class PaymentService extends Service
         ];
     }
 
+    /**
+     * Payment counts grouped by status, for the dashboard's status pie chart.
+     */
+    public function getStatusBreakdown(): array
+    {
+        $counts = AppUserPayment::selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
+        return [
+            'labels' => ['Complete', 'Initiated', 'Failed'],
+            'data'   => [
+                (int) ($counts[\App\Enums\PaymentStatus::Complete->value] ?? 0),
+                (int) ($counts[\App\Enums\PaymentStatus::Initiated->value] ?? 0),
+                (int) ($counts[\App\Enums\PaymentStatus::Failed->value] ?? 0),
+            ],
+        ];
+    }
+
+    /**
+     * Payment counts grouped by merchant, top N by volume with the rest
+     * collapsed into "Other" — for the dashboard's merchant pie chart.
+     */
+    public function getMerchantBreakdown(int $limit = 10): array
+    {
+        $rows = AppUserPayment::selectRaw('merchants.name as merchant_name, COUNT(*) as count')
+            ->join('invoices', 'app_user_payments.invoice_id', '=', 'invoices.id')
+            ->join('merchants', 'invoices.merchant_id', '=', 'merchants.id')
+            ->whereNull('app_user_payments.deleted_at')
+            ->whereNull('invoices.deleted_at')
+            ->groupBy('merchants.id', 'merchants.name')
+            ->orderByDesc('count')
+            ->get();
+
+        $top = $rows->take($limit);
+        $otherCount = $rows->skip($limit)->sum('count');
+
+        $labels = $top->pluck('merchant_name')->values()->all();
+        $data = $top->pluck('count')->values()->all();
+
+        if ($otherCount > 0) {
+            $labels[] = 'Other';
+            $data[] = $otherCount;
+        }
+
+        return ['labels' => $labels, 'data' => $data];
+    }
+
     public function getTotalAmountAllTime(): float
     {
         $total = AppUserPayment::where('app_user_payments.status', \App\Enums\PaymentStatus::Complete->value)

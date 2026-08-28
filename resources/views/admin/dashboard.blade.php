@@ -31,7 +31,7 @@
     </div>
 
     {{-- Stats Row 1: Overview --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
 
         <a href="{{ route('admin.merchants.index') }}" class="stat-card hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
@@ -45,18 +45,6 @@
             </div>
         </a>
 
-        <a href="{{ route('admin.app_users.index') }}" class="stat-card hover:shadow-md transition-shadow">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;">App Users</p>
-                    <p style="font-size: 28px; font-weight: 800; color: #000026; margin-top: 4px;">{{ $installationStats['total'] }}</p>
-                </div>
-                <div class="stat-icon">
-                    <i class="fas fa-mobile-alt"></i>
-                </div>
-            </div>
-        </a>
-
         <a href="{{ route('admin.payments.index') }}" class="stat-card hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
@@ -65,18 +53,6 @@
                 </div>
                 <div class="stat-icon">
                     <i class="fas fa-credit-card"></i>
-                </div>
-            </div>
-        </a>
-
-        <a href="{{ route('admin.invoices.index') }}" class="stat-card hover:shadow-md transition-shadow">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;">Total Invoices</p>
-                    <p style="font-size: 28px; font-weight: 800; color: #000026; margin-top: 4px;">{{ \App\Models\Invoice::count() }}</p>
-                </div>
-                <div class="stat-icon">
-                    <i class="fas fa-file-invoice"></i>
                 </div>
             </div>
         </a>
@@ -117,18 +93,26 @@
 
         <div class="card p-6">
             <h3 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-chart-line gradient-text"></i>
-                App Users — Last 30 Days
-            </h3>
-            <canvas id="installationsChart" height="110"></canvas>
-        </div>
-
-        <div class="card p-6">
-            <h3 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                 <i class="fas fa-chart-area gradient-text"></i>
                 Payments — Last 30 Days
             </h3>
             <canvas id="paymentsChart" height="110"></canvas>
+        </div>
+
+        <div class="card p-6">
+            <h3 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-chart-pie gradient-text"></i>
+                Payment Status
+            </h3>
+            <canvas id="statusChart" height="220"></canvas>
+        </div>
+
+        <div class="card p-6 lg:col-span-2">
+            <h3 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-chart-pie gradient-text"></i>
+                Payments by Merchant <span class="text-xs text-gray-400 font-normal ml-1">(top 10)</span>
+            </h3>
+            <canvas id="merchantChart" height="200"></canvas>
         </div>
 
     </div>
@@ -142,34 +126,6 @@
     const brandCyan   = '#00bdff';
     const purpleAlpha = 'rgba(61, 1, 189, 0.08)';
     const cyanAlpha   = 'rgba(0, 189, 255, 0.08)';
-
-    // App Users Chart
-    new Chart(document.getElementById('installationsChart').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: @json($installationStats['labels']),
-            datasets: [{
-                label: 'App Users',
-                data: @json($installationStats['data']),
-                borderColor: brandPurple,
-                backgroundColor: purpleAlpha,
-                borderWidth: 2,
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: brandPurple,
-                pointRadius: 3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f0f1f5' } },
-                x: { ticks: { maxTicksLimit: 10 }, grid: { display: false } }
-            }
-        }
-    });
 
     // Payments Chart
     new Chart(document.getElementById('paymentsChart').getContext('2d'), {
@@ -198,5 +154,50 @@
             }
         }
     });
+
+    // Payment Status Chart — same colors as the status badges used elsewhere
+    // (badge-success/warning/danger) so it reads consistently with the rest
+    // of the dashboard.
+    new Chart(document.getElementById('statusChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: @json($statusBreakdown['labels']),
+            datasets: [{
+                data: @json($statusBreakdown['data']),
+                backgroundColor: ['#059669', '#d97706', '#dc2626'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } } }
+        }
+    });
+
+    // Payments by Merchant Chart — top 10 + "Other" for the rest, greyed out
+    // so it doesn't compete visually with the real merchant slices.
+    (function () {
+        const labels = @json($merchantBreakdown['labels']);
+        const merchantPalette = ['#3d01bd', '#00bdff', '#7c3aed', '#0ea5e9', '#a855f7', '#06b6d4', '#8b5cf6', '#22d3ee', '#c084fc', '#67e8f9'];
+        const colors = labels.map((label, i) => label === 'Other' ? '#9ca3af' : merchantPalette[i % merchantPalette.length]);
+
+        new Chart(document.getElementById('merchantChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: @json($merchantBreakdown['data']),
+                    backgroundColor: colors,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } } }
+            }
+        });
+    })();
 </script>
 @endpush

@@ -295,12 +295,6 @@
                 <span>Invoices</span>
             </a>
 
-            <a href="{{ route('admin.app_users.index') }}"
-               class="nav-link {{ request()->routeIs('admin.app_users*') ? 'active' : '' }}">
-                <i class="fas fa-users"></i>
-                <span>App Users</span>
-            </a>
-
             <a href="{{ route('admin.lean-destinations.create') }}"
                class="nav-link {{ request()->routeIs('admin.lean-destinations*') ? 'active' : '' }}">
                 <i class="fas fa-university"></i>
