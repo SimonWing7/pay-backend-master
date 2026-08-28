@@ -69,7 +69,7 @@
             </div>
         </a>
 
-        <a href="{{ route('admin.payments.index') }}" class="stat-card hover:shadow-md transition-shadow">
+        <a href="{{ route('admin.invoices.index') }}" class="stat-card hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
                     <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;">Total Invoices</p>

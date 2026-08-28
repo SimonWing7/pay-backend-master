@@ -289,6 +289,12 @@
                 <span>Payments</span>
             </a>
 
+            <a href="{{ route('admin.invoices.index') }}"
+               class="nav-link {{ request()->routeIs('admin.invoices*') ? 'active' : '' }}">
+                <i class="fas fa-file-invoice"></i>
+                <span>Invoices</span>
+            </a>
+
             <a href="{{ route('admin.app_users.index') }}"
                class="nav-link {{ request()->routeIs('admin.app_users*') ? 'active' : '' }}">
                 <i class="fas fa-users"></i>

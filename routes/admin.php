@@ -41,6 +41,8 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
         Route::post('/', [App\Http\Controllers\Admin\LeanDestinationController::class, 'store'])->name('store');
     });
 
+    Route::get('/invoices', [App\Http\Controllers\Admin\InvoiceController::class, 'index'])->name('invoices.index');
+
     // Payments management
     Route::prefix('payments')->name('payments.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('index');
