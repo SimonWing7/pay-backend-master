@@ -105,17 +105,17 @@
 
         <div class="card">
             <h3 class="chart-title"><i class="fas fa-chart-area gradient-text"></i> Payments — Last 30 Days</h3>
-            <canvas id="paymentsChart" height="90"></canvas>
+            <div style="height:140px;"><canvas id="paymentsChart"></canvas></div>
         </div>
 
         <div class="card">
             <h3 class="chart-title"><i class="fas fa-chart-pie gradient-text"></i> Payment Status</h3>
-            <canvas id="statusChart" height="140"></canvas>
+            <div style="height:140px;"><canvas id="statusChart"></canvas></div>
         </div>
 
         <div class="card lg:col-span-2">
             <h3 class="chart-title"><i class="fas fa-chart-pie gradient-text"></i> Payments by Merchant <span class="text-xs text-gray-400 font-normal ml-1">(top 10)</span></h3>
-            <canvas id="merchantChart" height="130"></canvas>
+            <div style="height:160px;"><canvas id="merchantChart"></canvas></div>
         </div>
 
     </div>
@@ -162,7 +162,7 @@
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             // datalabels is registered globally for the percentage-labeled
             // doughnut charts below — explicitly off here, a per-point count
             // label on every day of a 30-day line chart would be unreadable.
@@ -189,7 +189,7 @@
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
                 datalabels: { color: '#fff', font: { weight: 'bold', size: 11 }, formatter: pctLabel }
@@ -216,7 +216,7 @@
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
                     datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: pctLabel }
