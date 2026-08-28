@@ -52,6 +52,13 @@
                 <p class="text-xs text-gray-400 mt-1">Matches "Customer ID" in Lean's dashboard.</p>
             </div>
             @endif
+            @if(!empty($payment->lean_metadata['latest_webhook']['payload']['id']))
+            <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Lean Payment ID</p>
+                <p class="text-xs font-mono text-gray-600 break-all">{{ $payment->lean_metadata['latest_webhook']['payload']['id'] }}</p>
+                <p class="text-xs text-gray-400 mt-1">Matches "Payment ID" in Lean's dashboard — only available once a webhook has been received.</p>
+            </div>
+            @endif
             @if($payment->lean_metadata)
             <div>
                 <p class="text-xs text-gray-400 font-medium mb-1">Raw Lean Metadata</p>
