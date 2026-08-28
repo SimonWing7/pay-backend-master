@@ -12,32 +12,44 @@
 
 @section('content')
 
+<div class="dash-compact">
+<style>
+    /* Scoped to this page only — doesn't touch .card/.stat-card/.stat-icon
+       used elsewhere in the admin panel (Merchants, Payments, Invoices). */
+    .dash-compact .card,
+    .dash-compact .stat-card { padding: 12px; }
+    .dash-compact .stat-icon { width: 30px; height: 30px; border-radius: 8px; font-size: 12px; }
+    .dash-compact .stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
+    .dash-compact .stat-value-lg { font-size: 18px; font-weight: 800; color: #000026; margin-top: 2px; }
+    .dash-compact .stat-value-md { font-size: 16px; font-weight: 800; color: #000026; margin-top: 2px; }
+    .dash-compact .chart-title { font-size: 12px; font-weight: 700; color: #111827; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .dash-compact .qa-title { font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+</style>
+
     {{-- Quick Actions --}}
-    <div class="card mb-6 p-6">
-        <h3 style="font-size: 14px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;">
-            Quick Actions
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <a href="{{ route('admin.merchants.create') }}" class="btn-primary justify-center py-3">
+    <div class="card mb-4">
+        <h3 class="qa-title">Quick Actions</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <a href="{{ route('admin.merchants.create') }}" class="btn-primary justify-center py-2 text-sm">
                 <i class="fas fa-store"></i> Add Merchant
             </a>
-            <a href="{{ route('admin.merchants.index') }}" class="btn-secondary justify-center py-3">
+            <a href="{{ route('admin.merchants.index') }}" class="btn-secondary justify-center py-2 text-sm">
                 <i class="fas fa-list"></i> View Merchants
             </a>
-            <a href="{{ route('admin.payments.index') }}" class="btn-secondary justify-center py-3">
+            <a href="{{ route('admin.payments.index') }}" class="btn-secondary justify-center py-2 text-sm">
                 <i class="fas fa-credit-card"></i> View Payments
             </a>
         </div>
     </div>
 
     {{-- Stats Row 1: Overview --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
 
         <a href="{{ route('admin.merchants.index') }}" class="stat-card hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;">Total Merchants</p>
-                    <p style="font-size: 28px; font-weight: 800; color: #000026; margin-top: 4px;">{{ \App\Models\Merchant::count() }}</p>
+                    <p class="stat-label">Total Merchants</p>
+                    <p class="stat-value-lg">{{ \App\Models\Merchant::count() }}</p>
                 </div>
                 <div class="stat-icon">
                     <i class="fas fa-store"></i>
@@ -48,8 +60,8 @@
         <a href="{{ route('admin.payments.index') }}" class="stat-card hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;">Total Payments</p>
-                    <p style="font-size: 28px; font-weight: 800; color: #000026; margin-top: 4px;">{{ $paymentStats['total'] }}</p>
+                    <p class="stat-label">Total Payments</p>
+                    <p class="stat-value-lg">{{ $paymentStats['total'] }}</p>
                 </div>
                 <div class="stat-icon">
                     <i class="fas fa-credit-card"></i>
@@ -60,13 +72,13 @@
     </div>
 
     {{-- Stats Row 2: Financial --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
 
         <a href="{{ route('admin.payments.index') }}" class="stat-card hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;">Total Volume (All Time)</p>
-                    <p style="font-size: 24px; font-weight: 800; color: #000026; margin-top: 4px;">AED {{ number_format($totalAmountAllTime, 2) }}</p>
+                    <p class="stat-label">Total Volume (All Time)</p>
+                    <p class="stat-value-md">AED {{ number_format($totalAmountAllTime, 2) }}</p>
                 </div>
                 <div class="stat-icon">
                     <i class="fas fa-money-bill-wave"></i>
@@ -77,8 +89,8 @@
         <a href="{{ route('admin.payments.index') }}" class="stat-card hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;">Volume This Month</p>
-                    <p style="font-size: 24px; font-weight: 800; color: #000026; margin-top: 4px;">AED {{ number_format($totalAmountCurrentMonth, 2) }}</p>
+                    <p class="stat-label">Volume This Month</p>
+                    <p class="stat-value-md">AED {{ number_format($totalAmountCurrentMonth, 2) }}</p>
                 </div>
                 <div class="stat-icon">
                     <i class="fas fa-calendar-alt"></i>
@@ -89,39 +101,43 @@
     </div>
 
     {{-- Charts --}}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        <div class="card p-6">
-            <h3 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-chart-area gradient-text"></i>
-                Payments — Last 30 Days
-            </h3>
-            <canvas id="paymentsChart" height="110"></canvas>
+        <div class="card">
+            <h3 class="chart-title"><i class="fas fa-chart-area gradient-text"></i> Payments — Last 30 Days</h3>
+            <canvas id="paymentsChart" height="90"></canvas>
         </div>
 
-        <div class="card p-6">
-            <h3 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-chart-pie gradient-text"></i>
-                Payment Status
-            </h3>
-            <canvas id="statusChart" height="220"></canvas>
+        <div class="card">
+            <h3 class="chart-title"><i class="fas fa-chart-pie gradient-text"></i> Payment Status</h3>
+            <canvas id="statusChart" height="140"></canvas>
         </div>
 
-        <div class="card p-6 lg:col-span-2">
-            <h3 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-chart-pie gradient-text"></i>
-                Payments by Merchant <span class="text-xs text-gray-400 font-normal ml-1">(top 10)</span>
-            </h3>
-            <canvas id="merchantChart" height="200"></canvas>
+        <div class="card lg:col-span-2">
+            <h3 class="chart-title"><i class="fas fa-chart-pie gradient-text"></i> Payments by Merchant <span class="text-xs text-gray-400 font-normal ml-1">(top 10)</span></h3>
+            <canvas id="merchantChart" height="130"></canvas>
         </div>
 
     </div>
+
+</div>
 
 @endsection
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
+    Chart.register(ChartDataLabels);
+
+    // Percentage label formatter shared by both doughnut charts — Chart.js
+    // datalabels doesn't compute percentages itself, just raw values.
+    function pctLabel(value, ctx) {
+        const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+        if (!total || value === 0) return '';
+        return (value / total * 100).toFixed(0) + '%';
+    }
+
     const brandPurple = '#3d01bd';
     const brandCyan   = '#00bdff';
     const purpleAlpha = 'rgba(61, 1, 189, 0.08)';
@@ -147,7 +163,10 @@
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            plugins: { legend: { display: false } },
+            // datalabels is registered globally for the percentage-labeled
+            // doughnut charts below — explicitly off here, a per-point count
+            // label on every day of a 30-day line chart would be unreadable.
+            plugins: { legend: { display: false }, datalabels: { display: false } },
             scales: {
                 y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f0f1f5' } },
                 x: { ticks: { maxTicksLimit: 10 }, grid: { display: false } }
@@ -171,7 +190,10 @@
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } } }
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+                datalabels: { color: '#fff', font: { weight: 'bold', size: 11 }, formatter: pctLabel }
+            }
         }
     });
 
@@ -195,7 +217,10 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } } }
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+                    datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: pctLabel }
+                }
             }
         });
     })();
