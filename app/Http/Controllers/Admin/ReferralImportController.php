@@ -35,7 +35,7 @@ class ReferralImportController extends Controller
         $stats = $this->referralImportService->import($contents);
 
         $message = "Processed {$stats['rows']} rows: {$stats['matched']} matched a merchant "
-            . "({$stats['earned']} newly earned commission), {$stats['skipped_not_active']} weren't Active yet, "
+            . "({$stats['earned']} newly earned commission), {$stats['skipped_not_active']} were Free or had no usable date, "
             . "{$stats['skipped_no_match']} had no matching payment, "
             . "{$stats['skipped_invalid']} were skipped (missing user id / email+mobile).";
 

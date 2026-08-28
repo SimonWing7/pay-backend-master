@@ -21,13 +21,17 @@ class ReferralImportService extends Service
      * Edfundo signup (sometimes a different parent entirely), so either
      * identifier matching is treated as a hit.
      *
-     * Only rows with Subscription Status = Active are processed at all —
-     * confirmed with business: "Free" is a manually-discounted rate and
-     * "trial" hasn't paid, neither meets the full-fee-paid requirement for
-     * the AED 50. Attribution is checked against Subscription Start Date,
-     * not SignUp Date — the trigger is the paid conversion, not the
-     * signup itself, which may happen well before (or same-day as) the
-     * payment that referred them.
+     * Rows with Subscription Status = Active, Pending, or Trial are all
+     * imported now, so Edfundo has visibility into who's started the
+     * onboarding/subscription process even before they've paid — "Free"
+     * (a manually-discounted rate) is still excluded, per the business
+     * confirming that's not a real signup either. Only Active rows count
+     * as a commission-earning event though — Pending/Trial rows show up
+     * in the dashboard with their real status but no commission until a
+     * later import shows them as Active. Attribution is checked against
+     * Subscription Start Date where available; Pending rows often don't
+     * have one yet (nothing's started billing), so SignUp Date is used
+     * as the fallback cutoff for the payment-history match in that case.
      *
      * @return array{rows: int, matched: int, earned: int, skipped_not_active: int, skipped_no_match: int, skipped_invalid: int}
      */
@@ -46,24 +50,27 @@ class ReferralImportService extends Service
             $email = trim((string) ($row['Email'] ?? ''));
             $mobile = trim((string) ($row['Mobile Number'] ?? ''));
             $userId = trim((string) ($row['User Id'] ?? ''));
-            $isActive = strtolower(trim((string) ($row['Subscription Status'] ?? ''))) === 'active';
+            $rawStatus = trim((string) ($row['Subscription Status'] ?? ''));
+            $statusLower = strtolower($rawStatus);
+            $isActive = $statusLower === 'active';
+            $isTrackable = in_array($statusLower, ['active', 'pending', 'trial'], true);
             $subscriptionStart = $this->parseDate($row['Subscription Start Date (yyyy-MM-DD)'] ?? null);
+            $signUpDate = $this->parseDate($row['SignUp Date (yyyy-MM-DD)'] ?? null);
 
             if (!$userId || (!$email && !$mobile)) {
                 $stats['skipped_invalid']++;
                 continue;
             }
 
-            if (!$isActive || !$subscriptionStart) {
-                // Not a commission-earning event (yet) — nothing to
-                // attribute without a subscription date to check the
-                // payment against. A later import will pick this row up
-                // once/if it becomes Active.
+            // "Free" or anything else unrecognized — not a real signup
+            // attempt, deliberately excluded.
+            $cutoffDate = $subscriptionStart ?? $signUpDate;
+            if (!$isTrackable || !$cutoffDate) {
                 $stats['skipped_not_active']++;
                 continue;
             }
 
-            $consumer = $this->findReferringConsumer($email, $mobile, $subscriptionStart);
+            $consumer = $this->findReferringConsumer($email, $mobile, $cutoffDate);
 
             if (!$consumer) {
                 $stats['skipped_no_match']++;
@@ -71,8 +78,6 @@ class ReferralImportService extends Service
             }
 
             $stats['matched']++;
-
-            $signUpDate = $this->parseDate($row['SignUp Date (yyyy-MM-DD)'] ?? null);
 
             $referral = MerchantReferral::firstOrNew([
                 'merchant_uuid' => (string) $consumer->merchant_id,
@@ -83,14 +88,24 @@ class ReferralImportService extends Service
             $referral->registered_at = $referral->registered_at ?? $signUpDate ?? $subscriptionStart;
             $referral->registered_payload = $row;
 
-            // Never regress an already-settled commission back to earned
-            // on a later re-import of the same active row.
-            if ($referral->commission_status !== 'settled') {
-                $referral->subscription_plan = 'active';
-                $referral->subscribed_at = $referral->subscribed_at ?? $subscriptionStart;
-                $referral->subscribed_payload = $row;
-                $referral->commission_status = 'earned';
-                $stats['earned']++;
+            // Never regress an already-settled commission, and never let a
+            // later "no longer Active" row erase a commission already
+            // earned from a prior import — only ever move forward.
+            if (!in_array($referral->commission_status, ['settled', 'earned'], true)) {
+                $referral->subscription_plan = $rawStatus;
+
+                if ($isActive) {
+                    $referral->subscribed_at = $referral->subscribed_at ?? $subscriptionStart;
+                    $referral->subscribed_payload = $row;
+                    $referral->commission_status = 'earned';
+                    $stats['earned']++;
+                } else {
+                    // Pending/Trial — visible in both dashboards, but not
+                    // yet a commission-earning event. The admin dashboard's
+                    // stat card explicitly counts the literal string
+                    // 'pending', so this can't be left null.
+                    $referral->commission_status = 'pending';
+                }
             }
 
             $referral->save();
