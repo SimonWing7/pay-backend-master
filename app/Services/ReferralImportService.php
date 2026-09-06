@@ -238,9 +238,12 @@ class ReferralImportService extends Service
         // Carbon's generic slash-date guessing, which assumes US ordering
         // and would misread or fail on it entirely.
         foreach (['d/m/Y', 'Y-m-d'] as $format) {
-            $date = Carbon::createFromFormat('!' . $format, $value);
-            if ($date !== false) {
-                return $date;
+            try {
+                return Carbon::createFromFormat('!' . $format, $value);
+            } catch (\Throwable $e) {
+                // Doesn't match this format — this Carbon version throws
+                // rather than returning false, so catch and try the next
+                // one instead of letting it crash the whole import.
             }
         }
 
