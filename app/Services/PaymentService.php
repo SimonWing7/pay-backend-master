@@ -200,6 +200,78 @@ class PaymentService extends Service
         return (float) ($total ?? 0);
     }
 
+    /**
+     * Mirrors getPaymentStats() exactly (all statuses, not just Complete)
+     * but scoped to one merchant — for the admin merchant detail page's
+     * "same as the main dashboard" summary. Deliberately separate from
+     * getPaymentStatsForMerchant() below, which is Complete-only and
+     * already powers the merchant's own dashboard — changing its
+     * semantics would affect that page too.
+     */
+    public function getAllStatusPaymentStatsForMerchant(int $merchantId, int $days = 30): array
+    {
+        $startDate = now()->subDays($days);
+
+        $payments = AppUserPayment::selectRaw('DATE(app_user_payments.created_at) as date, COUNT(*) as count')
+            ->join('invoices', 'app_user_payments.invoice_id', '=', 'invoices.id')
+            ->where('invoices.merchant_id', $merchantId)
+            ->where('app_user_payments.created_at', '>=', $startDate)
+            ->whereNull('app_user_payments.deleted_at')
+            ->whereNull('invoices.deleted_at')
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get();
+
+        $dateRange = [];
+        $stats = [];
+
+        for ($i = $days; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $dateLabel = now()->subDays($i)->format('M d');
+            $dateRange[] = $dateLabel;
+            $stats[$date] = 0;
+        }
+
+        foreach ($payments as $payment) {
+            $date = $payment->date;
+            if (isset($stats[$date])) {
+                $stats[$date] = $payment->count;
+            }
+        }
+
+        return [
+            'labels' => $dateRange,
+            'data' => array_values($stats),
+            'total' => AppUserPayment::whereHas('invoice', function ($q) use ($merchantId) {
+                $q->where('merchant_id', $merchantId);
+            })->whereNull('deleted_at')->count(),
+        ];
+    }
+
+    /**
+     * Payment counts grouped by status for one merchant — same shape as
+     * getStatusBreakdown(), scoped down for the admin merchant detail page.
+     */
+    public function getStatusBreakdownForMerchant(int $merchantId): array
+    {
+        $counts = AppUserPayment::selectRaw('app_user_payments.status, COUNT(*) as count')
+            ->join('invoices', 'app_user_payments.invoice_id', '=', 'invoices.id')
+            ->where('invoices.merchant_id', $merchantId)
+            ->whereNull('app_user_payments.deleted_at')
+            ->whereNull('invoices.deleted_at')
+            ->groupBy('app_user_payments.status')
+            ->pluck('count', 'status');
+
+        return [
+            'labels' => ['Complete', 'Initiated', 'Failed'],
+            'data'   => [
+                (int) ($counts[\App\Enums\PaymentStatus::Complete->value] ?? 0),
+                (int) ($counts[\App\Enums\PaymentStatus::Initiated->value] ?? 0),
+                (int) ($counts[\App\Enums\PaymentStatus::Failed->value] ?? 0),
+            ],
+        ];
+    }
+
     public function getPaymentStatsForMerchant(int $merchantId, int $days = 30): array
     {
         $startDate = now()->subDays($days);
