@@ -4,6 +4,12 @@
 @section('page-title', 'Payments')
 @section('page-subtitle', 'All payment transactions across all merchants')
 
+@section('topbar-actions')
+    <a href="{{ route('admin.payments.export.csv', request()->query()) }}" class="btn-secondary">
+        <i class="fas fa-download"></i> Export CSV
+    </a>
+@endsection
+
 @section('content')
 
 <x-filter-sort

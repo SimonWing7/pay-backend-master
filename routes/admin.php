@@ -46,6 +46,7 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
     // Payments management
     Route::prefix('payments')->name('payments.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('index');
+        Route::get('/export/csv', [App\Http\Controllers\Admin\PaymentController::class, 'exportCsv'])->name('export.csv');
         Route::get('/{id}', [App\Http\Controllers\Admin\PaymentController::class, 'show'])->name('show');
     });
     
