@@ -18,6 +18,8 @@
         'search' => true,
         'min_fee' => true,
         'max_fee' => true,
+        'entity_id' => true,
+        'entities' => $entities,
         'status' => true,
         'status_options' => ['active' => 'Active', 'archived' => 'Archived', '' => 'All'],
         'sort_options' => ['name' => 'Name', 'fee' => 'Fee', 'created_at' => 'Created At', 'updated_at' => 'Updated At']

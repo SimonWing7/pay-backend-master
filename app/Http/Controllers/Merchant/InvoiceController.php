@@ -25,6 +25,7 @@ class InvoiceController extends Controller
         $filters = [
             'status' => $request->get('status'),
             'consumer_id' => $request->get('consumer_id'),
+            'entity_id' => $request->get('entity_id'),
             'group_id' => $request->get('group_id'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
@@ -37,7 +38,8 @@ class InvoiceController extends Controller
         $invoices = $this->invoiceService->getAllByMerchant($merchantId, $filters, $sortBy, $sortDir, $perPage);
         $consumers = \App\Models\Consumer::where('merchant_id', $merchantId)->get();
         $groups = $this->groupService->getAllByMerchant($merchantId);
-        return view('merchant.invoices.index', compact('invoices', 'consumers', 'groups'));
+        $entities = \App\Models\MerchantEntity::where('merchant_id', $merchantId)->get();
+        return view('merchant.invoices.index', compact('invoices', 'consumers', 'groups', 'entities'));
     }
 
     public function create(Request $request): View

@@ -21,6 +21,12 @@ class PaymentService extends Service
             });
         }
 
+        if (!empty($filters['entity_id'])) {
+            $query->whereHas('invoice', function ($q) use ($filters) {
+                $q->where('merchant_entity_id', $filters['entity_id']);
+            });
+        }
+
         // Apply filters
         if (isset($filters['status']) && $filters['status'] !== '' && $filters['status'] !== null) {
             $query->where('status', $filters['status']);
@@ -198,6 +204,48 @@ class PaymentService extends Service
             ->sum('invoices.total_fee');
 
         return (float) ($total ?? 0);
+    }
+
+    /**
+     * Payment counts grouped by entity, for a merchant with multiple legal
+     * entities (see App\Models\MerchantEntity) — e.g. separate Dubai/Abu
+     * Dhabi trade licenses under one login. Payments not tagged to any
+     * entity (the common case — most merchants have none, and even ones
+     * that do will have older invoices predating the entity's creation)
+     * are grouped under "Unassigned" rather than dropped, so the totals
+     * still add up to the merchant's full payment count.
+     */
+    public function getEntityBreakdownForMerchant(int $merchantId): array
+    {
+        $rows = AppUserPayment::selectRaw('invoices.merchant_entity_id, COUNT(*) as count')
+            ->join('invoices', 'app_user_payments.invoice_id', '=', 'invoices.id')
+            ->where('invoices.merchant_id', $merchantId)
+            ->whereNull('app_user_payments.deleted_at')
+            ->whereNull('invoices.deleted_at')
+            ->groupBy('invoices.merchant_entity_id')
+            ->get();
+
+        $entityNames = \App\Models\MerchantEntity::where('merchant_id', $merchantId)->pluck('name', 'id');
+
+        $labels = [];
+        $data = [];
+        $unassigned = 0;
+
+        foreach ($rows as $row) {
+            if ($row->merchant_entity_id && isset($entityNames[$row->merchant_entity_id])) {
+                $labels[] = $entityNames[$row->merchant_entity_id];
+                $data[] = $row->count;
+            } else {
+                $unassigned += $row->count;
+            }
+        }
+
+        if ($unassigned > 0) {
+            $labels[] = 'Unassigned';
+            $data[] = $unassigned;
+        }
+
+        return ['labels' => $labels, 'data' => $data];
     }
 
     /**

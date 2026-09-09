@@ -31,6 +31,10 @@ class InvoiceService extends Service
             $query->where('consumer_id', $filters['consumer_id']);
         }
 
+        if (!empty($filters['entity_id'])) {
+            $query->where('merchant_entity_id', $filters['entity_id']);
+        }
+
         if (isset($filters['group_id'])) {
             $query->whereHas('groups', function ($q) use ($filters) {
                 $q->where('groups.id', $filters['group_id']);

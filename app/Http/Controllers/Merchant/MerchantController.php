@@ -93,8 +93,10 @@ class MerchantController extends Controller
         $incomeStats = $this->paymentService->getIncomeStatsForMerchant($merchant->id, 30);
         $totalIncome = $this->paymentService->getTotalIncomeForMerchant($merchant->id);
         $totalIncomeCurrentMonth = $this->paymentService->getTotalIncomeCurrentMonthForMerchant($merchant->id);
+        $hasEntities = $merchant->entities()->exists();
+        $entityBreakdown = $hasEntities ? $this->paymentService->getEntityBreakdownForMerchant($merchant->id) : null;
 
-        return view('merchant.dashboard', compact('stats', 'paymentStats', 'incomeStats', 'totalIncome', 'totalIncomeCurrentMonth'));
+        return view('merchant.dashboard', compact('stats', 'paymentStats', 'incomeStats', 'totalIncome', 'totalIncomeCurrentMonth', 'hasEntities', 'entityBreakdown'));
     }
 
     public function showChangePasswordForm(): View

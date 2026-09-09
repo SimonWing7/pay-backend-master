@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Merchant;
+use App\Models\MerchantEntity;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -23,6 +24,10 @@ class InvoiceController extends Controller
 
         if ($request->filled('merchant_id')) {
             $query->where('merchant_id', $request->get('merchant_id'));
+        }
+
+        if ($request->filled('entity_id')) {
+            $query->where('merchant_entity_id', $request->get('entity_id'));
         }
 
         if ($request->filled('status')) {
@@ -55,7 +60,11 @@ class InvoiceController extends Controller
 
         $invoices = $query->orderBy($sortBy, $sortDir)->paginate($request->get('per_page', 15))->withQueryString();
         $merchants = Merchant::orderBy('name')->get(['id', 'name']);
+        $entities = MerchantEntity::with('merchant')->get()->map(function ($entity) {
+            $entity->name = ($entity->merchant->name ?? '—') . ' — ' . $entity->name;
+            return $entity;
+        });
 
-        return view('admin.invoices.index', compact('invoices', 'merchants'));
+        return view('admin.invoices.index', compact('invoices', 'merchants', 'entities'));
     }
 }

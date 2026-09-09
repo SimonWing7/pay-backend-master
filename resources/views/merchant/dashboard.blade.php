@@ -134,12 +134,26 @@
             <canvas id="incomeChart" height="110"></canvas>
         </div>
 
+        @if($hasEntities)
+        <div class="card p-6 lg:col-span-2">
+            <h3 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-chart-pie gradient-text"></i>
+                Payments by Entity
+            </h3>
+            <div style="height:160px;"><canvas id="entityChart"></canvas></div>
+        </div>
+        @endif
+
     </div>
 
 @endsection
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+@if($hasEntities)
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script>Chart.register(ChartDataLabels);</script>
+@endif
 <script>
     const brandPurple  = '#3d01bd';
     const brandCyan    = '#00bdff';
@@ -166,7 +180,7 @@
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            plugins: { legend: { display: false } },
+            plugins: { legend: { display: false }, datalabels: { display: false } },
             scales: {
                 y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f0f1f5' } },
                 x: { ticks: { maxTicksLimit: 10 }, grid: { display: false } }
@@ -196,6 +210,7 @@
             maintainAspectRatio: true,
             plugins: {
                 legend: { display: false },
+                datalabels: { display: false },
                 tooltip: {
                     callbacks: {
                         label: ctx => 'AED ' + parseFloat(ctx.parsed.y).toFixed(2)
@@ -212,5 +227,41 @@
             }
         }
     });
+
+    @if($hasEntities)
+    (function () {
+        const labels = @json($entityBreakdown['labels']);
+        const palette = ['#3d01bd', '#00bdff', '#7c3aed', '#0ea5e9', '#a855f7', '#06b6d4'];
+        const colors = labels.map((label, i) => label === 'Unassigned' ? '#9ca3af' : palette[i % palette.length]);
+
+        new Chart(document.getElementById('entityChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: @json($entityBreakdown['data']),
+                    backgroundColor: colors,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 11 },
+                        formatter: (value, ctx) => {
+                            const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            if (!total || value === 0) return '';
+                            return (value / total * 100).toFixed(0) + '%';
+                        }
+                    }
+                }
+            }
+        });
+    })();
+    @endif
 </script>
 @endpush

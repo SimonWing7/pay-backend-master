@@ -31,6 +31,10 @@ class ProductService extends Service
             });
         }
 
+        if (!empty($filters['entity_id'])) {
+            $query->where('merchant_entity_id', $filters['entity_id']);
+        }
+
         if (isset($filters['min_fee'])) {
             $query->where('fee', '>=', $filters['min_fee']);
         }

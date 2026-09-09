@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
+use App\Models\MerchantEntity;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -21,6 +22,7 @@ class PaymentController extends Controller
         $merchantId = $request->get('merchant_id');
         $filters = [
             'status' => $request->get('status'),
+            'entity_id' => $request->get('entity_id'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
             'search' => $request->get('search'),
@@ -31,8 +33,14 @@ class PaymentController extends Controller
 
         $payments = $this->paymentService->getAll($merchantId ?: null, $filters, $sortBy, $sortDir, $perPage);
         $merchants = Merchant::orderBy('name')->get(['id', 'name']);
+        // Labeled with the merchant name since this spans every merchant,
+        // not just whichever one might currently be filtered.
+        $entities = MerchantEntity::with('merchant')->get()->map(function ($entity) {
+            $entity->name = ($entity->merchant->name ?? '—') . ' — ' . $entity->name;
+            return $entity;
+        });
 
-        return view('admin.payments.index', compact('payments', 'merchants'));
+        return view('admin.payments.index', compact('payments', 'merchants', 'entities'));
     }
 
     public function show(int $id): View
@@ -51,6 +59,7 @@ class PaymentController extends Controller
         $merchantId = $request->get('merchant_id');
         $filters = [
             'status' => $request->get('status'),
+            'entity_id' => $request->get('entity_id'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
             'search' => $request->get('search'),

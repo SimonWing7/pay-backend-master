@@ -89,6 +89,12 @@
             <h3 class="chart-title"><i class="fas fa-chart-pie gradient-text"></i> Payment Status</h3>
             <div style="height:140px;"><canvas id="merchantStatusChart"></canvas></div>
         </div>
+        @if($merchant->entities->count() > 0)
+        <div class="card lg:col-span-2">
+            <h3 class="chart-title"><i class="fas fa-chart-pie gradient-text"></i> Payments by Entity</h3>
+            <div style="height:150px;"><canvas id="merchantEntityChart"></canvas></div>
+        </div>
+        @endif
     </div>
 
 </div>
@@ -378,5 +384,33 @@
             }
         }
     });
+
+    @if($merchant->entities->count() > 0)
+    (function () {
+        const labels = @json($entityBreakdown['labels']);
+        const palette = ['#3d01bd', '#00bdff', '#7c3aed', '#0ea5e9', '#a855f7', '#06b6d4'];
+        const colors = labels.map((label, i) => label === 'Unassigned' ? '#9ca3af' : palette[i % palette.length]);
+
+        new Chart(document.getElementById('merchantEntityChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: @json($entityBreakdown['data']),
+                    backgroundColor: colors,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+                    datalabels: { color: '#fff', font: { weight: 'bold', size: 11 }, formatter: merchantPctLabel }
+                }
+            }
+        });
+    })();
+    @endif
 </script>
 @endpush

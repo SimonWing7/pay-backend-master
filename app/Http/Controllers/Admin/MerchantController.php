@@ -124,6 +124,7 @@ class MerchantController extends Controller
 
         $paymentStats = $this->paymentService->getAllStatusPaymentStatsForMerchant($id, 30);
         $statusBreakdown = $this->paymentService->getStatusBreakdownForMerchant($id);
+        $entityBreakdown = $this->paymentService->getEntityBreakdownForMerchant($id);
         $totalAmountAllTime = $this->paymentService->getTotalIncomeForMerchant($id);
         $totalAmountCurrentMonth = $this->paymentService->getTotalIncomeCurrentMonthForMerchant($id);
         // Edfundo's cut — 1% of this merchant's total completed volume.
@@ -131,7 +132,7 @@ class MerchantController extends Controller
 
         return view('admin.merchants.show', compact(
             'merchant', 'apiKeys', 'recentPayments',
-            'paymentStats', 'statusBreakdown', 'totalAmountAllTime', 'totalAmountCurrentMonth', 'totalEdfundoRevenue'
+            'paymentStats', 'statusBreakdown', 'entityBreakdown', 'totalAmountAllTime', 'totalAmountCurrentMonth', 'totalEdfundoRevenue'
         ));
     }
 

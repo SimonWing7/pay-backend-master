@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Models\MerchantEntity;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -20,6 +21,7 @@ class PaymentController extends Controller
         $merchantId = $request->user()->id;
         $filters = [
             'status' => $request->get('status'),
+            'entity_id' => $request->get('entity_id'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
             'search' => $request->get('search'),
@@ -29,7 +31,8 @@ class PaymentController extends Controller
         $perPage = $request->get('per_page', 15);
 
         $payments = $this->paymentService->getAll($merchantId, $filters, $sortBy, $sortDir, $perPage);
-        return view('merchant.payments.index', compact('payments'));
+        $entities = MerchantEntity::where('merchant_id', $merchantId)->get();
+        return view('merchant.payments.index', compact('payments', 'entities'));
     }
 
     public function exportCsv(Request $request): Response
@@ -37,6 +40,7 @@ class PaymentController extends Controller
         $merchantId = $request->user()->id;
         $filters = [
             'status' => $request->get('status'),
+            'entity_id' => $request->get('entity_id'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
             'search' => $request->get('search'),

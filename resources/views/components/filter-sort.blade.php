@@ -53,6 +53,15 @@
         </select>
         @endif
 
+        @if(isset($filters['entity_id']))
+        <select name="entity_id" class="form-input text-sm py-2 w-44">
+            <option value="">All Entities</option>
+            @foreach($filters['entities'] ?? [] as $entity)
+            <option value="{{ $entity->id }}" {{ request('entity_id') == $entity->id ? 'selected' : '' }}>{{ $entity->name }}</option>
+            @endforeach
+        </select>
+        @endif
+
         @if(isset($filters['date_from']))
         <input type="date" name="date_from" value="{{ request('date_from') }}"
             class="form-input text-sm py-2 w-36" title="From date">

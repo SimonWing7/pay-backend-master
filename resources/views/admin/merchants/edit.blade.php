@@ -263,7 +263,9 @@
         @if($merchant->entities->count() > 0)
         <div class="space-y-2 mb-5">
             @foreach($merchant->entities as $entity)
-            <details class="rounded-lg border border-gray-200">
+            {{-- Open by default — a second entity being invisible until
+                 clicked is exactly the "very hidden" problem this fixes. --}}
+            <details class="rounded-lg border border-gray-200" open>
                 <summary class="flex items-center justify-between gap-3 p-3 cursor-pointer list-none">
                     <div>
                         <p class="text-sm font-semibold text-gray-800">{{ $entity->name }}</p>

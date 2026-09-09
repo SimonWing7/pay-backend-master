@@ -19,6 +19,8 @@
         'status' => true,
         'merchant_id' => true,
         'merchants' => $merchants,
+        'entity_id' => true,
+        'entities' => $entities,
         'date_from' => true,
         'date_to' => true,
         'status_options' => [0 => 'Initiated', 10 => 'Complete', 20 => 'Failed'],

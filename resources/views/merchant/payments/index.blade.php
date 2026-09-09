@@ -26,6 +26,15 @@
             <option value="20" {{ request('status') === '20' ? 'selected' : '' }}>Failed</option>
         </select>
 
+        @if($entities->count() > 0)
+        <select name="entity_id" class="form-input text-sm py-2 w-44">
+            <option value="">All Entities</option>
+            @foreach($entities as $entity)
+            <option value="{{ $entity->id }}" {{ request('entity_id') == $entity->id ? 'selected' : '' }}>{{ $entity->name }}</option>
+            @endforeach
+        </select>
+        @endif
+
         <input type="date" name="date_from" value="{{ request('date_from') }}"
             class="form-input text-sm py-2 w-36" title="From date">
 

@@ -24,6 +24,7 @@ class ProductController extends Controller
             'search' => $request->get('search'),
             'min_fee' => $request->get('min_fee'),
             'max_fee' => $request->get('max_fee'),
+            'entity_id' => $request->get('entity_id'),
             'state' => $request->get('status'), // filter-sort component uses 'status' as the field name
         ];
         $sortBy = $request->get('sort_by', 'created_at');
@@ -31,7 +32,8 @@ class ProductController extends Controller
         $perPage = $request->get('per_page', 15);
 
         $products = $this->productService->getAllByMerchant($merchantId, $filters, $sortBy, $sortDir, $perPage);
-        return view('merchant.products.index', compact('products'));
+        $entities = \App\Models\MerchantEntity::where('merchant_id', $merchantId)->get();
+        return view('merchant.products.index', compact('products', 'entities'));
     }
 
     public function create(Request $request): View
