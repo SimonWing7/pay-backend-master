@@ -263,20 +263,82 @@
         @if($merchant->entities->count() > 0)
         <div class="space-y-2 mb-5">
             @foreach($merchant->entities as $entity)
-            <div class="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200">
-                <div>
-                    <p class="text-sm font-semibold text-gray-800">{{ $entity->name }}</p>
-                    <p class="text-xs text-gray-400 font-mono">{{ $entity->lean_destination_id ?: 'No destination set yet' }}</p>
+            <details class="rounded-lg border border-gray-200">
+                <summary class="flex items-center justify-between gap-3 p-3 cursor-pointer list-none">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-800">{{ $entity->name }}</p>
+                        <p class="text-xs text-gray-400 font-mono">{{ $entity->lean_destination_id ?: 'No destination set yet' }}</p>
+                        @if(!$entity->fallback_bank_name && !$entity->iban)
+                        <p class="text-xs text-amber-600 mt-1"><i class="fas fa-exclamation-triangle"></i> No fallback bank details set — payers using the bank-transfer fallback will see the merchant's own default instead</p>
+                        @endif
+                    </div>
+                    <span class="text-xs text-indigo-600 flex-shrink-0">Edit</span>
+                </summary>
+                <div class="p-3 pt-0 border-t border-gray-100 mt-1">
+                    <form method="POST" action="{{ route('admin.merchants.entities.update', [$merchant->id, $entity->id]) }}" class="space-y-3 mt-3">
+                        @csrf
+                        @method('PUT')
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="form-label">Entity Name</label>
+                                <input type="text" name="name" value="{{ old('name', $entity->name) }}"
+                                    class="form-input @error('name', 'entity_' . $entity->id) border-red-400 @enderror">
+                                @error('name', 'entity_' . $entity->id)
+                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label class="form-label">Lean Destination ID</label>
+                                <input type="text" name="lean_destination_id" value="{{ old('lean_destination_id', $entity->lean_destination_id) }}"
+                                    class="form-input @error('lean_destination_id', 'entity_' . $entity->id) border-red-400 @enderror">
+                                @error('lean_destination_id', 'entity_' . $entity->id)
+                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label class="form-label">IBAN <span class="text-gray-400 font-normal">(fallback bank transfer)</span></label>
+                                <input type="text" name="iban" value="{{ old('iban', $entity->iban) }}"
+                                    placeholder="AE070331234567890123456"
+                                    class="form-input @error('iban', 'entity_' . $entity->id) border-red-400 @enderror">
+                                @error('iban', 'entity_' . $entity->id)
+                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label class="form-label">Fallback Bank Name</label>
+                                <input type="text" name="fallback_bank_name" value="{{ old('fallback_bank_name', $entity->fallback_bank_name) }}"
+                                    placeholder="e.g. Emirates NBD"
+                                    class="form-input @error('fallback_bank_name', 'entity_' . $entity->id) border-red-400 @enderror">
+                                @error('fallback_bank_name', 'entity_' . $entity->id)
+                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label class="form-label">Fallback Account Holder Name</label>
+                                <input type="text" name="fallback_account_name" value="{{ old('fallback_account_name', $entity->fallback_account_name) }}"
+                                    class="form-input @error('fallback_account_name', 'entity_' . $entity->id) border-red-400 @enderror">
+                                @error('fallback_account_name', 'entity_' . $entity->id)
+                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button type="submit" class="btn-primary text-sm">
+                                <i class="fas fa-save"></i> Save Entity
+                            </button>
+                        </div>
+                    </form>
+                    <form method="POST" action="{{ route('admin.merchants.entities.destroy', [$merchant->id, $entity->id]) }}"
+                        onsubmit="return confirm('Remove this entity? Any Products/Payment Links using it will fall back to the merchant\'s default destination and bank details.');"
+                        class="mt-2">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="text-xs text-red-500 hover:underline">
+                            <i class="fas fa-trash text-xs"></i> Remove this entity
+                        </button>
+                    </form>
                 </div>
-                <form method="POST" action="{{ route('admin.merchants.entities.destroy', [$merchant->id, $entity->id]) }}"
-                    onsubmit="return confirm('Remove this entity? Any Products/Payment Links using it will fall back to the merchant\'s default destination.');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors" title="Remove">
-                        <i class="fas fa-trash text-sm"></i>
-                    </button>
-                </form>
-            </div>
+            </details>
             @endforeach
         </div>
         @endif
@@ -299,6 +361,32 @@
                         placeholder="e.g. dst_a1b2c3d4"
                         class="form-input @error('lean_destination_id', 'entity') border-red-400 @enderror">
                     @error('lean_destination_id', 'entity')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div>
+                    <label for="entity_iban" class="form-label">IBAN <span class="text-gray-400 font-normal">(fallback bank transfer, optional)</span></label>
+                    <input type="text" name="iban" id="entity_iban" value="{{ old('iban') }}"
+                        placeholder="AE070331234567890123456"
+                        class="form-input @error('iban', 'entity') border-red-400 @enderror">
+                    @error('iban', 'entity')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div>
+                    <label for="entity_fallback_bank_name" class="form-label">Fallback Bank Name <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="text" name="fallback_bank_name" id="entity_fallback_bank_name" value="{{ old('fallback_bank_name') }}"
+                        placeholder="e.g. Emirates NBD"
+                        class="form-input @error('fallback_bank_name', 'entity') border-red-400 @enderror">
+                    @error('fallback_bank_name', 'entity')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div>
+                    <label for="entity_fallback_account_name" class="form-label">Fallback Account Holder Name <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="text" name="fallback_account_name" id="entity_fallback_account_name" value="{{ old('fallback_account_name') }}"
+                        class="form-input @error('fallback_account_name', 'entity') border-red-400 @enderror">
+                    @error('fallback_account_name', 'entity')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                 </div>

@@ -17,6 +17,9 @@ class MerchantEntity extends Model
         'merchant_id',
         'name',
         'lean_destination_id',
+        'iban',
+        'fallback_bank_name',
+        'fallback_account_name',
     ];
 
     public function merchant()

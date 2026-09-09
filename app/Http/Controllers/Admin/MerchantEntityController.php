@@ -13,8 +13,11 @@ class MerchantEntityController extends Controller
     public function store(Request $request, int $merchantId): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            'name'                 => 'required|string|max:255',
-            'lean_destination_id'  => 'nullable|string|max:255',
+            'name'                   => 'required|string|max:255',
+            'lean_destination_id'    => 'nullable|string|max:255',
+            'iban'                   => 'nullable|string|max:34',
+            'fallback_bank_name'     => 'nullable|string|max:255',
+            'fallback_account_name'  => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -30,6 +33,32 @@ class MerchantEntityController extends Controller
 
         return redirect()->route('admin.merchants.edit', $merchantId)
             ->with('success', 'Entity added successfully');
+    }
+
+    public function update(Request $request, int $merchantId, int $entityId): RedirectResponse
+    {
+        $entity = MerchantEntity::where('merchant_id', $merchantId)
+            ->where('id', $entityId)
+            ->firstOrFail();
+
+        $validator = Validator::make($request->all(), [
+            'name'                   => 'required|string|max:255',
+            'lean_destination_id'    => 'nullable|string|max:255',
+            'iban'                   => 'nullable|string|max:34',
+            'fallback_bank_name'     => 'nullable|string|max:255',
+            'fallback_account_name'  => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('admin.merchants.edit', $merchantId)
+                ->withErrors($validator, 'entity_' . $entityId)
+                ->withInput();
+        }
+
+        $entity->update($validator->validated());
+
+        return redirect()->route('admin.merchants.edit', $merchantId)
+            ->with('success', 'Entity updated successfully');
     }
 
     public function destroy(int $merchantId, int $entityId): RedirectResponse

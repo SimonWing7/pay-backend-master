@@ -264,6 +264,14 @@
                 {{-- "My bank is not listed" escape hatch --}}
                 @php
                     $merchant        = $invoice->merchant;
+                    $entity          = $invoice->merchantEntity;
+                    // Entity-specific bank details take priority over the
+                    // merchant's own default — otherwise a customer on an
+                    // Abu Dhabi-tagged invoice would see Dubai's bank
+                    // account (or vice versa) for the fallback transfer.
+                    $fallbackBankName    = $entity?->fallback_bank_name ?: $merchant->fallback_bank_name;
+                    $fallbackAccountName = $entity?->fallback_account_name ?: $merchant->fallback_account_name;
+                    $fallbackIban        = $entity?->iban ?: $merchant->iban;
                     $fallbackType    = $merchant->fallback_type ?? null;
                     $hasCardFallback = $fallbackType === 'payment_gateway' && !empty($merchant->fallback_payment_url);
                     $toggleLabel     = $hasCardFallback
@@ -307,22 +315,22 @@
                                     <span class="text-xs font-medium" style="color:#9ca3af;">Amount</span>
                                     <span class="text-sm font-bold" style="color:#3d01bd;">AED {{ number_format($invoice->total_fee, 2) }}</span>
                                 </div>
-                                @if($merchant->fallback_bank_name)
+                                @if($fallbackBankName)
                                 <div class="flex justify-between items-start gap-3">
                                     <span class="text-xs font-medium flex-shrink-0" style="color:#9ca3af;">Bank</span>
-                                    <span class="text-sm font-semibold text-right" style="color:#1f2937;">{{ $merchant->fallback_bank_name }}</span>
+                                    <span class="text-sm font-semibold text-right" style="color:#1f2937;">{{ $fallbackBankName }}</span>
                                 </div>
                                 @endif
-                                @if($merchant->fallback_account_name)
+                                @if($fallbackAccountName)
                                 <div class="flex justify-between items-start gap-3">
                                     <span class="text-xs font-medium flex-shrink-0" style="color:#9ca3af;">Account Name</span>
-                                    <span class="text-sm font-semibold text-right" style="color:#1f2937;">{{ $merchant->fallback_account_name }}</span>
+                                    <span class="text-sm font-semibold text-right" style="color:#1f2937;">{{ $fallbackAccountName }}</span>
                                 </div>
                                 @endif
-                                @if($merchant->iban)
+                                @if($fallbackIban)
                                 <div class="flex justify-between items-start gap-3">
                                     <span class="text-xs font-medium flex-shrink-0" style="color:#9ca3af;">IBAN</span>
-                                    <span class="text-xs font-mono font-semibold text-right" style="color:#1f2937;">{{ $merchant->iban }}</span>
+                                    <span class="text-xs font-mono font-semibold text-right" style="color:#1f2937;">{{ $fallbackIban }}</span>
                                 </div>
                                 @endif
                                 @if($merchant->fallback_reference_note)
