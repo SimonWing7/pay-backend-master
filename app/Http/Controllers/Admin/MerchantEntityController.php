@@ -18,6 +18,7 @@ class MerchantEntityController extends Controller
             'iban'                   => 'nullable|string|max:34',
             'fallback_bank_name'     => 'nullable|string|max:255',
             'fallback_account_name'  => 'nullable|string|max:255',
+            'fallback_reference_note' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -47,6 +48,7 @@ class MerchantEntityController extends Controller
             'iban'                   => 'nullable|string|max:34',
             'fallback_bank_name'     => 'nullable|string|max:255',
             'fallback_account_name'  => 'nullable|string|max:255',
+            'fallback_reference_note' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {

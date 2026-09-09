@@ -322,6 +322,15 @@
                                 @enderror
                             </div>
                         </div>
+                        <div>
+                            <label class="form-label">Reference Instructions</label>
+                            <textarea name="fallback_reference_note" rows="2"
+                                placeholder="e.g. Please use your child's full name as the payment reference"
+                                class="form-input @error('fallback_reference_note', 'entity_' . $entity->id) border-red-400 @enderror">{{ old('fallback_reference_note', $entity->fallback_reference_note) }}</textarea>
+                            @error('fallback_reference_note', 'entity_' . $entity->id)
+                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
                         <div class="flex items-center gap-3">
                             <button type="submit" class="btn-primary text-sm">
                                 <i class="fas fa-save"></i> Save Entity
@@ -390,6 +399,15 @@
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                 </div>
+            </div>
+            <div>
+                <label for="entity_fallback_reference_note" class="form-label">Reference Instructions <span class="text-gray-400 font-normal">(optional)</span></label>
+                <textarea name="fallback_reference_note" id="entity_fallback_reference_note" rows="2"
+                    placeholder="e.g. Please use your child's full name as the payment reference"
+                    class="form-input @error('fallback_reference_note', 'entity') border-red-400 @enderror">{{ old('fallback_reference_note') }}</textarea>
+                @error('fallback_reference_note', 'entity')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
             </div>
             <button type="submit" class="btn-secondary text-sm">
                 <i class="fas fa-plus"></i> Add Entity

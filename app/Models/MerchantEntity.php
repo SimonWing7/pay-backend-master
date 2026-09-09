@@ -20,6 +20,7 @@ class MerchantEntity extends Model
         'iban',
         'fallback_bank_name',
         'fallback_account_name',
+        'fallback_reference_note',
     ];
 
     public function merchant()

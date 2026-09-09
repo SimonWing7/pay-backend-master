@@ -272,6 +272,7 @@
                     $fallbackBankName    = $entity?->fallback_bank_name ?: $merchant->fallback_bank_name;
                     $fallbackAccountName = $entity?->fallback_account_name ?: $merchant->fallback_account_name;
                     $fallbackIban        = $entity?->iban ?: $merchant->iban;
+                    $fallbackReferenceNote = $entity?->fallback_reference_note ?: $merchant->fallback_reference_note;
                     $fallbackType    = $merchant->fallback_type ?? null;
                     $hasCardFallback = $fallbackType === 'payment_gateway' && !empty($merchant->fallback_payment_url);
                     $toggleLabel     = $hasCardFallback
@@ -333,10 +334,10 @@
                                     <span class="text-xs font-mono font-semibold text-right" style="color:#1f2937;">{{ $fallbackIban }}</span>
                                 </div>
                                 @endif
-                                @if($merchant->fallback_reference_note)
+                                @if($fallbackReferenceNote)
                                 <div class="pt-3 mt-1 border-t border-gray-100">
                                     <p class="text-xs font-semibold uppercase tracking-wide mb-1" style="color:#9ca3af;">Payment Reference</p>
-                                    <p class="text-sm" style="color:#6b7280;">{{ $merchant->fallback_reference_note }}</p>
+                                    <p class="text-sm" style="color:#6b7280;">{{ $fallbackReferenceNote }}</p>
                                 </div>
                                 @endif
                             </div>
