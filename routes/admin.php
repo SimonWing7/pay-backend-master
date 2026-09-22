@@ -19,7 +19,7 @@ Route::get('/admin/invite/{token}', [App\Http\Controllers\Admin\AdminUserControl
 Route::post('/admin/invite/{token}', [App\Http\Controllers\Admin\AdminUserController::class, 'acceptInvite'])->middleware('throttle:10,1')->name('admin.invite.accept');
 
 // Admin protected routes
-Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth:admin', 'admin.require-2fa-invite'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
 
     // Admin users — invite/remove (see App\Http\Controllers\Admin\AdminUserController).

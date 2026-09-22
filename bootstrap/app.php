@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'merchant.password.change' => \App\Http\Middleware\RequirePasswordChange::class,
             'merchant.api.auth'        => \App\Http\Middleware\MerchantApiAuthenticate::class,
             'referral.signature'       => \App\Http\Middleware\VerifyEdfundoReferralSignature::class,
+            'admin.require-2fa-invite' => \App\Http\Middleware\RequireTwoFactorForInvitedAdmins::class,
         ]);
         
         // Configure API authentication to return JSON instead of redirecting

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Services\AdminService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +14,10 @@ use Illuminate\View\View;
 
 class AdminUserController extends Controller
 {
+    public function __construct(private AdminService $adminService)
+    {
+    }
+
     // -------------------------------------------------------------------
     // Authenticated — managing admin users (auth:admin)
     // -------------------------------------------------------------------
@@ -113,7 +118,15 @@ class AdminUserController extends Controller
             'invite_accepted_at' => now(),
         ]);
 
-        return redirect()->route('admin.login')
-            ->with('status', 'Your password is set — you can log in now.');
+        // This request ran on the pre-auth invite-token session, so
+        // regenerate before authenticating (same reasoning as the 2FA
+        // challenge path in TwoFactorController::verifyChallenge()).
+        $request->session()->regenerate();
+        $this->adminService->completeLogin($admin);
+
+        // RequireTwoFactorForInvitedAdmins enforces this too, but send them
+        // straight there so they never see the dashboard first.
+        return redirect()->route('admin.two-factor.setup')
+            ->with('status', 'Your password is set. Please set up two-factor authentication to continue.');
     }
 }
