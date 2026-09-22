@@ -301,6 +301,12 @@
                 <span>Lean Destinations</span>
             </a>
 
+            <a href="{{ route('admin.users.index') }}"
+               class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
+                <i class="fas fa-user-shield"></i>
+                <span>Admin Users</span>
+            </a>
+
         </nav>
 
         {{-- User info + Logout --}}

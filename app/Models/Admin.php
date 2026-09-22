@@ -22,6 +22,11 @@ class Admin extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'invited_by',
+        'invite_token',
+        'invited_at',
+        'invite_accepted_at',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'two_factor_confirmed_at',
@@ -55,11 +60,27 @@ class Admin extends Authenticatable
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'encrypted:array',
             'two_factor_confirmed_at' => 'datetime',
+            'invited_at' => 'datetime',
+            'invite_accepted_at' => 'datetime',
         ];
     }
 
     public function hasTwoFactorEnabled(): bool
     {
         return !is_null($this->two_factor_confirmed_at);
+    }
+
+    /**
+     * True while an invite exists and hasn't been accepted yet — the
+     * account has a password nobody knows (see AdminUserController::store).
+     */
+    public function isPendingInvite(): bool
+    {
+        return !is_null($this->invite_token) && is_null($this->invite_accepted_at);
+    }
+
+    public function invitedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'invited_by');
     }
 }

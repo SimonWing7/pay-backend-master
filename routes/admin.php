@@ -13,10 +13,23 @@ Route::post('/admin/logout', [App\Http\Controllers\Admin\AdminController::class,
 Route::get('/admin/two-factor/challenge', [App\Http\Controllers\Admin\TwoFactorController::class, 'showChallenge'])->name('admin.two-factor.challenge');
 Route::post('/admin/two-factor/challenge', [App\Http\Controllers\Admin\TwoFactorController::class, 'verifyChallenge'])->middleware('throttle:5,1')->name('admin.two-factor.challenge.post');
 
+// Accepting an admin invite (public — the invitee has no admin session yet,
+// gated on the invite_token itself, not auth:admin).
+Route::get('/admin/invite/{token}', [App\Http\Controllers\Admin\AdminUserController::class, 'showInvite'])->name('admin.invite.show');
+Route::post('/admin/invite/{token}', [App\Http\Controllers\Admin\AdminUserController::class, 'acceptInvite'])->middleware('throttle:10,1')->name('admin.invite.accept');
+
 // Admin protected routes
 Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
-    
+
+    // Admin users — invite/remove (see App\Http\Controllers\Admin\AdminUserController).
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\AdminUserController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Admin\AdminUserController::class, 'create'])->name('create');
+        Route::post('/store', [App\Http\Controllers\Admin\AdminUserController::class, 'store'])->name('store');
+        Route::delete('/{id}', [App\Http\Controllers\Admin\AdminUserController::class, 'destroy'])->name('destroy');
+    });
+
     // Merchants management
     Route::prefix('merchants')->name('merchants.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\MerchantController::class, 'index'])->name('index');
