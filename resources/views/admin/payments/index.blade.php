@@ -38,6 +38,7 @@
                 <th class="text-left">Payer</th>
                 <th class="text-left">Merchant</th>
                 <th class="text-left">Payment Link</th>
+                <th class="text-right">Amount</th>
                 <th class="text-left">Status</th>
                 <th class="text-left">Date</th>
                 <th class="text-right">Actions</th>
@@ -63,6 +64,7 @@
                 </td>
                 <td class="text-sm text-gray-600">{{ $payment->invoice->merchant->name ?? '—' }}</td>
                 <td class="text-xs font-mono text-gray-400">{{ substr($payment->invoice->uuid ?? '', 0, 12) }}…</td>
+                <td class="text-right text-sm font-semibold text-gray-700">AED {{ number_format($payment->invoice->total_fee ?? 0, 2) }}</td>
                 <td>
                     @if($payment->status->value === 10)
                         <span class="badge-success">{{ $payment->status->label() }}</span>
@@ -83,7 +85,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="6" class="text-center py-16">
+                <td colspan="7" class="text-center py-16">
                     <div class="stat-icon mx-auto mb-4" style="width:52px;height:52px;font-size:20px;">
                         <i class="fas fa-credit-card"></i>
                     </div>
