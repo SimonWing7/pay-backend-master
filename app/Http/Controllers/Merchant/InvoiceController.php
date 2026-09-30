@@ -144,7 +144,8 @@ class InvoiceController extends Controller
         $merchantId = $request->user()->id;
         $consumers = \App\Models\Consumer::where('merchant_id', $merchantId)->get();
         $products = \App\Models\Product::where('merchant_id', $merchantId)->get();
-        return view('merchant.invoices.create-bulk', compact('consumers', 'products'));
+        $preselectedProductId = $request->get('product_id');
+        return view('merchant.invoices.create-bulk', compact('consumers', 'products', 'preselectedProductId'));
     }
 
     public function storeBulk(Request $request): RedirectResponse

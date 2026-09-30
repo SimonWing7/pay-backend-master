@@ -54,6 +54,7 @@ class ProductController extends Controller
             'custom_fields'                     => 'nullable|array|max:5',
             'custom_fields.*.label'             => 'required_with:custom_fields.*|string|max:100',
             'custom_fields.*.required'          => 'nullable',
+            'redirect_to'                        => 'nullable|in:invoices.create-bulk',
         ]);
 
         if ($validator->fails()) {
@@ -62,12 +63,19 @@ class ProductController extends Controller
                 ->withInput();
         }
 
-        $data = $validator->validated();
+        $data = collect($validator->validated())->except('redirect_to')->toArray();
         $data['merchant_id'] = $merchantId;
         $data['state'] = $data['state'] ?? 'active'; // Default to 'active' if not provided
         $data['custom_fields'] = $this->normaliseCustomFields($data['custom_fields'] ?? null);
 
-        $this->productService->create($data);
+        $product = $this->productService->create($data);
+
+        // Bulk Invoices links here to create a product without losing the
+        // consumers/CSV step already done on that page.
+        if ($request->input('redirect_to') === 'invoices.create-bulk') {
+            return redirect()->route('merchant.invoices.create-bulk', ['product_id' => $product->id])
+                ->with('success', "Product \"{$product->name}\" created — select it below.");
+        }
 
         return redirect()->route('merchant.products.index')
             ->with('success', 'Product created successfully');

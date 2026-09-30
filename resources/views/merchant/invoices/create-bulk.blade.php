@@ -35,13 +35,13 @@
     <form method="POST" action="{{ route('merchant.invoices.store-bulk') }}">
         @csrf
 
-        <div class="mb-5">
+        <div class="mb-2">
             <label for="product_id" class="form-label">Product *</label>
             <select name="product_id" id="product_id" required
                 class="form-input @error('product_id') border-red-400 @enderror">
                 <option value="">Select Product</option>
                 @foreach($products as $product)
-                    <option value="{{ $product->id }}" {{ old('product_id') == $product->id ? 'selected' : '' }}>
+                    <option value="{{ $product->id }}" {{ old('product_id', $preselectedProductId ?? null) == $product->id ? 'selected' : '' }}>
                         {{ $product->name }} - AED {{ number_format($product->fee, 2) }}
                     </option>
                 @endforeach
@@ -49,6 +49,39 @@
             @error('product_id')
                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
             @enderror
+        </div>
+
+        <div class="mb-5">
+            <button type="button" onclick="document.getElementById('newProductPanel').classList.toggle('hidden')" class="text-xs text-blue-600 font-medium">
+                <i class="fas fa-plus"></i> Haven't created the product yet? Add one here
+            </button>
+            @php $newProductHasErrors = $errors->has('name') || $errors->has('description') || $errors->has('fee'); @endphp
+            <div id="newProductPanel" class="{{ $newProductHasErrors ? '' : 'hidden' }} border border-gray-200 rounded-lg p-4 mt-3">
+                <form method="POST" action="{{ route('merchant.products.store') }}" id="newProductForm" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                    @csrf
+                    <input type="hidden" name="redirect_to" value="invoices.create-bulk">
+                    <div>
+                        <label class="form-label">Name *</label>
+                        <input type="text" name="name" value="{{ old('name') }}" required placeholder="e.g. Term 1 Fees" class="form-input text-sm @error('name') border-red-400 @enderror">
+                        @error('name')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="form-label">Fee (AED) *</label>
+                        <input type="number" name="fee" value="{{ old('fee') }}" step="0.01" min="0" required class="form-input text-sm @error('fee') border-red-400 @enderror">
+                        @error('fee')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="form-label">Description *</label>
+                        <input type="text" name="description" value="{{ old('description') }}" required placeholder="e.g. Term 1 2026/2027" class="form-input text-sm @error('description') border-red-400 @enderror">
+                        @error('description')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="sm:col-span-3">
+                        <button type="submit" class="btn-secondary">
+                            <i class="fas fa-plus"></i> Create Product
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <div class="mb-5">
