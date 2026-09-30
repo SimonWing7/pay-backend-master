@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Services\ConsumerImportService;
 use App\Services\ConsumerService;
 use App\Services\GroupService;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,8 @@ class ConsumerController extends Controller
 {
     public function __construct(
         protected ConsumerService $consumerService,
-        protected GroupService $groupService
+        protected GroupService $groupService,
+        protected ConsumerImportService $consumerImportService
     ) {
     }
 
@@ -46,6 +48,7 @@ class ConsumerController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'student_name' => 'nullable|string|max:255',
             'email' => 'nullable|email',
             'mobile_number' => 'nullable|string',
             'group_ids' => 'nullable|array',
@@ -105,6 +108,7 @@ class ConsumerController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
+            'student_name' => 'nullable|string|max:255',
             'email' => 'nullable|email',
             'mobile_number' => 'nullable|string',
             'group_ids' => 'nullable|array',
@@ -138,5 +142,29 @@ class ConsumerController extends Controller
 
         return redirect()->route('merchant.consumers.index')
             ->with('success', 'Consumer deleted successfully');
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|file|max:10240',
+            'redirect_to' => 'nullable|in:consumers.index,invoices.create-bulk',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator);
+        }
+
+        $contents = file_get_contents($request->file('file')->getRealPath());
+        $stats = $this->consumerImportService->import($contents, $request->user()->id);
+
+        $message = "Processed {$stats['rows']} rows: {$stats['created']} added, "
+            . "{$stats['updated']} updated, {$stats['skipped']} skipped (missing name or contact details).";
+
+        $redirectRoute = $request->input('redirect_to') === 'invoices.create-bulk'
+            ? 'merchant.invoices.create-bulk'
+            : 'merchant.consumers.index';
+
+        return redirect()->route($redirectRoute)->with('success', $message);
     }
 }

@@ -15,6 +15,8 @@
         'merchants' => $merchants,
         'entity_id' => true,
         'entities' => $entities,
+        'product_id' => true,
+        'products' => $products,
         'date_from' => true,
         'date_to' => true,
         'status_options' => [0 => 'Pending', 10 => 'Paid', 20 => 'Failed', 30 => 'Archived'],

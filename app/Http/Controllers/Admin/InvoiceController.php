@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Merchant;
 use App\Models\MerchantEntity;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -28,6 +29,12 @@ class InvoiceController extends Controller
 
         if ($request->filled('entity_id')) {
             $query->where('merchant_entity_id', $request->get('entity_id'));
+        }
+
+        if ($request->filled('product_id')) {
+            $query->whereHas('invoiceDetails', function ($q) use ($request) {
+                $q->where('product_id', $request->get('product_id'));
+            });
         }
 
         if ($request->filled('status')) {
@@ -64,7 +71,11 @@ class InvoiceController extends Controller
             $entity->name = ($entity->merchant->name ?? '—') . ' — ' . $entity->name;
             return $entity;
         });
+        $products = Product::with('merchant')->get()->map(function ($product) {
+            $product->name = ($product->merchant->name ?? '—') . ' — ' . $product->name;
+            return $product;
+        });
 
-        return view('admin.invoices.index', compact('invoices', 'merchants', 'entities'));
+        return view('admin.invoices.index', compact('invoices', 'merchants', 'entities', 'products'));
     }
 }

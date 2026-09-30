@@ -27,6 +27,16 @@
             </div>
 
             <div class="mb-5">
+                <label for="student_name" class="form-label">Student / Player Name <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input type="text" name="student_name" id="student_name" value="{{ old('student_name') }}"
+                    class="form-input @error('student_name') border-red-400 @enderror"
+                    placeholder="e.g. Jake Al Mansouri">
+                @error('student_name')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="mb-5">
                 <label for="email" class="form-label">Email Address</label>
                 <input type="email" name="email" id="email" value="{{ old('email') }}"
                     class="form-input @error('email') border-red-400 @enderror"

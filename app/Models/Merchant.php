@@ -34,6 +34,7 @@ class Merchant extends Authenticatable
         'support_email',
         'support_phone',
         'receipt_cc_email',
+        'notification_email',
         'website',
         'webhook_url',
         'webhook_secret',

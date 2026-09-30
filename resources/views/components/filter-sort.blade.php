@@ -62,6 +62,15 @@
         </select>
         @endif
 
+        @if(isset($filters['product_id']))
+        <select name="product_id" class="form-input text-sm py-2 w-44">
+            <option value="">All Products</option>
+            @foreach($filters['products'] ?? [] as $product)
+            <option value="{{ $product->id }}" {{ request('product_id') == $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
+            @endforeach
+        </select>
+        @endif
+
         @if(isset($filters['date_from']))
         <input type="date" name="date_from" value="{{ request('date_from') }}"
             class="form-input text-sm py-2 w-36" title="From date">

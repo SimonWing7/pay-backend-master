@@ -16,3 +16,6 @@ Schedule::command('lean:sync-banks')->daily();
 // showing as "Pending" in the merchant's dashboard well before the full
 // expiry window elapses, not just once a day.
 Schedule::command('invoices:expire-stale')->hourly();
+
+// Merchant-scheduled payment-chase emails for bulk-invoiced products.
+Schedule::command('reminders:send')->dailyAt('08:00');

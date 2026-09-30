@@ -88,7 +88,10 @@ class ProductController extends Controller
             return $payment->invoice->total_fee ?? 0;
         });
 
-        return view('merchant.products.show', compact('product', 'payments', 'totalPayments', 'totalAmount'));
+        $invoices = $this->productService->getInvoicesForProduct($product, $merchantId);
+        $reminders = $product->reminders()->orderBy('send_date')->get();
+
+        return view('merchant.products.show', compact('product', 'payments', 'totalPayments', 'totalAmount', 'invoices', 'reminders'));
     }
 
     public function edit(Request $request, int $id): View

@@ -30,6 +30,10 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
         Route::post('/{id}/toggle-state', [App\Http\Controllers\Merchant\ProductController::class, 'toggleState'])->name('toggle-state');
         Route::delete('/{id}', [App\Http\Controllers\Merchant\ProductController::class, 'delete'])->name('delete');
         Route::get('/{id}/payments/export', [App\Http\Controllers\Merchant\ProductController::class, 'exportPayments'])->name('payments.export');
+
+        // Scheduled payment-chase reminders for this product's invoices.
+        Route::post('/{productId}/reminders', [App\Http\Controllers\Merchant\ProductReminderController::class, 'store'])->name('reminders.store');
+        Route::delete('/{productId}/reminders/{reminderId}', [App\Http\Controllers\Merchant\ProductReminderController::class, 'destroy'])->name('reminders.destroy');
     });
     
     // Groups management
@@ -52,6 +56,7 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
         Route::get('/{id}/edit', [App\Http\Controllers\Merchant\ConsumerController::class, 'edit'])->name('edit');
         Route::put('/{id}', [App\Http\Controllers\Merchant\ConsumerController::class, 'update'])->name('update');
         Route::delete('/{id}', [App\Http\Controllers\Merchant\ConsumerController::class, 'delete'])->name('delete');
+        Route::post('/import', [App\Http\Controllers\Merchant\ConsumerController::class, 'import'])->name('import');
     });
     
     // Invoices management
@@ -67,6 +72,7 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
         Route::delete('/{id}', [App\Http\Controllers\Merchant\InvoiceController::class, 'delete'])->name('delete');
         Route::post('/{id}/archive', [App\Http\Controllers\Merchant\InvoiceController::class, 'archive'])->name('archive');
         Route::post('/{id}/unarchive', [App\Http\Controllers\Merchant\InvoiceController::class, 'unarchive'])->name('unarchive');
+        Route::post('/{id}/resend-link', [App\Http\Controllers\Merchant\InvoiceController::class, 'resendLink'])->name('resend-link');
     });
     
     // Payments management

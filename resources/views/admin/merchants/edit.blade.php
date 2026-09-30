@@ -95,6 +95,18 @@
             </div>
 
             <div class="mb-5">
+                <label for="notification_email" class="form-label">Reminder / Notifications Email <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input type="email" name="notification_email" id="notification_email"
+                    value="{{ old('notification_email', $merchant->notification_email) }}"
+                    class="form-input @error('notification_email') border-red-400 @enderror"
+                    placeholder="payments@theirbusiness.com">
+                <p class="text-xs text-gray-400 mt-1">Used as the Reply-To address on bulk payment link and reminder emails sent to parents/consumers, so replies reach the merchant directly.</p>
+                @error('notification_email')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="mb-5">
                 <label for="website" class="form-label">Website</label>
                 <input type="url" name="website" id="website"
                     value="{{ old('website', $merchant->website) }}"

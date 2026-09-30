@@ -27,6 +27,12 @@ class PaymentService extends Service
             });
         }
 
+        if (!empty($filters['product_id'])) {
+            $query->whereHas('invoice.invoiceDetails', function ($q) use ($filters) {
+                $q->where('product_id', $filters['product_id']);
+            });
+        }
+
         // Apply filters
         if (isset($filters['status']) && $filters['status'] !== '' && $filters['status'] !== null) {
             $query->where('status', $filters['status']);

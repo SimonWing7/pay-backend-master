@@ -107,6 +107,118 @@
     </div>
 </div>
 
+{{-- Invoice Tracking --}}
+@if($invoices->count() > 0)
+<div class="card overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-700">Invoice Tracking</h3>
+        <span class="text-xs text-gray-400">{{ $invoices->where('status', \App\Enums\InvoiceStatus::Paid)->count() }} paid of {{ $invoices->count() }}</span>
+    </div>
+    <table class="data-table w-full">
+        <thead>
+            <tr>
+                <th class="text-left">Parent</th>
+                <th class="text-left">Student</th>
+                <th class="text-left">Contact</th>
+                <th class="text-left">Status</th>
+                <th class="text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($invoices as $invoice)
+            <tr>
+                <td class="text-sm font-medium text-gray-700">{{ $invoice->consumer?->name ?? '—' }}</td>
+                <td class="text-sm text-gray-600">{{ $invoice->consumer?->student_name ?? '—' }}</td>
+                <td>
+                    <div class="text-sm text-gray-600">{{ $invoice->consumer?->email ?? '—' }}</div>
+                    @if($invoice->consumer?->mobile_number)
+                        <div class="text-xs text-gray-400">{{ $invoice->consumer->mobile_number }}</div>
+                    @endif
+                </td>
+                <td>
+                    @if($invoice->status->value === 10)
+                        <span class="badge-success">{{ $invoice->status->label() }}</span>
+                    @elseif($invoice->status->value === 20)
+                        <span class="badge-danger">{{ $invoice->status->label() }}</span>
+                    @else
+                        <span class="badge-warning">{{ $invoice->status->label() }}</span>
+                    @endif
+                </td>
+                <td class="text-right">
+                    @if($invoice->status->value !== 10 && ($invoice->consumer?->email))
+                    <form method="POST" action="{{ route('merchant.invoices.resend-link', $invoice->id) }}" class="inline">
+                        @csrf
+                        <button type="submit" class="text-gray-400 hover:text-blue-600 transition-colors text-xs font-medium">
+                            <i class="fas fa-paper-plane"></i> Resend
+                        </button>
+                    </form>
+                    @endif
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+@endif
+
+{{-- Reminders --}}
+<div class="card p-6 mb-6">
+    <h3 class="text-sm font-semibold text-gray-700 mb-1">Payment Reminders</h3>
+    <p class="text-xs text-gray-400 mb-4">Scheduled emails sent to anyone still unpaid under this product on the chosen date. Already-paid individuals are automatically skipped.</p>
+
+    @if($reminders->count() > 0)
+    <div class="space-y-2 mb-4">
+        @foreach($reminders as $reminder)
+        <div class="flex items-start justify-between gap-3 border border-gray-100 rounded-lg p-3">
+            <div>
+                <div class="text-sm font-medium text-gray-700">
+                    {{ $reminder->send_date->format('d M Y') }}
+                    @if($reminder->sent_at)
+                        <span class="badge-success ml-2">Sent</span>
+                    @else
+                        <span class="badge-info ml-2">Scheduled</span>
+                    @endif
+                </div>
+                <p class="text-xs text-gray-500 mt-1 whitespace-pre-line">{{ $reminder->message }}</p>
+            </div>
+            @unless($reminder->sent_at)
+            <form method="POST" action="{{ route('merchant.products.reminders.destroy', [$product->id, $reminder->id]) }}"
+                onsubmit="return confirm('Remove this scheduled reminder?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0" title="Remove">
+                    <i class="fas fa-trash text-sm"></i>
+                </button>
+            </form>
+            @endunless
+        </div>
+        @endforeach
+    </div>
+    @endif
+
+    <form method="POST" action="{{ route('merchant.products.reminders.store', $product->id) }}" class="flex items-end gap-3">
+        @csrf
+        <div class="w-40">
+            <label class="form-label">Date</label>
+            <input type="date" name="send_date" required min="{{ now()->format('Y-m-d') }}" class="form-input @error('send_date') border-red-400 @enderror">
+            @error('send_date')
+                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+            @enderror
+        </div>
+        <div class="flex-1">
+            <label class="form-label">Message</label>
+            <textarea name="message" rows="2" required placeholder="e.g. Friendly reminder that Term 1 fees are due — please pay at your earliest convenience."
+                class="form-input @error('message') border-red-400 @enderror">{{ old('message') }}</textarea>
+            @error('message')
+                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+            @enderror
+        </div>
+        <button type="submit" class="btn-primary flex-shrink-0">
+            <i class="fas fa-bell"></i> Schedule
+        </button>
+    </form>
+</div>
+
 {{-- Payments Table --}}
 @if($payments->count() > 0)
 <div class="card overflow-hidden">

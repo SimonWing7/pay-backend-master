@@ -74,5 +74,13 @@ class Product extends Model
     {
         return $this->hasMany(InvoiceDetail::class);
     }
+
+    /**
+     * Scheduled payment-reminder broadcasts for this product's invoices.
+     */
+    public function reminders()
+    {
+        return $this->hasMany(ProductReminder::class);
+    }
 }
 

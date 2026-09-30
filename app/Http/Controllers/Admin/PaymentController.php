@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
 use App\Models\MerchantEntity;
+use App\Models\Product;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -23,6 +24,7 @@ class PaymentController extends Controller
         $filters = [
             'status' => $request->get('status'),
             'entity_id' => $request->get('entity_id'),
+            'product_id' => $request->get('product_id'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
             'search' => $request->get('search'),
@@ -39,8 +41,12 @@ class PaymentController extends Controller
             $entity->name = ($entity->merchant->name ?? '—') . ' — ' . $entity->name;
             return $entity;
         });
+        $products = Product::with('merchant')->get()->map(function ($product) {
+            $product->name = ($product->merchant->name ?? '—') . ' — ' . $product->name;
+            return $product;
+        });
 
-        return view('admin.payments.index', compact('payments', 'merchants', 'entities'));
+        return view('admin.payments.index', compact('payments', 'merchants', 'entities', 'products'));
     }
 
     public function show(int $id): View
@@ -60,6 +66,7 @@ class PaymentController extends Controller
         $filters = [
             'status' => $request->get('status'),
             'entity_id' => $request->get('entity_id'),
+            'product_id' => $request->get('product_id'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
             'search' => $request->get('search'),

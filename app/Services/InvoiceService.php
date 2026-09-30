@@ -199,6 +199,10 @@ class InvoiceService extends Service
                 'merchant_id' => $data['merchant_id'],
                 'total_fee' => $product->fee,
                 'status' => InvoiceStatus::Draft,
+                // Not matched by ExpireStaleInvoices' personal/null check, so
+                // these stay open for as long as reminders keep running
+                // instead of auto-expiring after invoices.expiry_hours.
+                'link_type' => 'batch',
             ]);
 
             InvoiceDetail::create([
@@ -208,7 +212,7 @@ class InvoiceService extends Service
                 'title' => $product->name,
             ]);
 
-            $invoices->push($invoice->load(['consumer', 'invoiceDetails.product']));
+            $invoices->push($invoice->load(['consumer', 'merchant', 'invoiceDetails.product']));
         }
 
         return $invoices;

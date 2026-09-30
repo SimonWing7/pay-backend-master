@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Invoice;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -103,6 +104,25 @@ class ProductService extends Service
             $query->whereHas('invoice', function ($q) use ($merchantId) {
                 $q->where('merchant_id', $merchantId);
             });
+        }
+
+        return $query->orderBy('created_at', 'desc')->get();
+    }
+
+    /**
+     * All invoices carrying this product as a line item — unlike
+     * getPaymentsForProduct() (which only returns completed AppUserPayment
+     * rows), this includes still-unpaid invoices so the merchant can see
+     * who hasn't paid yet, not just who has.
+     */
+    public function getInvoicesForProduct(Product $product, ?int $merchantId = null): Collection
+    {
+        $query = Invoice::whereHas('invoiceDetails', function ($q) use ($product) {
+            $q->where('product_id', $product->id);
+        })->with('consumer');
+
+        if ($merchantId) {
+            $query->where('merchant_id', $merchantId);
         }
 
         return $query->orderBy('created_at', 'desc')->get();

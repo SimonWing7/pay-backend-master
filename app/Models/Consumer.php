@@ -17,6 +17,7 @@ class Consumer extends Model
      */
     protected $fillable = [
         'name',
+        'student_name',
         'email',
         'mobile_number',
         'merchant_id',

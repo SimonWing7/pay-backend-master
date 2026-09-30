@@ -30,6 +30,12 @@
         </div>
 
         <div class="space-y-4">
+            @if($consumer->student_name)
+            <div>
+                <p class="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Student / Player</p>
+                <p class="text-sm text-gray-800">{{ $consumer->student_name }}</p>
+            </div>
+            @endif
             <div>
                 <p class="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Email</p>
                 <p class="text-sm text-gray-800">{{ $consumer->email ?? '—' }}</p>

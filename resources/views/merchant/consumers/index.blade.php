@@ -5,6 +5,9 @@
 @section('page-subtitle', 'Manage your customers and individual payers')
 
 @section('topbar-actions')
+    <a href="{{ route('merchant.invoices.create-bulk') }}" class="btn-secondary">
+        <i class="fas fa-upload"></i> Bulk Upload via CSV
+    </a>
     <a href="{{ route('merchant.consumers.create') }}" class="btn-primary">
         <i class="fas fa-plus"></i> Add Individual
     </a>
@@ -43,7 +46,12 @@
                         <div class="stat-icon" style="width:36px;height:36px;font-size:14px;border-radius:50%;flex-shrink:0;">
                             {{ strtoupper(substr($consumer->name, 0, 1)) }}
                         </div>
-                        <div class="font-semibold text-sm text-gray-800">{{ $consumer->name }}</div>
+                        <div>
+                            <div class="font-semibold text-sm text-gray-800">{{ $consumer->name }}</div>
+                            @if($consumer->student_name)
+                                <div class="text-xs text-gray-400">{{ $consumer->student_name }}</div>
+                            @endif
+                        </div>
                     </div>
                 </td>
                 <td>
