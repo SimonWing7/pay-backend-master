@@ -151,6 +151,16 @@ class LeanWebhookController extends Controller
                 break;
 
             case in_array($isoStatus, ['FAILED', 'REJECTED', 'CANCELLED']):
+                // A late or out-of-order failure event must never downgrade a
+                // payment already confirmed as paid.
+                if ($payment->status === PaymentStatus::Complete) {
+                    Log::warning('Lean webhook: ignoring failure event for an already-complete payment', [
+                        'payment_intent_id' => $paymentIntentId,
+                        'iso_status'        => $isoStatus,
+                    ]);
+                    break;
+                }
+
                 // Payment definitively failed / customer cancelled
                 $payment->update([
                     'status'        => PaymentStatus::Failed,
