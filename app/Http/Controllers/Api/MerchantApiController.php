@@ -184,13 +184,13 @@ class MerchantApiController extends Controller
         // Status filter
         if ($request->has('status')) {
             $statusMap = [
-                'pending'  => PaymentStatus::Initiated,
-                'complete' => PaymentStatus::Complete,
-                'failed'   => PaymentStatus::Failed,
+                'pending'  => [PaymentStatus::Initiated],
+                'complete' => [PaymentStatus::Complete],
+                'failed'   => [PaymentStatus::Failed, PaymentStatus::Abandoned],
             ];
             $statusKey = strtolower($request->query('status'));
             if (isset($statusMap[$statusKey])) {
-                $query->where('status', $statusMap[$statusKey]);
+                $query->whereIn('status', array_map(fn ($s) => $s->value, $statusMap[$statusKey]));
             }
         }
 
@@ -309,7 +309,11 @@ class MerchantApiController extends Controller
         return match ($status) {
             PaymentStatus::Initiated => 'pending',
             PaymentStatus::Complete  => 'complete',
-            PaymentStatus::Failed    => 'failed',
+            // Merchants integrating via the API (Magento etc.) only know
+            // pending/complete/failed — an abandoned checkout is a "failed"
+            // attempt from their side, so the contract stays unchanged.
+            PaymentStatus::Failed,
+            PaymentStatus::Abandoned => 'failed',
         };
     }
 }

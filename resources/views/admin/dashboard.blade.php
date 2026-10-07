@@ -183,7 +183,7 @@
             labels: @json($statusBreakdown['labels']),
             datasets: [{
                 data: @json($statusBreakdown['data']),
-                backgroundColor: ['#059669', '#d97706', '#dc2626'],
+                backgroundColor: ['#059669', '#d97706', '#dc2626', '#9ca3af'],
                 borderWidth: 0
             }]
         },

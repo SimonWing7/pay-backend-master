@@ -25,7 +25,7 @@
         'products' => $products,
         'date_from' => true,
         'date_to' => true,
-        'status_options' => [0 => 'Initiated', 10 => 'Complete', 20 => 'Failed'],
+        'status_options' => [0 => 'Initiated', 10 => 'Complete', 20 => 'Failed', 30 => 'Abandoned'],
         'sort_options' => ['created_at' => 'Created At', 'updated_at' => 'Updated At', 'status' => 'Status']
     ]"
     :sortBy="request('sort_by', 'created_at')"
@@ -72,6 +72,8 @@
                         <span class="badge-success">{{ $payment->status->label() }}</span>
                     @elseif($payment->status->value === 20)
                         <span class="badge-danger">{{ $payment->status->label() }}</span>
+                    @elseif($payment->status->value === 30)
+                        <span class="badge-muted">{{ $payment->status->label() }}</span>
                     @else
                         <span class="badge-warning">{{ $payment->status->label() }}</span>
                     @endif

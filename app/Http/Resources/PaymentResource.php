@@ -39,7 +39,9 @@ class PaymentResource extends JsonResource
         $amount = $this->invoice ? $this->invoice->total_fee : 0;
 
         // Get status as string
-        $status = $this->status->label();
+        // The mobile app only knows Initiated/Complete/Failed — report an
+        // abandoned checkout as Failed so its existing handling still works.
+        $status = $this->status === \App\Enums\PaymentStatus::Abandoned ? 'Failed' : $this->status->label();
 
         return [
             'id' => $this->id,

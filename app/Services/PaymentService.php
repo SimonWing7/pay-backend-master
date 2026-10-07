@@ -148,11 +148,12 @@ class PaymentService extends Service
             ->pluck('count', 'status');
 
         return [
-            'labels' => ['Complete', 'Initiated', 'Failed'],
+            'labels' => ['Complete', 'Initiated', 'Failed', 'Abandoned'],
             'data'   => [
                 (int) ($counts[\App\Enums\PaymentStatus::Complete->value] ?? 0),
                 (int) ($counts[\App\Enums\PaymentStatus::Initiated->value] ?? 0),
                 (int) ($counts[\App\Enums\PaymentStatus::Failed->value] ?? 0),
+                (int) ($counts[\App\Enums\PaymentStatus::Abandoned->value] ?? 0),
             ],
         ];
     }
@@ -317,11 +318,12 @@ class PaymentService extends Service
             ->pluck('count', 'status');
 
         return [
-            'labels' => ['Complete', 'Initiated', 'Failed'],
+            'labels' => ['Complete', 'Initiated', 'Failed', 'Abandoned'],
             'data'   => [
                 (int) ($counts[\App\Enums\PaymentStatus::Complete->value] ?? 0),
                 (int) ($counts[\App\Enums\PaymentStatus::Initiated->value] ?? 0),
                 (int) ($counts[\App\Enums\PaymentStatus::Failed->value] ?? 0),
+                (int) ($counts[\App\Enums\PaymentStatus::Abandoned->value] ?? 0),
             ],
         ];
     }

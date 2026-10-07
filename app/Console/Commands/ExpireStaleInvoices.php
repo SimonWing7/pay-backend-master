@@ -13,7 +13,7 @@ class ExpireStaleInvoices extends Command
 {
     protected $signature = 'invoices:expire-stale';
 
-    protected $description = 'Mark long-abandoned Draft invoices and stuck Initiated payments as Failed';
+    protected $description = 'Mark long-abandoned Draft invoices as Failed and stuck Initiated payments as Abandoned';
 
     public function handle(): int
     {
@@ -33,9 +33,11 @@ class ExpireStaleInvoices extends Command
         // Payments that started (customer reached Lean's bank-connection
         // step) but never resolved — no webhook ever confirmed success or
         // failure, most commonly because the customer abandoned mid-flow.
+        // Marked Abandoned rather than Failed so a real bank failure rate
+        // isn't inflated by people who simply left.
         $paymentCount = AppUserPayment::where('status', PaymentStatus::Initiated)
             ->where('created_at', '<', $cutoff)
-            ->update(['status' => PaymentStatus::Failed]);
+            ->update(['status' => PaymentStatus::Abandoned]);
 
         Log::info('invoices:expire-stale completed', [
             'expiry_hours'    => $hours,

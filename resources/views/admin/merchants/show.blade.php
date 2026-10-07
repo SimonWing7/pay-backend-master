@@ -138,6 +138,8 @@
                         <span class="badge-success">{{ $payment->status->label() }}</span>
                     @elseif($payment->status->value === 20)
                         <span class="badge-danger">{{ $payment->status->label() }}</span>
+                    @elseif($payment->status->value === 30)
+                        <span class="badge-muted">{{ $payment->status->label() }}</span>
                     @else
                         <span class="badge-warning">{{ $payment->status->label() }}</span>
                     @endif
@@ -371,7 +373,7 @@
             labels: @json($statusBreakdown['labels']),
             datasets: [{
                 data: @json($statusBreakdown['data']),
-                backgroundColor: ['#059669', '#d97706', '#dc2626'],
+                backgroundColor: ['#059669', '#d97706', '#dc2626', '#9ca3af'],
                 borderWidth: 0
             }]
         },

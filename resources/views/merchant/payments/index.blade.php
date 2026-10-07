@@ -24,6 +24,7 @@
             <option value="0"  {{ request('status') === '0'  ? 'selected' : '' }}>Initiated</option>
             <option value="10" {{ request('status') === '10' ? 'selected' : '' }}>Complete</option>
             <option value="20" {{ request('status') === '20' ? 'selected' : '' }}>Failed</option>
+            <option value="30" {{ request('status') === '30' ? 'selected' : '' }}>Abandoned</option>
         </select>
 
         @if($entities->count() > 0)
@@ -107,6 +108,8 @@
                         <span class="badge-success">{{ $payment->status->label() }}</span>
                     @elseif($payment->status->value === 20)
                         <span class="badge-danger">{{ $payment->status->label() }}</span>
+                    @elseif($payment->status->value === 30)
+                        <span class="badge-muted">{{ $payment->status->label() }}</span>
                     @else
                         <span class="badge-warning">{{ $payment->status->label() }}</span>
                     @endif

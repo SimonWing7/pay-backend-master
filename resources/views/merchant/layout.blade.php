@@ -189,6 +189,7 @@
         .badge-warning { background: #fffbeb; color: #d97706; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
         .badge-danger  { background: #fef2f2; color: #dc2626; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
         .badge-info    { background: #eff6ff; color: #2563eb; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+        .badge-muted   { background: #f3f4f6; color: #6b7280; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
 
         /* Form inputs */
         .form-input {

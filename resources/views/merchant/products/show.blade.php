@@ -247,6 +247,8 @@
                         <span class="badge-success">{{ $payment->status->label() }}</span>
                     @elseif($payment->status->value === 20)
                         <span class="badge-danger">{{ $payment->status->label() }}</span>
+                    @elseif($payment->status->value === 30)
+                        <span class="badge-muted">{{ $payment->status->label() }}</span>
                     @else
                         <span class="badge-warning">{{ $payment->status->label() }}</span>
                     @endif
