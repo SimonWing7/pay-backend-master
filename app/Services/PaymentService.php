@@ -443,6 +443,68 @@ class PaymentService extends Service
     }
 
     /**
+     * Everything that happens when a Lean payment is confirmed as paid —
+     * shared by the Lean webhook handler and the manual payments:confirm
+     * command (for a payment Lean shows as Processed but whose final
+     * webhook never reached us), so both do exactly the same thing.
+     *
+     * @param array $leanMetadata The lean_metadata to persist with the status change
+     */
+    public function confirmLeanPayment(AppUserPayment $payment, array $leanMetadata, bool $sendReceipt = true): void
+    {
+        $payment->update([
+            'status'        => PaymentStatus::Complete,
+            'lean_metadata' => $leanMetadata,
+        ]);
+
+        $payment->loadMissing('invoice.merchant');
+
+        if ($payment->invoice && $payment->invoice->status !== InvoiceStatus::Paid && ($payment->invoice->link_type ?? 'personal') !== 'open') {
+            $payment->invoice->update([
+                'status' => InvoiceStatus::Paid,
+            ]);
+            \Illuminate\Support\Facades\Log::info('Lean: invoice marked as paid', [
+                'invoice_id'        => $payment->invoice->id,
+                'payment_intent_id' => $payment->lean_payment_intent_id,
+            ]);
+        }
+
+        // Notify the merchant's own webhook receiver — safety net for
+        // merchants (e.g. the Magento module) in case the customer's
+        // browser never made it back to their return URL.
+        $merchant = $payment->invoice?->merchant;
+        if ($merchant && $payment->invoice) {
+            $this->webhookService->dispatch($merchant, 'payment.paid', [
+                'id'        => $payment->invoice->uuid,
+                'reference' => $payment->invoice->reference,
+            ]);
+        }
+
+        if ($sendReceipt && !empty($payment->customer_email)) {
+            try {
+                // BCC rather than CC — keeps the merchant's internal address
+                // out of what the customer sees and avoids an accidental
+                // reply-all landing on it.
+                $mail = \Illuminate\Support\Facades\Mail::to($payment->customer_email);
+                if (!empty($merchant?->receipt_cc_email)) {
+                    $mail->bcc($merchant->receipt_cc_email);
+                }
+                $mail->send(new \App\Mail\PaymentReceipt($payment));
+                \Illuminate\Support\Facades\Log::info('PaymentReceipt email sent', [
+                    'payment_id' => $payment->id,
+                    'email'      => $payment->customer_email,
+                    'bcc'        => $merchant?->receipt_cc_email,
+                ]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('PaymentReceipt email failed', [
+                    'payment_id' => $payment->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    /**
      * Handle payment flow success event from SDK
      * Records the success event but keeps status as Initiated until webhook confirms
      */

@@ -2,14 +2,12 @@
 namespace App\Http\Controllers;
 use App\Enums\InvoiceStatus;
 use App\Enums\PaymentStatus;
-use App\Mail\PaymentReceipt;
 use App\Models\AppUserPayment;
 use App\Services\LeanService;
-use App\Services\WebhookService;
+use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 class LeanWebhookController extends Controller
 {
     /**
@@ -29,7 +27,7 @@ class LeanWebhookController extends Controller
      *   REJECTED                       - Payment rejected by bank
      *   CANCELLED                      - Customer cancelled
      */
-    public function handle(Request $request, LeanService $lean, WebhookService $webhookService): JsonResponse
+    public function handle(Request $request, LeanService $lean, PaymentService $paymentService): JsonResponse
     {
         // -- Signature verification ----------------------------------------
         $rawBody   = $request->getContent();
@@ -98,55 +96,7 @@ class LeanWebhookController extends Controller
             case in_array($isoStatus, ['ACCEPTED_BY_BANK', 'ACCEPTED_SETTLEMENT_COMPLETED']):
                 // The only statuses we treat as a confirmed successful payment
                 if ($payment->status !== PaymentStatus::Complete) {
-                    $payment->update([
-                        'status'        => PaymentStatus::Complete,
-                        'lean_metadata' => $updatedMeta,
-                    ]);
-
-                    if ($payment->invoice && $payment->invoice->status !== InvoiceStatus::Paid && ($payment->invoice->link_type ?? 'personal') !== 'open') {
-                        $payment->invoice->update([
-                            'status' => InvoiceStatus::Paid,
-                        ]);
-                        Log::info('Lean webhook: invoice marked as paid', [
-                            'invoice_id'        => $payment->invoice->id,
-                            'payment_intent_id' => $paymentIntentId,
-                        ]);
-                    }
-
-                    // -- Notify the merchant's own webhook receiver ---------
-                    // Safety net for merchants (e.g. the Magento module) in case
-                    // the customer's browser never made it back to their return URL.
-                    $merchant = $payment->invoice?->merchant;
-                    if ($merchant && $payment->invoice) {
-                        $webhookService->dispatch($merchant, 'payment.paid', [
-                            'id'        => $payment->invoice->uuid,
-                            'reference' => $payment->invoice->reference,
-                        ]);
-                    }
-
-                    // -- Send payment receipt email -------------------------
-                    if (!empty($payment->customer_email)) {
-                        try {
-                            // BCC rather than CC — keeps the merchant's
-                            // internal address out of what the customer sees
-                            // and avoids an accidental reply-all landing on it.
-                            $mail = Mail::to($payment->customer_email);
-                            if (!empty($merchant?->receipt_cc_email)) {
-                                $mail->bcc($merchant->receipt_cc_email);
-                            }
-                            $mail->send(new PaymentReceipt($payment));
-                            Log::info('PaymentReceipt email sent', [
-                                'payment_id' => $payment->id,
-                                'email'      => $payment->customer_email,
-                                'bcc'        => $merchant?->receipt_cc_email,
-                            ]);
-                        } catch (\Throwable $e) {
-                            Log::error('PaymentReceipt email failed', [
-                                'payment_id' => $payment->id,
-                                'error'      => $e->getMessage(),
-                            ]);
-                        }
-                    }
+                    $paymentService->confirmLeanPayment($payment, $updatedMeta);
                 }
                 break;
 
