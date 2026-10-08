@@ -62,6 +62,26 @@ class AppUserPayment extends Model
     }
 
     /**
+     * Lean's PENDING_WITH_BANK is a final status from Lean's side — the bank
+     * accepted the instruction without confirming it, and Lean never sends
+     * a follow-up, so these need a human to reconcile against the
+     * merchant's bank account once they've sat long enough.
+     */
+    public function scopeNeedsReview($query)
+    {
+        return $query->where('status', PaymentStatus::Initiated->value)
+            ->where('lean_metadata->latest_iso_status', 'PENDING_WITH_BANK')
+            ->where('created_at', '<', now()->subHours((int) config('invoices.pending_review_hours', 6)));
+    }
+
+    public function isNeedsReview(): bool
+    {
+        return $this->status === PaymentStatus::Initiated
+            && ($this->lean_metadata['latest_iso_status'] ?? null) === 'PENDING_WITH_BANK'
+            && $this->created_at->lt(now()->subHours((int) config('invoices.pending_review_hours', 6)));
+    }
+
+    /**
      * Get the app user that owns the payment.
      * Returns null for web-based payments where no AppUser account exists.
      */

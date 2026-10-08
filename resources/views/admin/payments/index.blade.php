@@ -25,7 +25,7 @@
         'products' => $products,
         'date_from' => true,
         'date_to' => true,
-        'status_options' => [0 => 'Initiated', 10 => 'Complete', 20 => 'Failed', 30 => 'Abandoned'],
+        'status_options' => [0 => 'Initiated', 10 => 'Complete', 20 => 'Failed', 30 => 'Abandoned', 'review' => 'Needs review'],
         'sort_options' => ['created_at' => 'Created At', 'updated_at' => 'Updated At', 'status' => 'Status']
     ]"
     :sortBy="request('sort_by', 'created_at')"
@@ -68,7 +68,9 @@
                 <td class="text-xs font-mono text-gray-400">{{ substr($payment->invoice->uuid ?? '', 0, 12) }}…</td>
                 <td class="text-right text-sm font-semibold text-gray-700">{{ number_format($payment->invoice->total_fee ?? 0, 2) }}</td>
                 <td>
-                    @if($payment->status->value === 10)
+                    @if($payment->isNeedsReview())
+                        <span class="badge-warning"><i class="fas fa-exclamation-triangle"></i> Needs review</span>
+                    @elseif($payment->status->value === 10)
                         <span class="badge-success">{{ $payment->status->label() }}</span>
                     @elseif($payment->status->value === 20)
                         <span class="badge-danger">{{ $payment->status->label() }}</span>

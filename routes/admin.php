@@ -62,6 +62,8 @@ Route::middleware(['auth:admin', 'admin.require-2fa-invite'])->prefix('admin')->
         Route::get('/', [App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('index');
         Route::get('/export/csv', [App\Http\Controllers\Admin\PaymentController::class, 'exportCsv'])->name('export.csv');
         Route::get('/{id}', [App\Http\Controllers\Admin\PaymentController::class, 'show'])->name('show');
+        Route::post('/{id}/confirm', [App\Http\Controllers\Admin\PaymentController::class, 'confirm'])->name('confirm');
+        Route::post('/{id}/reject', [App\Http\Controllers\Admin\PaymentController::class, 'reject'])->name('reject');
     });
     
     // App Users management

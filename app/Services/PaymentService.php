@@ -34,7 +34,9 @@ class PaymentService extends Service
         }
 
         // Apply filters
-        if (isset($filters['status']) && $filters['status'] !== '' && $filters['status'] !== null) {
+        if (($filters['status'] ?? null) === 'review') {
+            $query->needsReview();
+        } elseif (isset($filters['status']) && $filters['status'] !== '' && $filters['status'] !== null) {
             $query->where('status', $filters['status']);
         }
 

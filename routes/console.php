@@ -19,3 +19,7 @@ Schedule::command('invoices:expire-stale')->hourly();
 
 // Merchant-scheduled payment-chase emails for bulk-invoiced products.
 Schedule::command('reminders:send')->dailyAt('08:00');
+
+// Lean payments stuck at PENDING_WITH_BANK never resolve on their own —
+// alert (via the error log channel) until someone reconciles them.
+Schedule::command('payments:flag-pending')->dailyAt('09:00');
