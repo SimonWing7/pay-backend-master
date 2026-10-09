@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Enums\InvoiceStatus;
-use App\Enums\PaymentStatus;
 use App\Models\AppUserPayment;
 use App\Models\Merchant;
 use App\Models\MerchantEntity;
@@ -12,7 +10,6 @@ use App\Models\Product;
 use App\Services\PaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
 
@@ -79,21 +76,7 @@ class PaymentController extends Controller
         }
 
         $admin = $request->user();
-        $meta = array_merge($payment->lean_metadata ?? [], [
-            'manual_confirmation' => [
-                'at'            => now()->toIso8601String(),
-                'by_admin_id'   => $admin->id,
-                'by_admin_name' => $admin->name,
-                'reason'        => 'Reconciled manually against the merchant bank account (PENDING_WITH_BANK)',
-            ],
-        ]);
-
-        $this->paymentService->confirmLeanPayment($payment, $meta);
-
-        Log::warning('Admin confirmed a PENDING_WITH_BANK payment as paid', [
-            'payment_id' => $payment->id,
-            'admin_id'   => $admin->id,
-        ]);
+        $this->paymentService->reconcileConfirm($payment, ['type' => 'admin', 'id' => $admin->id, 'name' => $admin->name]);
 
         return redirect()->route('admin.payments.show', $id)
             ->with('success', "Payment #{$payment->id} confirmed as paid.");
@@ -113,25 +96,7 @@ class PaymentController extends Controller
         }
 
         $admin = $request->user();
-        $meta = array_merge($payment->lean_metadata ?? [], [
-            'manual_rejection' => [
-                'at'            => now()->toIso8601String(),
-                'by_admin_id'   => $admin->id,
-                'by_admin_name' => $admin->name,
-                'reason'        => 'No matching credit found in the merchant bank account (PENDING_WITH_BANK)',
-            ],
-        ]);
-
-        $payment->update(['status' => PaymentStatus::Failed, 'lean_metadata' => $meta]);
-
-        if ($payment->invoice && $payment->invoice->status === InvoiceStatus::Draft && ($payment->invoice->link_type ?? 'personal') !== 'open') {
-            $payment->invoice->update(['status' => InvoiceStatus::Failed]);
-        }
-
-        Log::warning('Admin marked a PENDING_WITH_BANK payment as failed', [
-            'payment_id' => $payment->id,
-            'admin_id'   => $admin->id,
-        ]);
+        $this->paymentService->reconcileReject($payment, ['type' => 'admin', 'id' => $admin->id, 'name' => $admin->name]);
 
         return redirect()->route('admin.payments.show', $id)
             ->with('success', "Payment #{$payment->id} marked as failed.");

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppUserPayment;
 use App\Models\MerchantEntity;
 use App\Services\PaymentService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -94,6 +96,65 @@ class PaymentController extends Controller
         }
 
         return view('merchant.payments.show', compact('payment'));
+    }
+
+    /**
+     * The merchant checked their own bank account for a payment Lean left at
+     * PENDING_WITH_BANK and found the money.
+     */
+    public function confirm(Request $request, int $id): RedirectResponse
+    {
+        $payment = $this->reviewablePayment($request, $id);
+
+        if (!$payment) {
+            return redirect()->route('merchant.payments.show', $id)
+                ->with('error', 'This payment can\'t be reconciled by you — contact Edfundo if you need help with it.');
+        }
+
+        $merchant = $request->user();
+        $this->paymentService->reconcileConfirm($payment, ['type' => 'merchant', 'id' => $merchant->id, 'name' => $merchant->name]);
+
+        return redirect()->route('merchant.payments.show', $id)
+            ->with('success', "Payment #{$payment->id} confirmed as received.");
+    }
+
+    /**
+     * The merchant looked and no matching credit arrived in their bank account.
+     */
+    public function reject(Request $request, int $id): RedirectResponse
+    {
+        $payment = $this->reviewablePayment($request, $id);
+
+        if (!$payment) {
+            return redirect()->route('merchant.payments.show', $id)
+                ->with('error', 'This payment can\'t be reconciled by you — contact Edfundo if you need help with it.');
+        }
+
+        $merchant = $request->user();
+        $this->paymentService->reconcileReject($payment, ['type' => 'merchant', 'id' => $merchant->id, 'name' => $merchant->name]);
+
+        return redirect()->route('merchant.payments.show', $id)
+            ->with('success', "Payment #{$payment->id} marked as not received.");
+    }
+
+    /**
+     * Only this merchant's own payments, only when Edfundo has switched on
+     * self-reconciliation for them, and only while the payment is actually
+     * awaiting review.
+     */
+    private function reviewablePayment(Request $request, int $id): ?AppUserPayment
+    {
+        $merchant = $request->user();
+
+        if (!$merchant->allow_payment_reconciliation) {
+            return null;
+        }
+
+        $payment = AppUserPayment::with('invoice.merchant')
+            ->whereHas('invoice', fn ($q) => $q->where('merchant_id', $merchant->id))
+            ->find($id);
+
+        return $payment && $payment->isNeedsReview() ? $payment : null;
     }
 }
 

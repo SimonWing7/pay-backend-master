@@ -38,6 +38,7 @@ class AppUserPayment extends Model
         'flow_success_at',
         'flow_failure_at',
         'flow_done_at',
+        'review_notified_at',
     ];
 
     /**
@@ -58,6 +59,7 @@ class AppUserPayment extends Model
             'flow_success_at' => 'datetime',
             'flow_failure_at' => 'datetime',
             'flow_done_at' => 'datetime',
+            'review_notified_at' => 'datetime',
         ];
     }
 

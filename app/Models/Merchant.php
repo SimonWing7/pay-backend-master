@@ -35,6 +35,7 @@ class Merchant extends Authenticatable
         'support_phone',
         'receipt_cc_email',
         'notification_email',
+        'allow_payment_reconciliation',
         'website',
         'webhook_url',
         'webhook_secret',
@@ -69,6 +70,7 @@ class Merchant extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
+            'allow_payment_reconciliation' => 'boolean',
         ];
     }
 

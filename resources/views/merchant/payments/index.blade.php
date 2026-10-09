@@ -25,6 +25,7 @@
             <option value="10" {{ request('status') === '10' ? 'selected' : '' }}>Complete</option>
             <option value="20" {{ request('status') === '20' ? 'selected' : '' }}>Failed</option>
             <option value="30" {{ request('status') === '30' ? 'selected' : '' }}>Abandoned</option>
+            <option value="review" {{ request('status') === 'review' ? 'selected' : '' }}>Awaiting bank confirmation</option>
         </select>
 
         @if($entities->count() > 0)
@@ -104,7 +105,9 @@
                 <td class="text-sm text-gray-700">{{ $title ?? '—' }}</td>
                 <td class="font-semibold text-sm text-gray-800">AED {{ number_format($payment->invoice->total_fee ?? 0, 2) }}</td>
                 <td>
-                    @if($payment->status->value === 10)
+                    @if($payment->isNeedsReview())
+                        <span class="badge-warning"><i class="fas fa-exclamation-triangle"></i> Awaiting bank confirmation</span>
+                    @elseif($payment->status->value === 10)
                         <span class="badge-success">{{ $payment->status->label() }}</span>
                     @elseif($payment->status->value === 20)
                         <span class="badge-danger">{{ $payment->status->label() }}</span>

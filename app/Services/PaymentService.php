@@ -507,6 +507,63 @@ class PaymentService extends Service
     }
 
     /**
+     * Manual reconciliation of a payment Lean left at PENDING_WITH_BANK —
+     * someone has checked the merchant's bank account and found the money.
+     * Shared by the admin and merchant buttons so both do exactly the same.
+     *
+     * @param array{type: string, id: int, name: string} $actor Who made the call (admin or merchant)
+     */
+    public function reconcileConfirm(AppUserPayment $payment, array $actor): void
+    {
+        $meta = array_merge($payment->lean_metadata ?? [], [
+            'manual_confirmation' => [
+                'at'         => now()->toIso8601String(),
+                'by_type'    => $actor['type'],
+                'by_id'      => $actor['id'],
+                'by_name'    => $actor['name'],
+                'reason'     => 'Reconciled manually against the merchant bank account (PENDING_WITH_BANK)',
+            ],
+        ]);
+
+        $this->confirmLeanPayment($payment, $meta);
+
+        \Illuminate\Support\Facades\Log::warning('PENDING_WITH_BANK payment manually confirmed as paid', [
+            'payment_id' => $payment->id,
+            'by'         => $actor,
+        ]);
+    }
+
+    /**
+     * No matching credit was found — close the payment out as failed.
+     *
+     * @param array{type: string, id: int, name: string} $actor
+     */
+    public function reconcileReject(AppUserPayment $payment, array $actor): void
+    {
+        $meta = array_merge($payment->lean_metadata ?? [], [
+            'manual_rejection' => [
+                'at'      => now()->toIso8601String(),
+                'by_type' => $actor['type'],
+                'by_id'   => $actor['id'],
+                'by_name' => $actor['name'],
+                'reason'  => 'No matching credit found in the merchant bank account (PENDING_WITH_BANK)',
+            ],
+        ]);
+
+        $payment->update(['status' => PaymentStatus::Failed, 'lean_metadata' => $meta]);
+
+        $payment->loadMissing('invoice');
+        if ($payment->invoice && $payment->invoice->status === InvoiceStatus::Draft && ($payment->invoice->link_type ?? 'personal') !== 'open') {
+            $payment->invoice->update(['status' => InvoiceStatus::Failed]);
+        }
+
+        \Illuminate\Support\Facades\Log::warning('PENDING_WITH_BANK payment manually marked as failed', [
+            'payment_id' => $payment->id,
+            'by'         => $actor,
+        ]);
+    }
+
+    /**
      * Handle payment flow success event from SDK
      * Records the success event but keeps status as Initiated until webhook confirms
      */

@@ -11,6 +11,37 @@
 @endsection
 
 @section('content')
+
+@if($payment->isNeedsReview())
+<div class="card p-6 mb-6" style="border-color:#fcd34d;">
+    <h3 class="text-sm font-semibold text-gray-800 mb-1"><i class="fas fa-exclamation-triangle text-amber-500"></i> Awaiting bank confirmation</h3>
+    <p class="text-sm text-gray-600 mb-4">
+        The customer's bank accepted this payment but hasn't confirmed it, and the payment provider won't send a final status.
+        Please check your bank account for a credit of <strong>AED {{ number_format($payment->invoice->total_fee ?? 0, 2) }}</strong>
+        @if(!empty($payment->lean_metadata['latest_webhook']['payload']['bank_transaction_reference']))
+            (bank reference <span class="font-mono text-xs">{{ $payment->lean_metadata['latest_webhook']['payload']['bank_transaction_reference'] }}</span>)
+        @endif
+        around {{ $payment->created_at->format('d M Y') }}.
+    </p>
+    @if(auth('merchants')->user()->allow_payment_reconciliation)
+    <div class="flex items-center gap-3">
+        <form method="POST" action="{{ route('merchant.payments.confirm', $payment->id) }}"
+            onsubmit="return confirm('The money is in your bank account? This marks the payment as paid, notifies your store, and emails the customer a receipt.');">
+            @csrf
+            <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Confirm received</button>
+        </form>
+        <form method="POST" action="{{ route('merchant.payments.reject', $payment->id) }}"
+            onsubmit="return confirm('No matching credit found? This marks the payment as not received.');">
+            @csrf
+            <button type="submit" class="btn-secondary" style="color:#dc2626;"><i class="fas fa-times"></i> Not received</button>
+        </form>
+    </div>
+    @else
+    <p class="text-sm text-gray-500">Edfundo is reviewing this payment with you — contact us if you've confirmed the credit.</p>
+    @endif
+</div>
+@endif
+
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
     <div class="card p-6">
@@ -22,7 +53,9 @@
             </div>
             <div>
                 <p class="text-xs text-gray-400 font-medium mb-1">Status</p>
-                @if($payment->status->value === 10)
+                @if($payment->isNeedsReview())
+                    <span class="badge-warning"><i class="fas fa-exclamation-triangle"></i> Awaiting bank confirmation</span>
+                @elseif($payment->status->value === 10)
                     <span class="badge-success">{{ $payment->status->label() }}</span>
                 @elseif($payment->status->value === 20)
                     <span class="badge-danger">{{ $payment->status->label() }}</span>

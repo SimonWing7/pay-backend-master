@@ -12,6 +12,18 @@
 
 @section('content')
 
+    @if(($awaitingBankCount ?? 0) > 0)
+    <div class="card mb-6 p-4" style="border-color:#fcd34d;">
+        <div class="flex items-center justify-between gap-4">
+            <p class="text-sm text-gray-700">
+                <i class="fas fa-exclamation-triangle text-amber-500"></i>
+                <strong>{{ $awaitingBankCount }}</strong> {{ \Illuminate\Support\Str::plural('payment', $awaitingBankCount) }} awaiting bank confirmation — please check your bank account.
+            </p>
+            <a href="{{ route('merchant.payments.index', ['status' => 'review']) }}" class="btn-secondary flex-shrink-0">Review</a>
+        </div>
+    </div>
+    @endif
+
     {{-- Quick Actions --}}
     <div class="card mb-6 p-6">
         <h3 style="font-size: 14px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;">

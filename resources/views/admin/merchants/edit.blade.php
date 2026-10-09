@@ -243,6 +243,18 @@
                 @enderror
             </div>
 
+            <div class="mb-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" name="allow_payment_reconciliation" id="allow_payment_reconciliation" value="1"
+                        {{ old('allow_payment_reconciliation', $merchant->allow_payment_reconciliation) ? 'checked' : '' }}
+                        class="h-4 w-4 rounded" style="accent-color: #3d01bd;">
+                    <label for="allow_payment_reconciliation" class="text-sm font-medium text-gray-700 cursor-pointer">
+                        Let this merchant reconcile their own bank-pending payments
+                    </label>
+                </div>
+                <p class="text-xs text-gray-400 mt-2 ml-7">Payments Lean leaves at "pending with bank" are listed in the merchant's dashboard with Confirm received / Not received buttons, and the merchant is emailed when one is stuck. If off, Edfundo reviews them instead.</p>
+            </div>
+
             <div class="mb-6 flex items-center gap-3 p-4 rounded-lg bg-gray-50 border border-gray-200">
                 <input type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active', $merchant->is_active) ? 'checked' : '' }}
                     class="h-4 w-4 rounded" style="accent-color: #3d01bd;">

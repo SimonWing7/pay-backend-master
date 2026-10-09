@@ -80,6 +80,8 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
         Route::get('/', [App\Http\Controllers\Merchant\PaymentController::class, 'index'])->name('index');
         Route::get('/export/csv', [App\Http\Controllers\Merchant\PaymentController::class, 'exportCsv'])->name('export.csv');
         Route::get('/{id}', [App\Http\Controllers\Merchant\PaymentController::class, 'show'])->name('show');
+        Route::post('/{id}/confirm', [App\Http\Controllers\Merchant\PaymentController::class, 'confirm'])->name('confirm');
+        Route::post('/{id}/reject', [App\Http\Controllers\Merchant\PaymentController::class, 'reject'])->name('reject');
     });
     
     // Settings

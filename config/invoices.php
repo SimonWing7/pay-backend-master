@@ -12,4 +12,8 @@ return [
     // manual reconciliation — Lean treats that status as final and never
     // follows up, so it won't resolve on its own.
     'pending_review_hours' => (int) env('PAYMENT_PENDING_REVIEW_HOURS', 6),
+
+    // How long a merchant who can reconcile their own payments has to act
+    // before Edfundo is alerted about it too.
+    'pending_escalate_hours' => (int) env('PAYMENT_PENDING_ESCALATE_HOURS', 48),
 ];

@@ -96,7 +96,11 @@ class MerchantController extends Controller
         $hasEntities = $merchant->entities()->exists();
         $entityBreakdown = $hasEntities ? $this->paymentService->getEntityBreakdownForMerchant($merchant->id) : null;
 
-        return view('merchant.dashboard', compact('stats', 'paymentStats', 'incomeStats', 'totalIncome', 'totalIncomeCurrentMonth', 'hasEntities', 'entityBreakdown'));
+        $awaitingBankCount = \App\Models\AppUserPayment::needsReview()
+            ->whereHas('invoice', fn ($q) => $q->where('merchant_id', $merchant->id))
+            ->count();
+
+        return view('merchant.dashboard', compact('stats', 'paymentStats', 'incomeStats', 'totalIncome', 'totalIncomeCurrentMonth', 'hasEntities', 'entityBreakdown', 'awaitingBankCount'));
     }
 
     public function showChangePasswordForm(): View

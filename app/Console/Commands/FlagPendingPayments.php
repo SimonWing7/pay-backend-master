@@ -14,7 +14,16 @@ class FlagPendingPayments extends Command
 
     public function handle(): int
     {
+        // Merchants who can reconcile their own payments are emailed instead
+        // (payments:notify-merchants) — Edfundo is only alerted when the
+        // merchant can't act on it, or hasn't within the escalation window.
+        $escalateAfter = now()->subHours((int) config('invoices.pending_escalate_hours', 48));
+
         $payments = AppUserPayment::needsReview()
+            ->where(function ($q) use ($escalateAfter) {
+                $q->where('created_at', '<', $escalateAfter)
+                  ->orWhereHas('invoice.merchant', fn ($m) => $m->where('allow_payment_reconciliation', false));
+            })
             ->with('invoice.merchant')
             ->orderBy('created_at')
             ->get();

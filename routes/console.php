@@ -23,3 +23,7 @@ Schedule::command('reminders:send')->dailyAt('08:00');
 // Lean payments stuck at PENDING_WITH_BANK never resolve on their own —
 // alert (via the error log channel) until someone reconciles them.
 Schedule::command('payments:flag-pending')->dailyAt('09:00');
+
+// Email merchants who can self-reconcile as soon as a payment becomes
+// reviewable (stamped per payment, so each is only emailed once).
+Schedule::command('payments:notify-merchants')->hourly();
