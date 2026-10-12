@@ -1,4 +1,5 @@
-{{-- Shared by the payment link page and the product page. Expects: $merchantId, $liveBanks --}}
+{{-- Shared by the payment link page and the product page. Expects: $merchantId, $liveBanks, optional $showReward (default true) --}}
+                @if($showReward ?? true)
                 {{-- Edfundo reward banner --}}
                 <div style="margin-bottom:14px;padding:12px 12px 10px;border-radius:14px;border:1px solid #cfe0fb;background:linear-gradient(135deg,#eaf3ff 0%,#f6faff 100%);">
                     <span style="display:inline-block;padding:2px 9px;font-size:9px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#ffffff;background:#2f6df6;border-radius:999px;">Exclusive Edfundo reward</span>
@@ -21,6 +22,8 @@
                            style="flex-shrink:0;font-size:12px;font-weight:700;color:#2f6df6;text-decoration:none;white-space:nowrap;">How it works &rarr;</a>
                     </div>
                 </div>
+                @endif
+
                 <p class="text-center mb-5" style="font-size:12px;color:#6b7280;">Secure &bull; No card details &bull; No payment fee</p>
 
                 {{-- Live bank availability pills — sourced from the lean_banks cache,

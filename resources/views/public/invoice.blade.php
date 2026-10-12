@@ -134,7 +134,7 @@
             <div class="px-6 pb-8">
                 @if($invoice->status->value === 0 || ($invoice->link_type ?? 'personal') === 'open')
 
-                @include('public.partials.pay-top', ['merchantId' => $invoice->merchant_id, 'liveBanks' => $liveBanks])
+                @include('public.partials.pay-top', ['merchantId' => $invoice->merchant_id, 'liveBanks' => $liveBanks, 'showReward' => $invoice->merchant->show_reward_offer ?? true])
 
                 <form method="POST" action="{{ route('public.invoice.pay', $invoice->uuid) }}" id="paymentForm">
                     @csrf

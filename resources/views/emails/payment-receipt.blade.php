@@ -112,6 +112,7 @@
       </table>
       @endif
 
+      @if($payment->invoice->merchant->show_reward_offer ?? true)
       {{-- AED 50 Reward CTA --}}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
         <tr>
@@ -126,6 +127,7 @@
           </td>
         </tr>
       </table>
+      @endif
 
       {{-- Note --}}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">

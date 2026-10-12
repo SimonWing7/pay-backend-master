@@ -190,6 +190,7 @@ class MerchantController extends Controller
 
         // An unchecked checkbox isn't submitted at all, so read it explicitly.
         $data['allow_payment_reconciliation'] = $request->boolean('allow_payment_reconciliation');
+        $data['show_reward_offer'] = $request->boolean('show_reward_offer');
 
         // Normalise empty string to null for fallback_type
         if (isset($data['fallback_type']) && $data['fallback_type'] === '') {

@@ -245,6 +245,18 @@
 
             <div class="mb-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
                 <div class="flex items-center gap-3">
+                    <input type="checkbox" name="show_reward_offer" id="show_reward_offer" value="1"
+                        {{ old('show_reward_offer', $merchant->show_reward_offer ?? true) ? 'checked' : '' }}
+                        class="h-4 w-4 rounded" style="accent-color: #3d01bd;">
+                    <label for="show_reward_offer" class="text-sm font-medium text-gray-700 cursor-pointer">
+                        Show the Edfundo AED 50 reward offer to this merchant's customers
+                    </label>
+                </div>
+                <p class="text-xs text-gray-400 mt-2 ml-7">Controls the reward banner on payment and product pages, the reward panel after payment, and the reward block in receipt emails. Turn off for links sent to existing Edfundo customers, e.g. subscription renewals.</p>
+            </div>
+
+            <div class="mb-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
+                <div class="flex items-center gap-3">
                     <input type="checkbox" name="allow_payment_reconciliation" id="allow_payment_reconciliation" value="1"
                         {{ old('allow_payment_reconciliation', $merchant->allow_payment_reconciliation) ? 'checked' : '' }}
                         class="h-4 w-4 rounded" style="accent-color: #3d01bd;">

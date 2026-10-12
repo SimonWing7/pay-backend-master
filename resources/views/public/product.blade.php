@@ -98,7 +98,7 @@
             @endif
 
             <div class="px-6 pb-8 pt-6">
-                @include('public.partials.pay-top', ['merchantId' => $product->merchant_id, 'liveBanks' => $liveBanks])
+                @include('public.partials.pay-top', ['merchantId' => $product->merchant_id, 'liveBanks' => $liveBanks, 'showReward' => $product->merchant->show_reward_offer ?? true])
 
                 <form method="POST" action="{{ route('public.product.store', $product->uuid) }}" id="paymentForm">
                     @csrf
