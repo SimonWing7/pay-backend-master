@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LeanBank;
 use App\Models\Product;
 use App\Services\ConsumerService;
 use App\Services\InvoiceService;
+use App\Services\LeanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -22,17 +24,19 @@ class PublicProductController extends Controller
     {
         $product = Product::where('uuid', $uuid)
             ->where('state', 'active')
-            ->with('merchant')
+            ->with(['merchant', 'merchantEntity'])
             ->firstOrFail();
 
         if (!$product->merchant || !$product->merchant->is_active) {
             abort(403, 'This product is not available. The merchant account is inactive.');
         }
 
-        return view('public.product', compact('product'));
+        $liveBanks = LeanBank::where('is_available', true)->orderBy('name')->get(['name']);
+
+        return view('public.product', compact('product', 'liveBanks'));
     }
 
-    public function store(Request $request, string $uuid): RedirectResponse
+    public function store(Request $request, string $uuid): RedirectResponse|View
     {
         $product = Product::where('uuid', $uuid)
             ->where('state', 'active')
@@ -44,9 +48,9 @@ class PublicProductController extends Controller
         }
 
         $rules = [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email',
-            'mobile_number' => 'required|string',
+            'customer_name' => 'required|string|max:255',
+            'customer_email' => 'required|email|max:255',
+            'customer_mobile' => 'required|string|max:50',
             'custom_fields' => 'nullable|array',
         ];
 
@@ -66,28 +70,24 @@ class PublicProductController extends Controller
         }
 
         // Check if consumer already exists with this email and merchant_id
-        $consumerData = $validator->validated();
+        $validated = $validator->validated();
         $consumer = \App\Models\Consumer::where('merchant_id', $product->merchant_id)
-            ->where('email', $consumerData['email'])
+            ->where('email', $validated['customer_email'])
             ->first();
 
-        // If consumer doesn't exist, create a new one
         if (!$consumer) {
-            $consumerData['merchant_id'] = $product->merchant_id;
-            $consumer = $this->consumerService->create($consumerData);
+            $consumer = $this->consumerService->create([
+                'merchant_id'   => $product->merchant_id,
+                'name'          => $validated['customer_name'],
+                'email'         => $validated['customer_email'],
+                'mobile_number' => $validated['customer_mobile'],
+            ]);
         } else {
-            // Update consumer with new data if provided (name, mobile_number)
-            $updateData = [];
-            if (isset($consumerData['name']) && !empty($consumerData['name'])) {
-                $updateData['name'] = $consumerData['name'];
-            }
-            if (isset($consumerData['mobile_number']) && !empty($consumerData['mobile_number'])) {
-                $updateData['mobile_number'] = $consumerData['mobile_number'];
-            }
-            if (!empty($updateData)) {
-                $consumer->update($updateData);
-                $consumer->refresh();
-            }
+            // Keep the contact details current with what they just entered
+            $consumer->update([
+                'name'          => $validated['customer_name'],
+                'mobile_number' => $validated['customer_mobile'],
+            ]);
         }
 
         // Create invoice with product — custom_fields schema carries over from
@@ -110,14 +110,12 @@ class PublicProductController extends Controller
 
         $invoice = $this->invoiceService->create($invoiceData);
 
-        // Redirect to invoice page. Custom field values are carried through
-        // as query params — the invoice page already falls back to
-        // request('custom_fields.*') for pre-filling, so the payer doesn't
-        // have to retype what they just entered here.
-        return redirect()->route('public.invoice.show', array_merge(
-            ['uuid' => $invoice->uuid],
-            $request->filled('custom_fields') ? ['custom_fields' => $request->input('custom_fields')] : []
-        ))->with('success', 'Invoice created successfully. Please proceed with payment.');
+        // Straight into the bank flow, exactly as submitting a payment link
+        // page does — the customer already entered their details and
+        // clicked the AlTareq button here, so there's no second page to
+        // click through. If starting the payment fails, pay() sends them to
+        // the invoice page with an error and the same form to retry.
+        return app(PublicInvoiceController::class)->pay($invoice->uuid, app(LeanService::class), $request);
     }
 }
 

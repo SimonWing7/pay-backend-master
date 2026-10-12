@@ -38,6 +38,7 @@
         .form-input:focus { border-color: var(--purple); }
         .form-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
     </style>
+    @include('public.partials.pay-styles')
 </head>
 <body>
     <div class="min-h-screen flex flex-col items-center justify-center py-10 px-4">
@@ -82,97 +83,80 @@
 
         </div>
 
-        {{-- Customer details form --}}
+        {{-- Customer details + payment — same layout, banks, fallback and AlTareq
+             button as a payment link page (see public/partials). --}}
         <div class="pay-card w-full max-w-md overflow-hidden">
-            <div class="px-6 py-5 border-b border-gray-100">
-                <h3 class="font-bold text-gray-800">Your Details</h3>
-                <p class="text-sm text-gray-400 mt-1">Please provide your information to proceed</p>
-            </div>
-
-            {{-- Flash messages --}}
-            @if(session('success'))
-            <div class="mx-6 mt-5 p-4 rounded-xl text-sm flex items-center gap-3" style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;">
-                <i class="fas fa-check-circle text-green-400"></i>
-                {{ session('success') }}
-            </div>
-            @endif
 
             @if($errors->any())
-            <div class="mx-6 mt-5 p-4 rounded-xl text-sm" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;">
+            <div class="mx-6 mt-5 p-3 rounded-xl text-xs" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;">
                 <ul class="space-y-1">
                     @foreach($errors->all() as $error)
-                    <li class="flex items-center gap-2"><i class="fas fa-exclamation-circle text-red-400 text-xs"></i>{{ $error }}</li>
+                    <li><i class="fas fa-exclamation-circle mr-1"></i>{{ $error }}</li>
                     @endforeach
                 </ul>
             </div>
             @endif
 
-            <div class="px-6 py-5">
-                <form method="POST" action="{{ route('public.product.store', $product->uuid) }}">
+            <div class="px-6 pb-8 pt-6">
+                @include('public.partials.pay-top', ['merchantId' => $product->merchant_id, 'liveBanks' => $liveBanks])
+
+                <form method="POST" action="{{ route('public.product.store', $product->uuid) }}" id="paymentForm">
                     @csrf
 
-                    <div class="mb-4">
-                        <label for="email" class="form-label">
-                            Email Address <span style="color:#dc2626;">*</span>
-                        </label>
-                        <input type="email" name="email" id="email"
-                            value="{{ old('email') }}" required
-                            class="form-input"
-                            placeholder="your@email.com">
-                    </div>
+                    <div class="mb-5 space-y-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide mb-3" style="color:#9ca3af;">Your Details</p>
 
-                    <div class="mb-4">
-                        <label for="name" class="form-label">
-                            Full Name <span style="color:#dc2626;">*</span>
-                        </label>
-                        <input type="text" name="name" id="name"
-                            value="{{ old('name') }}" required
-                            class="form-input"
-                            placeholder="Your full name">
-                    </div>
-
-                    <div class="mb-6">
-                        <label for="mobile_number" class="form-label">
-                            Mobile Number <span style="color:#dc2626;">*</span>
-                        </label>
-                        <input type="text" name="mobile_number" id="mobile_number"
-                            value="{{ old('mobile_number') }}" required
-                            class="form-input"
-                            placeholder="+971 50 000 0000">
-                    </div>
-
-                    @if($product->custom_fields && count($product->custom_fields) > 0)
-                        @foreach($product->custom_fields as $field)
-                        <div class="mb-4">
-                            <label for="custom_field_{{ $loop->index }}" class="form-label">
-                                {{ $field['label'] }}
-                                @if(!empty($field['required']))
-                                    <span style="color:#dc2626;">*</span>
-                                @else
-                                    <span class="text-gray-400 font-normal"> (optional)</span>
-                                @endif
-                            </label>
-                            <input type="text"
-                                name="custom_fields[{{ $field['label'] }}]"
-                                id="custom_field_{{ $loop->index }}"
-                                value="{{ old('custom_fields.' . $field['label']) }}"
-                                {{ !empty($field['required']) ? 'required' : '' }}
-                                placeholder="{{ $field['label'] }}"
-                                class="form-input">
+                        <div>
+                            <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">Full Name <span style="color:#ef4444;">*</span></label>
+                            <input type="text" name="customer_name" value="{{ old('customer_name') }}" required
+                                placeholder="e.g. Sarah Al Mansouri"
+                                style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
                         </div>
-                        @endforeach
-                    @endif
 
-                    <button type="submit" class="pay-btn">
-                        <i class="fas fa-arrow-right"></i>
-                        Continue to Payment — AED {{ number_format($product->fee, 2) }}
-                    </button>
+                        <div>
+                            <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">Email Address <span style="color:#ef4444;">*</span></label>
+                            <input type="email" name="customer_email" value="{{ old('customer_email') }}" required
+                                placeholder="you@example.com"
+                                style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
+                        </div>
+
+                        <div>
+                            <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">Mobile Number <span style="color:#ef4444;">*</span></label>
+                            <input type="tel" name="customer_mobile" value="{{ old('customer_mobile', '+971') }}" required
+                                placeholder="+971 50 000 0000"
+                                style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
+                        </div>
+
+                        @if($product->custom_fields && count($product->custom_fields) > 0)
+                            @foreach($product->custom_fields as $field)
+                            <div>
+                                <label style="display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">
+                                    {{ $field['label'] }}
+                                    @if(!empty($field['required']))
+                                        <span style="color:#ef4444;">*</span>
+                                    @else
+                                        <span style="color:#9ca3af;font-weight:400;"> (optional)</span>
+                                    @endif
+                                </label>
+                                <input type="text"
+                                    name="custom_fields[{{ $field['label'] }}]"
+                                    value="{{ old('custom_fields.' . $field['label']) }}"
+                                    {{ !empty($field['required']) ? 'required' : '' }}
+                                    placeholder="{{ $field['label'] }}"
+                                    style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e5ef;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#3d01bd'" onblur="this.style.borderColor='#e2e5ef'">
+                            </div>
+                            @endforeach
+                        @endif
+                    </div>
+
+                    @include('public.partials.pay-button')
                 </form>
 
-                <div class="mt-4 flex items-center justify-center gap-5 text-xs text-gray-400">
-                    <span><i class="fas fa-lock mr-1"></i>256-bit encrypted</span>
-                    <span><i class="fas fa-shield-alt mr-1"></i>UAE Central Bank regulated</span>
-                </div>
+                @include('public.partials.pay-bottom', ['merchant' => $product->merchant, 'entity' => $product->merchantEntity, 'amount' => $product->fee])
             </div>
         </div>
 
@@ -180,5 +164,6 @@
             &copy; {{ date('Y') }} Edfundo Pay. All rights reserved.
         </p>
     </div>
+    @include('public.partials.pay-scripts')
 </body>
 </html>
