@@ -143,9 +143,10 @@ class PaymentService extends Service
     /**
      * Payment counts grouped by status, for the dashboard's status pie chart.
      */
-    public function getStatusBreakdown(): array
+    public function getStatusBreakdown(int $days = 30): array
     {
         $counts = AppUserPayment::selectRaw('status, COUNT(*) as count')
+            ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('status')
             ->pluck('count', 'status');
 
@@ -309,11 +310,12 @@ class PaymentService extends Service
      * Payment counts grouped by status for one merchant — same shape as
      * getStatusBreakdown(), scoped down for the admin merchant detail page.
      */
-    public function getStatusBreakdownForMerchant(int $merchantId): array
+    public function getStatusBreakdownForMerchant(int $merchantId, int $days = 30): array
     {
         $counts = AppUserPayment::selectRaw('app_user_payments.status, COUNT(*) as count')
             ->join('invoices', 'app_user_payments.invoice_id', '=', 'invoices.id')
             ->where('invoices.merchant_id', $merchantId)
+            ->where('app_user_payments.created_at', '>=', now()->subDays($days))
             ->whereNull('app_user_payments.deleted_at')
             ->whereNull('invoices.deleted_at')
             ->groupBy('app_user_payments.status')

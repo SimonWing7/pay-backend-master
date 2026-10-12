@@ -109,7 +109,7 @@
         </div>
 
         <div class="card">
-            <h3 class="chart-title"><i class="fas fa-chart-pie gradient-text"></i> Payment Status</h3>
+            <h3 class="chart-title"><i class="fas fa-chart-pie gradient-text"></i> Payment Status - Last 30 days</h3>
             <div style="height:140px;"><canvas id="statusChart"></canvas></div>
         </div>
 
