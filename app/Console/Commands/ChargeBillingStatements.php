@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 class ChargeBillingStatements extends Command
 {
     protected $signature = 'billing:charge
-        {--statement= : Only this statement ID}
+        {--statement= : Only this statement (its ID, or its number like EP-202608-0002)}
         {--now : Charge immediately, ignoring the schedule (needs --statement)}';
 
     protected $description = 'Charge merchants\' registered cards for statements that are due (and retry declined ones)';
@@ -32,7 +32,10 @@ class ChargeBillingStatements extends Command
         }
 
         if ($this->option('statement')) {
-            $statement = BillingStatement::find($this->option('statement'));
+            $reference = (string) $this->option('statement');
+            $statement = BillingStatement::where('number', $reference)
+                ->when(ctype_digit($reference), fn ($q) => $q->orWhere('id', (int) $reference))
+                ->first();
 
             if (!$statement) {
                 $this->error('Statement not found.');

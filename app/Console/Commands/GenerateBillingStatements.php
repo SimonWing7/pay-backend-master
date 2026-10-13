@@ -37,6 +37,11 @@ class GenerateBillingStatements extends Command
                 $this->error('That month has not started yet.');
                 return self::FAILURE;
             }
+
+            if (!$this->option('dry-run') && $period->copy()->endOfMonth()->gte(now($tz))) {
+                $this->error('That month has not finished yet. Statements are only issued for completed months (use --dry-run to preview a month in progress).');
+                return self::FAILURE;
+            }
         } else {
             $period = $billing->previousMonth();
         }

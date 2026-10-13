@@ -192,6 +192,40 @@ class BillingTest extends TestCase
         $this->assertSame('150.00', $again->fee_amount);
     }
 
+    public function test_a_month_still_in_progress_is_never_billed(): void
+    {
+        $merchant = $this->merchant();
+        $this->payment($merchant, 5000, '2026-11-01 00:30:00'); // 1 Nov, current month at the frozen time
+        $billing = app(BillingService::class);
+
+        // Partway through November
+        Carbon::setTestNow(Carbon::parse('2026-11-14 08:00:00', 'UTC'));
+        $this->assertNull($billing->generateStatement($merchant, Carbon::parse('2026-11-14', 'Asia/Dubai')));
+        $this->assertSame(0, BillingStatement::count());
+
+        // The very last day of the month is still in progress
+        Carbon::setTestNow(Carbon::parse('2026-11-30 08:00:00', 'UTC'));
+        $this->assertNull($billing->generateStatement($merchant, Carbon::parse('2026-11-30', 'Asia/Dubai')));
+
+        // Once it has ended (1 Dec, Dubai) it can be billed
+        Carbon::setTestNow(Carbon::parse('2026-11-30 20:30:00', 'UTC'));
+        $this->assertNotNull($billing->generateStatement($merchant, Carbon::parse('2026-11-14', 'Asia/Dubai')));
+    }
+
+    public function test_generate_command_refuses_a_month_in_progress_but_allows_a_dry_run_preview(): void
+    {
+        $merchant = $this->merchant();
+        $this->payment($merchant, 5000, '2026-11-01 00:30:00');
+        Carbon::setTestNow(Carbon::parse('2026-11-14 08:00:00', 'UTC'));
+
+        $this->artisan('billing:generate --period=2026-11')->assertExitCode(1);
+        $this->assertSame(0, BillingStatement::count());
+
+        $this->artisan('billing:generate --period=2026-11 --dry-run')->assertExitCode(0);
+        $this->assertSame(0, BillingStatement::count());
+        Mail::assertNothingSent();
+    }
+
     public function test_months_with_no_fee_produce_no_statement(): void
     {
         $merchant = $this->merchant();
@@ -561,6 +595,21 @@ class BillingTest extends TestCase
         $this->artisan('billing:charge')->assertExitCode(0);
         $this->assertSame('paid', $statement->fresh()->status);
         Http::assertSentCount(1);
+    }
+
+    public function test_charge_command_accepts_a_statement_by_number_or_id(): void
+    {
+        Http::fake(['telr.test/remote.xml' => Http::response($this->telrXml('A'), 200)]);
+
+        $byNumber = $this->octoberStatement();
+        $this->artisan('billing:charge --statement=' . $byNumber->number . ' --now')->assertExitCode(0);
+        $this->assertSame('paid', $byNumber->fresh()->status);
+
+        $byId = $this->octoberStatement();
+        $this->artisan('billing:charge --statement=' . $byId->id . ' --now')->assertExitCode(0);
+        $this->assertSame('paid', $byId->fresh()->status);
+
+        $this->artisan('billing:charge --statement=EP-999999-9999 --now')->assertExitCode(1);
     }
 
     // -- merchant pages --------------------------------------------------

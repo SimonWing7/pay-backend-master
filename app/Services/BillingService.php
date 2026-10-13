@@ -120,6 +120,18 @@ class BillingService
     {
         [$start, $end] = $this->monthBounds($periodMonth);
 
+        // A statement for a month still in progress would lock in a partial
+        // figure — and, since there's only ever one statement per merchant per
+        // month, block the real one at month-end.
+        if ($end->gte(now($this->timezone()))) {
+            Log::warning('Billing: refused to issue a statement for a month that has not finished', [
+                'merchant_id' => $merchant->id,
+                'period'      => $start->format('Y-m'),
+            ]);
+
+            return null;
+        }
+
         $existing = BillingStatement::where('merchant_id', $merchant->id)
             ->whereDate('period_start', $start->toDateString())
             ->first();
