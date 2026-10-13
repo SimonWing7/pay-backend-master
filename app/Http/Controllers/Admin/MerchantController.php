@@ -128,12 +128,18 @@ class MerchantController extends Controller
         $entityBreakdown = $this->paymentService->getEntityBreakdownForMerchant($id);
         $totalAmountAllTime = $this->paymentService->getTotalIncomeForMerchant($id);
         $totalAmountCurrentMonth = $this->paymentService->getTotalIncomeCurrentMonthForMerchant($id);
-        // Edfundo's cut — 1% of this merchant's total completed volume.
-        $totalEdfundoRevenue = $totalAmountAllTime * 0.01;
+        // Edfundo's cut — this merchant's fee rate applied to their total
+        // completed volume (the same rate their monthly statements use).
+        $totalEdfundoRevenue = $totalAmountAllTime * ((float) $merchant->fee_percentage / 100);
+
+        $billingCard = $merchant->activeBillingCard;
+        $billingUpcoming = app(\App\Services\BillingService::class)->upcomingFor($merchant);
+        $billingStatements = $merchant->billingStatements()->orderByDesc('period_start')->limit(6)->get();
 
         return view('admin.merchants.show', compact(
             'merchant', 'apiKeys', 'recentPayments',
-            'paymentStats', 'statusBreakdown', 'entityBreakdown', 'totalAmountAllTime', 'totalAmountCurrentMonth', 'totalEdfundoRevenue'
+            'paymentStats', 'statusBreakdown', 'entityBreakdown', 'totalAmountAllTime', 'totalAmountCurrentMonth', 'totalEdfundoRevenue',
+            'billingCard', 'billingUpcoming', 'billingStatements'
         ));
     }
 
@@ -170,6 +176,7 @@ class MerchantController extends Controller
             'support_phone'           => 'nullable|string|max:50',
             'receipt_cc_email'        => 'nullable|email|max:255',
             'notification_email'      => 'nullable|email|max:255',
+            'fee_percentage'          => 'sometimes|numeric|min:0|max:100',
             'website'                 => 'nullable|url|max:2048',
             'webhook_url'             => 'nullable|url|max:2048',
             'fallback_type'           => 'nullable|in:,payment_gateway,bank_transfer',
@@ -189,6 +196,7 @@ class MerchantController extends Controller
         $data = $validator->validated();
 
         // An unchecked checkbox isn't submitted at all, so read it explicitly.
+        $data['billing_enabled'] = $request->boolean('billing_enabled');
         $data['allow_payment_reconciliation'] = $request->boolean('allow_payment_reconciliation');
         $data['show_reward_offer'] = $request->boolean('show_reward_offer');
 

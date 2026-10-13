@@ -280,6 +280,55 @@
 
 </div>
 
+{{-- Billing --}}
+<div class="card p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-gray-700">Edfundo fee billing</h3>
+        <a href="{{ route('admin.billing.index', ['merchant_id' => $merchant->id]) }}" class="text-xs font-medium" style="color:#3d01bd;">All statements &rarr;</a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+            <p class="text-xs text-gray-400 font-medium mb-1">Rate / status</p>
+            <p class="text-sm font-semibold text-gray-800">{{ rtrim(rtrim(number_format($merchant->fee_percentage, 2), '0'), '.') }}%
+                @if($merchant->billing_enabled)
+                    <span class="badge-success ml-1">Billing on</span>
+                @else
+                    <span class="badge-muted ml-1">Billing off</span>
+                @endif
+            </p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 font-medium mb-1">Card on file</p>
+            <p class="text-sm font-semibold {{ $billingCard ? 'text-gray-800' : 'text-red-600' }}">{{ $billingCard ? $billingCard->label() : 'No card registered' }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 font-medium mb-1">{{ $billingUpcoming['period_label'] }} so far</p>
+            <p class="text-sm font-semibold text-gray-800">AED {{ number_format($billingUpcoming['fee'], 2) }}
+                <span class="text-xs font-normal text-gray-400">on AED {{ number_format($billingUpcoming['volume'], 2) }}</span></p>
+        </div>
+    </div>
+    @if($billingStatements->count() > 0)
+    <table class="data-table w-full">
+        <thead><tr>
+            <th class="text-left">Statement</th><th class="text-left">Period</th>
+            <th class="text-right">Fee (AED)</th><th class="text-left">Status</th>
+        </tr></thead>
+        <tbody>
+            @foreach($billingStatements as $statement)
+            <tr>
+                <td class="text-sm font-mono text-gray-700">{{ $statement->number }}</td>
+                <td class="text-sm text-gray-600">{{ $statement->periodLabel() }}</td>
+                <td class="text-sm font-semibold text-gray-800 text-right">{{ number_format($statement->fee_amount, 2) }}</td>
+                <td class="text-sm text-gray-600">{{ $statement->statusLabel() }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @else
+        <p class="text-sm text-gray-400">No statements issued yet.</p>
+    @endif
+</div>
+
 {{-- API Keys --}}
 <div class="card overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">

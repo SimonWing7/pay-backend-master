@@ -75,6 +75,15 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
         Route::post('/{id}/resend-link', [App\Http\Controllers\Merchant\InvoiceController::class, 'resendLink'])->name('resend-link');
     });
     
+    // Billing — Edfundo's monthly fee statements and the card they're charged to
+    Route::prefix('billing')->name('billing.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Merchant\BillingController::class, 'index'])->name('index');
+        Route::post('/card', [App\Http\Controllers\Merchant\BillingController::class, 'startCard'])->name('card.start');
+        Route::get('/card/return/{cart}', [App\Http\Controllers\Merchant\BillingController::class, 'cardReturn'])->name('card.return');
+        Route::post('/card/{card}/check', [App\Http\Controllers\Merchant\BillingController::class, 'cardCheck'])->name('card.check');
+        Route::get('/statements/{number}', [App\Http\Controllers\Merchant\BillingController::class, 'statement'])->name('statement');
+    });
+
     // Payments management
     Route::prefix('payments')->name('payments.')->group(function () {
         Route::get('/', [App\Http\Controllers\Merchant\PaymentController::class, 'index'])->name('index');

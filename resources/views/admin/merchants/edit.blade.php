@@ -244,6 +244,32 @@
             </div>
 
             <div class="mb-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
+                <p class="text-sm font-semibold text-gray-700 mb-3">Edfundo fee billing</p>
+                <div class="mb-3">
+                    <label for="fee_percentage" class="form-label">Fee percentage</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" name="fee_percentage" id="fee_percentage" step="0.01" min="0" max="100"
+                            value="{{ old('fee_percentage', $merchant->fee_percentage) }}"
+                            class="form-input @error('fee_percentage') border-red-400 @enderror" style="max-width:140px;">
+                        <span class="text-sm text-gray-500">% of completed payments</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Used for this merchant's monthly statements and the revenue figure on their admin page. Statements already issued keep the rate they were issued at.</p>
+                    @error('fee_percentage')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" name="billing_enabled" id="billing_enabled" value="1"
+                        {{ old('billing_enabled', $merchant->billing_enabled) ? 'checked' : '' }}
+                        class="h-4 w-4 rounded" style="accent-color: #3d01bd;">
+                    <label for="billing_enabled" class="text-sm font-medium text-gray-700 cursor-pointer">
+                        Bill this merchant monthly (statement on the 1st, card charged on the 3rd)
+                    </label>
+                </div>
+                <p class="text-xs text-gray-400 mt-2 ml-7">Only turn this on once the merchant has agreed their rate and registered a card. Nothing is billed at all unless billing is also switched on for the whole platform.</p>
+            </div>
+
+            <div class="mb-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
                 <div class="flex items-center gap-3">
                     <input type="checkbox" name="show_reward_offer" id="show_reward_offer" value="1"
                         {{ old('show_reward_offer', $merchant->show_reward_offer ?? true) ? 'checked' : '' }}

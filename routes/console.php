@@ -27,3 +27,9 @@ Schedule::command('payments:flag-pending')->dailyAt('09:00');
 // Email merchants who can self-reconcile as soon as a payment becomes
 // reviewable (stamped per payment, so each is only emailed once).
 Schedule::command('payments:notify-merchants')->hourly();
+
+// Monthly merchant fee billing (does nothing unless BILLING_ENABLED=true):
+// statements go out on the 1st, cards are charged from the 3rd, and the same
+// daily run picks up retries and merchants who have since added a card.
+Schedule::command('billing:generate')->monthlyOn(1, '06:00')->timezone('Asia/Dubai')->withoutOverlapping();
+Schedule::command('billing:charge')->dailyAt('09:00')->timezone('Asia/Dubai')->withoutOverlapping();

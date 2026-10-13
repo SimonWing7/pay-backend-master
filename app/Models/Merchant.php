@@ -37,6 +37,8 @@ class Merchant extends Authenticatable
         'notification_email',
         'allow_payment_reconciliation',
         'show_reward_offer',
+        'fee_percentage',
+        'billing_enabled',
         'website',
         'webhook_url',
         'webhook_secret',
@@ -73,6 +75,8 @@ class Merchant extends Authenticatable
             'must_change_password' => 'boolean',
             'allow_payment_reconciliation' => 'boolean',
             'show_reward_offer' => 'boolean',
+            'fee_percentage' => 'decimal:2',
+            'billing_enabled' => 'boolean',
         ];
     }
 
@@ -107,6 +111,24 @@ class Merchant extends Authenticatable
     public function entities()
     {
         return $this->hasMany(MerchantEntity::class);
+    }
+
+    public function billingCards()
+    {
+        return $this->hasMany(MerchantBillingCard::class);
+    }
+
+    /** The card Edfundo currently charges this merchant's monthly fees to. */
+    public function activeBillingCard()
+    {
+        return $this->hasOne(MerchantBillingCard::class)
+            ->where('status', MerchantBillingCard::STATUS_ACTIVE)
+            ->latestOfMany();
+    }
+
+    public function billingStatements()
+    {
+        return $this->hasMany(BillingStatement::class);
     }
 
     /**

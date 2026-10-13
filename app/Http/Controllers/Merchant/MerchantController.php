@@ -100,7 +100,9 @@ class MerchantController extends Controller
             ->whereHas('invoice', fn ($q) => $q->where('merchant_id', $merchant->id))
             ->count();
 
-        return view('merchant.dashboard', compact('stats', 'paymentStats', 'incomeStats', 'totalIncome', 'totalIncomeCurrentMonth', 'hasEntities', 'entityBreakdown', 'awaitingBankCount'));
+        $upcomingBilling = $merchant->billing_enabled ? app(\App\Services\BillingService::class)->upcomingFor($merchant) : null;
+
+        return view('merchant.dashboard', compact('stats', 'paymentStats', 'incomeStats', 'totalIncome', 'totalIncomeCurrentMonth', 'hasEntities', 'entityBreakdown', 'awaitingBankCount', 'upcomingBilling'));
     }
 
     public function showChangePasswordForm(): View

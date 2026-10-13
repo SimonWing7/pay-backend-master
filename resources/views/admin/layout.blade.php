@@ -296,6 +296,12 @@
                 <span>Invoices</span>
             </a>
 
+            <a href="{{ route('admin.billing.index') }}"
+               class="nav-link {{ request()->routeIs('admin.billing*') ? 'active' : '' }}">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+            </a>
+
             <a href="{{ route('admin.lean-destinations.create') }}"
                class="nav-link {{ request()->routeIs('admin.lean-destinations*') ? 'active' : '' }}">
                 <i class="fas fa-university"></i>

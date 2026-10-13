@@ -299,6 +299,12 @@
                 <span>Settings</span>
             </a>
 
+            <a href="{{ route('merchant.billing.index') }}"
+               class="nav-link {{ request()->routeIs('merchant.billing*') ? 'active' : '' }}">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+            </a>
+
         </nav>
 
         {{-- User info + Logout --}}

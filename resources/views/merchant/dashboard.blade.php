@@ -127,6 +127,21 @@
 
     </div>
 
+    @if(!empty($upcomingBilling))
+    <a href="{{ route('merchant.billing.index') }}" class="stat-card hover:shadow-md transition-shadow mb-6" style="display:block;">
+        <div class="flex items-center justify-between">
+            <div>
+                <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;">Upcoming Edfundo Fees — {{ $upcomingBilling['period_label'] }} so far</p>
+                <p style="font-size: 24px; font-weight: 800; color: #000026; margin-top: 4px;">AED {{ number_format($upcomingBilling['fee'], 2) }}</p>
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 2px;">Statement emailed {{ $upcomingBilling['invoice_date']->format('j F') }}, card charged {{ $upcomingBilling['charge_date']->format('j F') }}</p>
+            </div>
+            <div class="stat-icon">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+        </div>
+    </a>
+    @endif
+
     {{-- Charts --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 

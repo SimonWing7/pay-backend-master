@@ -48,6 +48,14 @@ Route::middleware(['auth:admin', 'admin.require-2fa-invite'])->prefix('admin')->
         Route::delete('/{merchantId}/entities/{entityId}', [App\Http\Controllers\Admin\MerchantEntityController::class, 'destroy'])->name('entities.destroy');
     });
 
+    // Monthly Edfundo fee billing — statements, card charges and resolving problems
+    Route::prefix('billing')->name('billing.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\BillingController::class, 'index'])->name('index');
+        Route::post('/statements/{id}/retry', [App\Http\Controllers\Admin\BillingController::class, 'retry'])->name('retry');
+        Route::post('/statements/{id}/paid', [App\Http\Controllers\Admin\BillingController::class, 'markPaid'])->name('paid');
+        Route::post('/statements/{id}/void', [App\Http\Controllers\Admin\BillingController::class, 'void'])->name('void');
+    });
+
     // Create a Lean payment destination directly from the dashboard —
     // replaces the manual Tinker script previously used for this.
     Route::prefix('lean-destinations')->name('lean-destinations.')->group(function () {
