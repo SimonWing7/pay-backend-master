@@ -6,6 +6,8 @@
 
 @section('content')
 
+<style>details > summary::-webkit-details-marker { display: none; }</style>
+
 @if(session('info'))
 <div class="mb-5 p-4 rounded-xl text-sm" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;">
     <i class="fas fa-info-circle mr-1"></i> {{ session('info') }}
@@ -56,7 +58,11 @@
                     @endif
                 </div>
             </div>
-            <p class="text-xs text-gray-400 mb-4">Your monthly fees are charged to this card.</p>
+            <p class="text-xs text-gray-400 mb-1">Your monthly fees are charged to this card.</p>
+            <p class="text-xs text-green-700 mb-4">
+                <i class="fas fa-check-circle"></i>
+                Monthly charges authorised{{ $card->consent_at ? ' on ' . $card->consent_at->copy()->setTimezone(config('billing.timezone'))->format('j F Y') : '' }}.
+            </p>
         @elseif($pendingCard)
             <p class="text-sm text-gray-600 mb-3">You started registering a card but it hasn't been completed yet.</p>
             <form method="POST" action="{{ route('merchant.billing.card.check', $pendingCard->id) }}" class="mb-4">
@@ -67,24 +73,16 @@
             <p class="text-sm text-gray-500 mb-4">No card registered yet.</p>
         @endif
 
-        <form method="POST" action="{{ route('merchant.billing.card.start') }}" class="border-t border-gray-100 pt-4">
-            @csrf
-            <label class="flex items-start gap-2 mb-3 cursor-pointer">
-                <input type="checkbox" name="consent" value="1" class="mt-1 h-4 w-4 rounded" style="accent-color:#3d01bd;" {{ old('consent') ? 'checked' : '' }}>
-                <span class="text-xs text-gray-600 leading-relaxed">
-                    I authorise Edfundo to charge this card each month for the Edfundo Pay fees shown on my statements,
-                    and to retry if a payment is declined. I can replace the card at any time.
-                </span>
-            </label>
-            @error('consent')
-                <p class="text-red-500 text-xs mb-2">{{ $message }}</p>
-            @enderror
-            <button type="submit" class="btn-primary"><i class="fas fa-lock"></i> {{ $card ? 'Replace card' : 'Add card' }}</button>
-            <p class="text-xs text-gray-400 mt-2">
-                You'll enter your card on Telr's secure page and confirm with 3-D Secure. A AED {{ number_format(config('billing.verification_amount', 1), 2) }}
-                verification charge is made and refunded straight away. We never see or store your card number.
-            </p>
-        </form>
+        @if($card)
+            <details class="border-t border-gray-100 pt-4" {{ $errors->has('consent') ? 'open' : '' }}>
+                <summary class="btn-secondary" style="cursor:pointer;list-style:none;display:inline-flex;"><i class="fas fa-exchange-alt"></i> Replace card</summary>
+                <div class="mt-4">
+                    @include('merchant.billing._card-form', ['card' => $card, 'withTopBorder' => false])
+                </div>
+            </details>
+        @else
+            @include('merchant.billing._card-form', ['card' => null, 'withTopBorder' => true])
+        @endif
     </div>
 </div>
 

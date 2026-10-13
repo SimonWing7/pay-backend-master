@@ -623,7 +623,8 @@ class BillingTest extends TestCase
             ->get(route('merchant.billing.index'))
             ->assertOk()
             ->assertSee($statement->number)
-            ->assertSee('Visa Credit ending 1111');
+            ->assertSee('Visa Credit ending 1111')
+            ->assertSee('Monthly charges authorised');
 
         $this->actingAs($statement->merchant, 'merchants')
             ->get(route('merchant.billing.statement', $statement->number))
