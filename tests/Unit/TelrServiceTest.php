@@ -185,4 +185,24 @@ class TelrServiceTest extends TestCase
         $this->assertSame('error', app(TelrService::class)->chargeContinuous('1', 10, 'EP-1', 'x')['outcome']);
         Http::assertNothingSent();
     }
+
+    public function test_telr_requests_are_forced_over_ipv4_so_they_match_the_whitelisted_address(): void
+    {
+        $service = app(TelrService::class);
+
+        $client = (new \ReflectionMethod($service, 'client'))->invoke($service);
+        $options = (new \ReflectionProperty($client, 'options'))->getValue($client);
+
+        $this->assertSame(CURL_IPRESOLVE_V4, $options['curl'][CURLOPT_IPRESOLVE]);
+    }
+
+    public function test_every_outgoing_telr_call_goes_through_that_ipv4_client(): void
+    {
+        // Guards against someone adding a new call that bypasses client() and
+        // could leave from a non-whitelisted IPv6 address.
+        $source = file_get_contents((new \ReflectionClass(TelrService::class))->getFileName());
+
+        $this->assertSame(1, substr_count($source, 'Http::'), 'Only client() may create HTTP requests.');
+        $this->assertSame(3, substr_count($source, '$this->client()'));
+    }
 }

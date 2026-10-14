@@ -47,7 +47,7 @@ class TelrService
         }
 
         try {
-            $response = Http::timeout((int) config('telr.timeout'))->asJson()->acceptJson()->post(config('telr.order_url'), [
+            $response = $this->client()->asJson()->acceptJson()->post(config('telr.order_url'), [
                 'method'  => 'create',
                 'store'   => (int) config('telr.store_id'),
                 'authkey' => config('telr.order_auth_key'),
@@ -94,7 +94,7 @@ class TelrService
         }
 
         try {
-            $response = Http::timeout((int) config('telr.timeout'))->asJson()->acceptJson()->post(config('telr.order_url'), [
+            $response = $this->client()->asJson()->acceptJson()->post(config('telr.order_url'), [
                 'method'  => 'check',
                 'store'   => (int) config('telr.store_id'),
                 'authkey' => config('telr.order_auth_key'),
@@ -177,7 +177,7 @@ class TelrService
             . '</remote>';
 
         try {
-            $response = Http::timeout((int) config('telr.timeout'))
+            $response = $this->client()
                 ->withBody($xml, 'application/xml')
                 ->post(config('telr.remote_url'));
         } catch (\Throwable $e) {
@@ -238,6 +238,18 @@ class TelrService
         Log::info('Telr: remote response', ['type' => $type, 'cartid' => $cartId, 'outcome' => $outcome, 'status' => $status, 'tranref' => $tranRef, 'code' => $code]);
 
         return $this->result($outcome, $tranRef, $code, $message);
+    }
+
+    /**
+     * Telr only accepts live Remote API calls from whitelisted IPv4 addresses,
+     * and this server is dual-stack — without forcing IPv4 an outgoing request
+     * could leave from an IPv6 address that isn't whitelisted. (Same approach
+     * as WebhookService.)
+     */
+    private function client(): \Illuminate\Http\Client\PendingRequest
+    {
+        return Http::timeout((int) config('telr.timeout'))
+            ->withOptions(['curl' => [CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4]]);
     }
 
     private function result(string $outcome, ?string $tranRef, ?string $code, ?string $message): array
