@@ -131,15 +131,16 @@ class TelrServiceTest extends TestCase
         $this->assertTrue($result['success']);
         $this->assertSame('ABC123', $result['order_ref']);
 
-        Http::assertSent(fn ($r) => $r['authkey'] === 'order-secret-key' && $r['order']['amount'] === '1.00' && $r['order']['test'] === '1' && $r['method'] === 'create');
+        Http::assertSent(fn ($r) => $r['authkey'] === 'order-secret-key' && $r['order']['amount'] === '1.00' && $r['order']['test'] === '1' && $r['method'] === 'create' && $r['panels'] === 'card');
     }
 
     public function test_card_setup_order_failure_does_not_leak_keys_into_logs(): void
     {
-        Http::fake(['telr.test/order.json' => Http::response(['error' => ['message' => 'E01:Invalid request', 'note' => 'Request authentication failed']], 200)]);
+        Http::fake(['telr.test/order.json' => Http::response(['error' => ['message' => 'E01:Invalid request', 'note' => 'Request authentication failed', 'details' => 'For more details check exception ID 3916762 in the merchant admin system']], 200)]);
 
         Log::shouldReceive('error')->once()->withArgs(function ($message, $context) {
-            return !str_contains(json_encode($context), 'secret-key');
+            return !str_contains(json_encode($context), 'secret-key')
+                && str_contains($context['details'], 'exception ID 3916762');
         });
 
         $result = app(TelrService::class)->createCardSetupOrder('EPCARD-1', 1.0, ['authorised' => 'a', 'declined' => 'd', 'cancelled' => 'c']);

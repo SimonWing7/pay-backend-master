@@ -52,6 +52,10 @@ class TelrService
                 'store'   => (int) config('telr.store_id'),
                 'authkey' => config('telr.order_auth_key'),
                 'framed'  => 0,
+                // Card entry only. Wallets such as Samsung Pay / Apple Pay pay
+                // with a device-bound token (different last four digits and
+                // expiry), which can't be relied on for later monthly charges.
+                'panels'  => 'card',
                 'order'   => [
                     'cartid'      => $cartId,
                     'test'        => config('telr.test_mode') ? '1' : '0',
@@ -75,6 +79,9 @@ class TelrService
                 'status'  => $response->status(),
                 'message' => $response->json('error.message'),
                 'note'    => $response->json('error.note'),
+                // Contains Telr's exception ID — look it up in the Telr
+                // merchant admin to see exactly why the request was refused.
+                'details' => $response->json('error.details'),
             ]);
             return ['success' => false, 'error' => 'The payment provider could not start the card registration. Please try again.'];
         }
@@ -111,6 +118,7 @@ class TelrService
             Log::error('Telr: order check was rejected', [
                 'status'  => $response->status(),
                 'message' => $response->json('error.message'),
+                'details' => $response->json('error.details'),
             ]);
             return ['success' => false, 'error' => 'The payment provider could not confirm this card registration.'];
         }
