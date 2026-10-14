@@ -109,6 +109,8 @@
                 @enderror
             </div>
 
+            @include('admin.merchants._billing-email', ['merchant' => null])
+
             <div class="mb-5">
                 <label for="website" class="form-label">Website</label>
                 <input type="url" name="website" id="website"

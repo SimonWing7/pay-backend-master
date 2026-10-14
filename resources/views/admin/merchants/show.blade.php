@@ -298,6 +298,8 @@
             </p>
         </div>
         <div>
+            <p class="text-xs text-gray-400 font-medium mb-1">Billing emails go to</p>
+            <p class="text-sm font-semibold text-gray-800 mb-3" style="word-break:break-all;">{{ $merchant->billingRecipient() }}</p>
             <p class="text-xs text-gray-400 font-medium mb-1">Card on file</p>
             <p class="text-sm font-semibold {{ $billingCard ? 'text-gray-800' : 'text-red-600' }}">{{ $billingCard ? $billingCard->label() : 'No card registered' }}</p>
         </div>

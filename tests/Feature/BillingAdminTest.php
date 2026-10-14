@@ -217,4 +217,117 @@ class BillingAdminTest extends TestCase
         $this->actingAs($notBilled, 'merchants')->get(route('merchant.dashboard'))
             ->assertOk()->assertDontSee('Upcoming Edfundo Fees');
     }
+
+    // -- billing email -----------------------------------------------------
+
+    public function test_billing_emails_go_to_the_first_address_available(): void
+    {
+        $m = $this->merchant(['email' => 'login@x.com']);
+        $this->assertSame('login@x.com', $m->billingRecipient());
+
+        $m->update(['support_email' => 'support@x.com']);
+        $this->assertSame('support@x.com', $m->fresh()->billingRecipient());
+
+        $m->update(['notification_email' => 'notify@x.com']);
+        $this->assertSame('notify@x.com', $m->fresh()->billingRecipient());
+
+        $m->update(['billing_email' => 'finance@x.com']);
+        $this->assertSame('finance@x.com', $m->fresh()->billingRecipient());
+    }
+
+    public function test_with_no_billing_email_it_keeps_following_the_notification_email(): void
+    {
+        $m = $this->merchant(['notification_email' => 'old@x.com']);
+        $this->assertSame('old@x.com', $m->billingRecipient());
+
+        $m->update(['notification_email' => 'new@x.com']);
+
+        $this->assertSame('new@x.com', $m->fresh()->billingRecipient());
+    }
+
+    public function test_statement_and_result_emails_use_the_billing_email(): void
+    {
+        $merchant = $this->merchant(['notification_email' => 'notify@x.com', 'billing_email' => 'finance@x.com']);
+        $statement = $this->statement($merchant);
+
+        app(BillingService::class)->sendStatementEmail($statement);
+        Mail::assertSent(\App\Mail\BillingStatementMail::class, fn ($m) => $m->hasTo('finance@x.com') && !$m->hasTo('notify@x.com'));
+
+        $this->telrOk();
+        app(BillingService::class)->charge($statement->fresh(), true);
+        Mail::assertSent(\App\Mail\BillingChargeResultMail::class, fn ($m) => $m->hasTo('finance@x.com'));
+    }
+
+    public function test_ticking_same_as_notifications_stores_no_billing_email(): void
+    {
+        $merchant = $this->merchant(['billing_email' => 'finance@x.com']);
+
+        $this->actingAs($this->admin, 'admin')
+            ->put(route('admin.merchants.update', $merchant->id), [
+                'name' => $merchant->name, 'email' => $merchant->email,
+                'billing_email_same' => '1', 'billing_email' => 'ignored@x.com',
+            ])->assertSessionHasNoErrors();
+
+        $this->assertNull($merchant->fresh()->billing_email);
+    }
+
+    public function test_unticking_lets_the_admin_set_a_separate_billing_email(): void
+    {
+        $merchant = $this->merchant();
+
+        $this->actingAs($this->admin, 'admin')
+            ->put(route('admin.merchants.update', $merchant->id), [
+                'name' => $merchant->name, 'email' => $merchant->email, 'billing_email' => 'finance@x.com',
+            ])->assertSessionHasNoErrors();
+
+        $this->assertSame('finance@x.com', $merchant->fresh()->billing_email);
+
+        // Cleared (blank) falls back to following the notification email again
+        $this->actingAs($this->admin, 'admin')
+            ->put(route('admin.merchants.update', $merchant->id), [
+                'name' => $merchant->name, 'email' => $merchant->email, 'billing_email' => '',
+            ])->assertSessionHasNoErrors();
+
+        $this->assertNull($merchant->fresh()->billing_email);
+    }
+
+    public function test_an_invalid_billing_email_is_rejected(): void
+    {
+        $merchant = $this->merchant();
+
+        $this->actingAs($this->admin, 'admin')
+            ->put(route('admin.merchants.update', $merchant->id), [
+                'name' => $merchant->name, 'email' => $merchant->email, 'billing_email' => 'not-an-email',
+            ])->assertSessionHasErrors('billing_email');
+
+        $this->assertNull($merchant->fresh()->billing_email);
+    }
+
+    public function test_a_new_merchant_can_be_created_with_the_same_as_notifications_box_ticked(): void
+    {
+        $this->actingAs($this->admin, 'admin')
+            ->post(route('admin.merchants.store'), [
+                'name' => 'Brand New Co', 'email' => 'brandnew@x.com', 'password' => 'password123',
+                'billing_email_same' => '1',
+            ])->assertSessionHasNoErrors();
+
+        $this->assertNull(Merchant::where('email', 'brandnew@x.com')->first()->billing_email);
+    }
+
+    public function test_the_admin_edit_page_shows_the_tick_box_and_where_billing_currently_goes(): void
+    {
+        $same = $this->merchant(['notification_email' => 'notify@x.com']);
+        $this->actingAs($this->admin, 'admin')->get(route('admin.merchants.edit', $same->id))
+            ->assertOk()
+            ->assertSee('Same as the Reminder / Notifications Email above')
+            ->assertSee('Currently sent to: ', false)
+            ->assertSee('notify@x.com')
+            ->assertSee('name="billing_email_same" id="billing_email_same" value="1" checked', false);
+
+        $separate = $this->merchant(['notification_email' => 'notify@x.com', 'billing_email' => 'finance@x.com']);
+        $this->actingAs($this->admin, 'admin')->get(route('admin.merchants.edit', $separate->id))
+            ->assertOk()
+            ->assertSee('finance@x.com')
+            ->assertDontSee('name="billing_email_same" id="billing_email_same" value="1" checked', false);
+    }
 }

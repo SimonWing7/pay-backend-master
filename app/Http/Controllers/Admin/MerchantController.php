@@ -56,6 +56,7 @@ class MerchantController extends Controller
             'support_phone'           => 'nullable|string|max:50',
             'receipt_cc_email'        => 'nullable|email|max:255',
             'notification_email'      => 'nullable|email|max:255',
+            'billing_email'           => 'nullable|email|max:255',
             'website'                 => 'nullable|url|max:2048',
             'webhook_url'             => 'nullable|url|max:2048',
             'fallback_type'           => 'nullable|in:,payment_gateway,bank_transfer',
@@ -73,6 +74,12 @@ class MerchantController extends Controller
         }
 
         $data = $validator->validated();
+
+        // "Same as notifications email" (or a blank field) stores nothing, so
+        // billing keeps following the notification email.
+        if ($request->boolean('billing_email_same') || empty($data['billing_email'] ?? null)) {
+            $data['billing_email'] = null;
+        }
 
         // Normalise empty string to null for fallback_type
         if (isset($data['fallback_type']) && $data['fallback_type'] === '') {
@@ -176,6 +183,7 @@ class MerchantController extends Controller
             'support_phone'           => 'nullable|string|max:50',
             'receipt_cc_email'        => 'nullable|email|max:255',
             'notification_email'      => 'nullable|email|max:255',
+            'billing_email'           => 'nullable|email|max:255',
             'fee_percentage'          => 'sometimes|numeric|min:0|max:100',
             'website'                 => 'nullable|url|max:2048',
             'webhook_url'             => 'nullable|url|max:2048',
@@ -194,6 +202,12 @@ class MerchantController extends Controller
         }
 
         $data = $validator->validated();
+
+        // "Same as notifications email" (or a blank field) stores nothing, so
+        // billing keeps following the notification email.
+        if ($request->boolean('billing_email_same') || empty($data['billing_email'] ?? null)) {
+            $data['billing_email'] = null;
+        }
 
         // An unchecked checkbox isn't submitted at all, so read it explicitly.
         $data['billing_enabled'] = $request->boolean('billing_enabled');

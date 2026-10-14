@@ -35,6 +35,7 @@ class Merchant extends Authenticatable
         'support_phone',
         'receipt_cc_email',
         'notification_email',
+        'billing_email',
         'allow_payment_reconciliation',
         'show_reward_offer',
         'fee_percentage',
@@ -124,6 +125,16 @@ class Merchant extends Authenticatable
         return $this->hasOne(MerchantBillingCard::class)
             ->where('status', MerchantBillingCard::STATUS_ACTIVE)
             ->latestOfMany();
+    }
+
+    /**
+     * Where fee statements and charge results are emailed: the dedicated
+     * billing email if one is set, otherwise the same address as the
+     * notification email, then support email, then the login email.
+     */
+    public function billingRecipient(): string
+    {
+        return $this->billing_email ?: $this->notification_email ?: $this->support_email ?: $this->email;
     }
 
     public function billingStatements()

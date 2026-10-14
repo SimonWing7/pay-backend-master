@@ -192,7 +192,7 @@ class BillingService
 
     public function recipientFor(Merchant $merchant): string
     {
-        return $merchant->notification_email ?: $merchant->support_email ?: $merchant->email;
+        return $merchant->billingRecipient();
     }
 
     // ------------------------------------------------------------------
