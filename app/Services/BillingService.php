@@ -522,6 +522,17 @@ class BillingService
                 return 'pending';
             }
 
+            // Record Telr's own reason so a failed registration can be diagnosed
+            // from the log without going into the Telr dashboard.
+            Log::warning('Billing: card registration was not completed', [
+                'merchant_id'  => $card->merchant_id,
+                'card_id'      => $card->id,
+                'status_code'  => $check['status_code'] ?? null,
+                'status_text'  => $check['status_text'] ?? null,
+                'tran_status'  => $check['tran_status'] ?? null,
+                'tran_message' => $check['tran_message'] ?? null,
+            ]);
+
             $card->update(['status' => MerchantBillingCard::STATUS_FAILED]);
 
             return 'declined';

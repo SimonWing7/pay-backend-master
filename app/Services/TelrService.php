@@ -92,7 +92,7 @@ class TelrService
     /**
      * Ask Telr what happened to a hosted-page order.
      *
-     * @return array{success: bool, paid?: bool, status_text?: string, tran_ref?: string, card?: array, error?: string}
+     * @return array{success: bool, paid?: bool, status_code?: int|string|null, status_text?: string, tran_status?: ?string, tran_message?: ?string, tran_ref?: ?string, card?: array, error?: string}
      */
     public function checkOrder(string $orderRef): array
     {
@@ -131,7 +131,10 @@ class TelrService
         return [
             'success'     => true,
             'paid'        => $paid,
+            'status_code' => $order['status']['code'] ?? null,
             'status_text' => (string) ($order['status']['text'] ?? 'Unknown'),
+            'tran_status' => $order['transaction']['status'] ?? null,
+            'tran_message' => $order['transaction']['message'] ?? null,
             'tran_ref'    => $order['transaction']['ref'] ?? null,
             'card'        => [
                 'type'         => $order['card']['type'] ?? null,

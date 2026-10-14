@@ -495,9 +495,12 @@ class BillingTest extends TestCase
             'merchant_id' => $merchant->id, 'status' => 'pending',
             'setup_cartid' => 'EPCARD-X', 'telr_order_ref' => 'ORD1', 'consent_at' => now(),
         ]);
-        Http::fake(['telr.test/order.json' => Http::response(['order' => ['status' => ['code' => -2, 'text' => 'Cancelled']]], 200)]);
+        Http::fake(['telr.test/order.json' => Http::response(['order' => ['status' => ['code' => -2, 'text' => 'Cancelled'], 'transaction' => ['status' => 'D', 'message' => 'Declined by issuer']]], 200)]);
+        Log::spy();
 
         $this->assertSame('declined', app(BillingService::class)->completeCardSetup($card));
+        Log::shouldHaveReceived('warning')->withArgs(fn ($m, $ctx) => str_contains($m, 'registration was not completed')
+            && $ctx['tran_message'] === 'Declined by issuer' && $ctx['status_text'] === 'Cancelled');
         $this->assertSame('failed', $card->fresh()->status);
         $this->assertNull($merchant->fresh()->activeBillingCard);
     }
