@@ -449,7 +449,7 @@ class BillingTest extends TestCase
         $this->assertSame('failed', $merchant->billingCards()->first()->status);
     }
 
-    public function test_completing_card_registration_activates_the_card_encrypts_the_reference_and_refunds(): void
+    public function test_completing_card_registration_activates_the_card_and_encrypts_the_reference_without_touching_the_sale(): void
     {
         $merchant = $this->merchant();
         $old = $this->activeCard($merchant, 'OLDREF');
@@ -463,7 +463,6 @@ class BillingTest extends TestCase
                 'transaction' => ['ref' => '030130190634', 'status' => 'A'],
                 'card' => ['type' => 'Visa Credit', 'last4' => '1111', 'expiry' => ['month' => 12, 'year' => 2030]],
             ]], 200),
-            'telr.test/remote.xml' => Http::response($this->telrXml('A', 'Accepted', '030130193357'), 200),
         ]);
 
         $this->assertSame('activated', app(BillingService::class)->completeCardSetup($card));
@@ -472,18 +471,21 @@ class BillingTest extends TestCase
         $this->assertSame('active', $card->status);
         $this->assertSame('030130190634', $card->telr_tran_ref);
         $this->assertSame('1111', $card->last4);
-        $this->assertNotNull($card->verification_refunded_at);
         $this->assertSame('replaced', $old->fresh()->status);
         $this->assertSame($card->id, $merchant->fresh()->activeBillingCard->id);
 
         // The reference is encrypted at rest and never serialised
         $this->assertNotSame('030130190634', DB::table('merchant_billing_cards')->where('id', $card->id)->value('telr_tran_ref'));
         $this->assertArrayNotHasKey('telr_tran_ref', $card->toArray());
-        Http::assertSent(fn ($r) => str_contains($r->body(), '<type>refund</type>') && str_contains($r->body(), '<ref>030130190634</ref>') && str_contains($r->body(), '<amount>1.00</amount>'));
 
-        // Completing again does nothing (no second refund)
+        // Regression guard: refunding/voiding the registration sale would
+        // cancel the very transaction later monthly charges refer back to.
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), 'remote.xml'));
+        $this->assertNull($card->verification_refunded_at);
+
+        // Completing again does nothing
         $this->assertSame('already_active', app(BillingService::class)->completeCardSetup($card->fresh()));
-        Http::assertSentCount(2);
+        Http::assertSentCount(1);
     }
 
     public function test_cancelled_or_declined_registration_does_not_create_a_card(): void
@@ -511,29 +513,6 @@ class BillingTest extends TestCase
 
         $this->assertSame('pending', app(BillingService::class)->completeCardSetup($card));
         $this->assertSame('pending', $card->fresh()->status);
-    }
-
-    public function test_a_failed_verification_refund_does_not_lose_the_card_but_is_logged(): void
-    {
-        $merchant = $this->merchant();
-        $card = MerchantBillingCard::create([
-            'merchant_id' => $merchant->id, 'status' => 'pending',
-            'setup_cartid' => 'EPCARD-R', 'telr_order_ref' => 'ORD1', 'consent_at' => now(),
-        ]);
-        Http::fake([
-            'telr.test/order.json' => Http::response(['order' => [
-                'status' => ['code' => 3, 'text' => 'Paid'],
-                'transaction' => ['ref' => '030130190634', 'status' => 'A'],
-                'card' => ['type' => 'Visa Credit', 'last4' => '1111', 'expiry' => ['month' => 12, 'year' => 2030]],
-            ]], 200),
-            'telr.test/remote.xml' => Http::response($this->telrXml('D', 'Declined'), 200),
-        ]);
-        Log::spy();
-
-        $this->assertSame('activated', app(BillingService::class)->completeCardSetup($card));
-        $this->assertSame('active', $card->fresh()->status);
-        $this->assertNull($card->fresh()->verification_refunded_at);
-        Log::shouldHaveReceived('error')->withArgs(fn ($m) => str_contains($m, 'not refunded'));
     }
 
     // -- commands --------------------------------------------------------

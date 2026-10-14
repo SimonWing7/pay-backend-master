@@ -14,6 +14,6 @@
     <button type="submit" class="btn-primary"><i class="fas fa-lock"></i> {{ $card ? 'Continue to Telr' : 'Add card' }}</button>
     <p class="text-xs text-gray-400 mt-2">
         You'll enter your card on Telr's secure page and confirm with 3-D Secure. A AED {{ number_format(config('billing.verification_amount', 1), 2) }}
-        verification charge is made and refunded straight away. We never see or store your card number.
+        verification charge is made when you add your card, and we'll return it to you. We never see or store your card number.
     </p>
 </form>

@@ -75,7 +75,7 @@ class BillingController extends Controller
         $outcome = $this->billing->completeCardSetup($card);
 
         $flash = match ($outcome) {
-            'activated'      => ['success', 'Your card has been registered. The AED 1 verification charge is being refunded.'],
+            'activated'      => ['success', 'Your card has been registered. The AED 1.00 verification charge will be returned to you.'],
             'already_active' => ['success', 'Your card is registered.'],
             'pending'        => ['info', 'Your card registration is still being processed. Check again in a minute.'],
             'declined'       => ['error', 'The card could not be registered. Nothing was charged. Please try again or use a different card.'],

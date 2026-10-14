@@ -31,8 +31,9 @@ return [
     'retry_after_days' => [3, 7],
 
     // Small real sale made when a merchant registers a card (Telr needs an
-    // authorised 3-D Secure sale to create a reusable reference). Refunded
-    // straight away.
+    // authorised 3-D Secure sale to create a reusable reference). It must NOT
+    // be refunded straight away: a same-day refund is processed as a void,
+    // which cancels the sale the monthly charges depend on.
     'verification_amount' => 1.00,
 
     'currency' => 'AED',

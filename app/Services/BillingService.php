@@ -554,20 +554,13 @@ class BillingService
             return 'already_active';
         }
 
-        // Give the merchant their AED 1 back. A failure here doesn't undo the
-        // card — it's logged so someone refunds it by hand.
-        $card->refresh();
-        $refund = $this->telr->refund($card->telr_tran_ref, (float) config('billing.verification_amount', 1.00), 'EPREF-' . $card->setup_cartid);
-
-        if ($refund['outcome'] === TelrService::OUTCOME_AUTHORISED) {
-            $card->update(['verification_refunded_at' => now()]);
-        } else {
-            Log::error('Billing: card registration charge was not refunded — refund it manually in Telr', [
-                'merchant_id' => $card->merchant_id,
-                'card_id'     => $card->id,
-                'outcome'     => $refund['outcome'],
-            ]);
-        }
+        // The AED 1 registration sale is deliberately NOT refunded here. On a
+        // live account a same-day "refund" of an unsettled card payment is
+        // processed by Telr as a VOID, which cancels the original sale — and
+        // the monthly continuous-authority charges refer back to exactly that
+        // sale, so they were rejected with "Original transaction not
+        // authorised". (Test mode doesn't imitate this.) Returning the AED 1
+        // has to wait until the sale has settled, or be done as a credit.
 
         return 'activated';
     }
