@@ -13,9 +13,9 @@ class ConsumerImportService extends Service
      *
      * Expected columns (case-insensitive, order-tolerant): Parent Name,
      * Student/Player Name, Parent Email, Parent Mobile. Matches an existing
-     * Consumer for this merchant by email or mobile so re-uploading the
-     * same list (e.g. with a new student added) updates rather than
-     * duplicates.
+     * Consumer for this merchant by email or mobile AND student, so
+     * re-uploading the same list updates rather than duplicates, while
+     * siblings (same parent contact, different student) stay separate.
      *
      * @return array{rows: int, created: int, updated: int, skipped: int}
      */
@@ -40,7 +40,7 @@ class ConsumerImportService extends Service
                 continue;
             }
 
-            $consumer = Consumer::where('merchant_id', $merchantId)
+            $candidates = Consumer::where('merchant_id', $merchantId)
                 ->where(function ($q) use ($email, $mobile) {
                     if ($email) {
                         $q->orWhere('email', $email);
@@ -49,7 +49,10 @@ class ConsumerImportService extends Service
                         $q->orWhere('mobile_number', 'like', '%' . $this->normalizeMobile($mobile));
                     }
                 })
-                ->first();
+                ->orderBy('id')
+                ->get();
+
+            $consumer = $this->pickMatch($candidates, $studentName);
 
             if ($consumer) {
                 $consumer->update([
@@ -72,6 +75,33 @@ class ConsumerImportService extends Service
         }
 
         return $stats;
+    }
+
+    /**
+     * Which existing record (if any) a CSV row refers to. One parent with two
+     * children shares an email and mobile across two rows but needs two
+     * records — each child gets their own invoice — so when the row names a
+     * student, only a record for that same student (or one that has no
+     * student yet) is a match. Without a student on the row, any record with
+     * the same email/mobile is.
+     *
+     * @param \Illuminate\Support\Collection<int, Consumer> $candidates
+     */
+    private function pickMatch($candidates, string $studentName): ?Consumer
+    {
+        if ($studentName === '') {
+            return $candidates->first();
+        }
+
+        $wanted = mb_strtolower($studentName);
+
+        $sameStudent = $candidates->first(
+            fn (Consumer $c) => $c->student_name !== null && mb_strtolower(trim($c->student_name)) === $wanted
+        );
+
+        return $sameStudent ?? $candidates->first(
+            fn (Consumer $c) => $c->student_name === null || trim($c->student_name) === ''
+        );
     }
 
     private function firstValue(array $row, array $keys): ?string
