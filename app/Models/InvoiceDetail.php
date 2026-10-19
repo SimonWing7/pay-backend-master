@@ -18,6 +18,7 @@ class InvoiceDetail extends Model
     protected $fillable = [
         'invoice_id',
         'product_id',
+        'consumer_id',
         'fee',
         'title',
     ];
@@ -40,6 +41,15 @@ class InvoiceDetail extends Model
     public function invoice()
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    /**
+     * The child/individual this line item is for (set on bulk invoices).
+     * Includes soft-deleted so a removed person's name stays on old invoices.
+     */
+    public function consumer()
+    {
+        return $this->belongsTo(Consumer::class)->withTrashed();
     }
 
     /**

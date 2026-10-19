@@ -32,6 +32,15 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
         Route::get('/{id}/payments/export', [App\Http\Controllers\Merchant\ProductController::class, 'exportPayments'])->name('payments.export');
 
         // Scheduled payment-chase reminders for this product's invoices.
+        // Payers: the people who need to pay for this product
+        Route::post('/{id}/payers/import', [App\Http\Controllers\Merchant\ProductPayerController::class, 'import'])->name('payers.import');
+        Route::post('/{id}/payers', [App\Http\Controllers\Merchant\ProductPayerController::class, 'store'])->name('payers.store');
+        Route::post('/{id}/payers/send', [App\Http\Controllers\Merchant\ProductPayerController::class, 'send'])->name('payers.send');
+        Route::post('/{id}/payers/retry', [App\Http\Controllers\Merchant\ProductPayerController::class, 'retry'])->name('payers.retry');
+        Route::get('/{id}/payers/export', [App\Http\Controllers\Merchant\ProductPayerController::class, 'export'])->name('payers.export');
+        Route::get('/{id}/payers/template', [App\Http\Controllers\Merchant\ProductPayerController::class, 'template'])->name('payers.template');
+        Route::post('/{id}/payers/{invoiceId}/remove', [App\Http\Controllers\Merchant\ProductPayerController::class, 'remove'])->name('payers.remove');
+
         Route::post('/{productId}/reminders', [App\Http\Controllers\Merchant\ProductReminderController::class, 'store'])->name('reminders.store');
         Route::delete('/{productId}/reminders/{reminderId}', [App\Http\Controllers\Merchant\ProductReminderController::class, 'destroy'])->name('reminders.destroy');
     });
@@ -56,16 +65,13 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
         Route::get('/{id}/edit', [App\Http\Controllers\Merchant\ConsumerController::class, 'edit'])->name('edit');
         Route::put('/{id}', [App\Http\Controllers\Merchant\ConsumerController::class, 'update'])->name('update');
         Route::delete('/{id}', [App\Http\Controllers\Merchant\ConsumerController::class, 'delete'])->name('delete');
-        Route::post('/import', [App\Http\Controllers\Merchant\ConsumerController::class, 'import'])->name('import');
     });
     
     // Invoices management
-    Route::prefix('invoices')->name('invoices.')->group(function () {
+    Route::prefix('invoices')->name('invoices.')->where(['id' => '[0-9]+'])->group(function () {
         Route::get('/', [App\Http\Controllers\Merchant\InvoiceController::class, 'index'])->name('index');
         Route::get('/create', [App\Http\Controllers\Merchant\InvoiceController::class, 'create'])->name('create');
         Route::post('/store', [App\Http\Controllers\Merchant\InvoiceController::class, 'store'])->name('store');
-        Route::get('/create-bulk', [App\Http\Controllers\Merchant\InvoiceController::class, 'createBulk'])->name('create-bulk');
-        Route::post('/store-bulk', [App\Http\Controllers\Merchant\InvoiceController::class, 'storeBulk'])->name('store-bulk');
         Route::get('/{id}', [App\Http\Controllers\Merchant\InvoiceController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [App\Http\Controllers\Merchant\InvoiceController::class, 'edit'])->name('edit');
         Route::put('/{id}', [App\Http\Controllers\Merchant\InvoiceController::class, 'update'])->name('update');

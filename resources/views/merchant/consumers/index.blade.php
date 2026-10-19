@@ -5,9 +5,6 @@
 @section('page-subtitle', 'Manage your customers and individual payers')
 
 @section('topbar-actions')
-    <a href="{{ route('merchant.invoices.create-bulk') }}" class="btn-secondary">
-        <i class="fas fa-upload"></i> Bulk Upload via CSV
-    </a>
     <a href="{{ route('merchant.consumers.create') }}" class="btn-primary">
         <i class="fas fa-plus"></i> Add Individual
     </a>

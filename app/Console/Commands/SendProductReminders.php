@@ -36,6 +36,9 @@ class SendProductReminders extends Command
                 $q->where('product_id', $product->id);
             })
                 ->where('status', '!=', InvoiceStatus::Paid)
+                // Only chase people who have actually been sent their link. NULL is an
+                // invoice from before link-sending was tracked, assumed already sent.
+                ->where(fn ($q) => $q->whereNull('link_email_status')->orWhere('link_email_status', 'sent'))
                 ->whereNotNull('consumer_id')
                 ->with(['consumer', 'merchant', 'invoiceDetails'])
                 ->get();

@@ -179,43 +179,164 @@ class InvoiceService extends Service
         return $invoices;
     }
 
-    public function createBulk(array $data): SupportCollection
+    /**
+     * Invoice a list of individuals for one product — the payers of that
+     * product. With $combine, individuals who share a contact (email or
+     * mobile) are one family and get ONE invoice with a line per child, so
+     * the parent receives one email and makes one payment.
+     *
+     * Safe to repeat: anyone who already has a live (unpaid or paid) invoice
+     * line for this product is skipped, so re-uploading a file or adding the
+     * same person twice never double-bills them. New invoices start as
+     * "not sent" — emailing is a separate, deliberate step.
+     *
+     * @param list<int> $consumerIds in the order they should appear
+     * @return array{invoices: SupportCollection, children: int, already: int}
+     */
+    public function addPayersToProduct(Product $product, array $consumerIds, bool $combine = true): array
     {
+        $order = array_flip($consumerIds);
+
+        $consumers = Consumer::where('merchant_id', $product->merchant_id)
+            ->whereIn('id', $consumerIds)
+            ->get()
+            ->sortBy(fn (Consumer $c) => $order[$c->id] ?? PHP_INT_MAX)
+            ->values();
+
+        $alreadyInvoiced = $this->consumerIdsAlreadyInvoicedFor($product);
+        $fresh = $consumers->reject(fn (Consumer $c) => $alreadyInvoiced->contains($c->id))->values();
+
+        $groups = $combine
+            ? $this->groupIntoFamilies($fresh)
+            : $fresh->map(fn (Consumer $c) => collect([$c]));
+
         $invoices = collect();
 
-        $product = Product::find($data['product_id']);
-        if (!$product) {
-            throw new \Exception('Product not found');
-        }
-
-        foreach ($data['consumer_ids'] as $consumerId) {
-            $consumer = Consumer::find($consumerId);
-            if (!$consumer) {
-                continue;
-            }
+        foreach ($groups as $members) {
+            // The invoice (and its email) goes to a family member we can
+            // actually email, if there is one.
+            $primary = $members->first(fn (Consumer $c) => !empty($c->email)) ?? $members->first();
 
             $invoice = Invoice::create([
-                'consumer_id' => $consumerId,
-                'merchant_id' => $data['merchant_id'],
-                'total_fee' => $product->fee,
+                'consumer_id' => $primary->id,
+                'merchant_id' => $product->merchant_id,
+                'total_fee' => round($product->fee * $members->count(), 2),
                 'status' => InvoiceStatus::Draft,
                 // Not matched by ExpireStaleInvoices' personal/null check, so
                 // these stay open for as long as reminders keep running
                 // instead of auto-expiring after invoices.expiry_hours.
                 'link_type' => 'batch',
+                'link_email_status' => 'not_sent',
             ]);
 
-            InvoiceDetail::create([
-                'invoice_id' => $invoice->id,
-                'product_id' => $product->id,
-                'fee' => $product->fee,
-                'title' => $product->name,
-            ]);
+            foreach ($members as $member) {
+                InvoiceDetail::create([
+                    'invoice_id' => $invoice->id,
+                    'product_id' => $product->id,
+                    'consumer_id' => $member->id,
+                    'fee' => $product->fee,
+                    'title' => $this->lineTitle($product->name, $member, $members->count()),
+                ]);
+            }
 
-            $invoices->push($invoice->load(['consumer', 'merchant', 'invoiceDetails.product']));
+            $invoices->push($invoice->load(['consumer', 'merchant', 'invoiceDetails.product', 'invoiceDetails.consumer']));
         }
 
-        return $invoices;
+        return [
+            'invoices' => $invoices,
+            'children' => $fresh->count(),
+            'already'  => $consumers->count() - $fresh->count(),
+        ];
+    }
+
+    /**
+     * Everyone who already has a live invoice line for this product — via a
+     * line's own consumer, or (for older invoices without one) the invoice's
+     * consumer. Archived and failed invoices don't count, so those people can
+     * be invoiced again.
+     *
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    private function consumerIdsAlreadyInvoicedFor(Product $product): SupportCollection
+    {
+        $live = [InvoiceStatus::Draft->value, InvoiceStatus::Paid->value];
+
+        $fromLines = InvoiceDetail::where('product_id', $product->id)
+            ->whereNotNull('consumer_id')
+            ->whereHas('invoice', fn ($q) => $q->whereIn('status', $live))
+            ->pluck('consumer_id');
+
+        $fromInvoices = Invoice::whereIn('status', $live)
+            ->whereNotNull('consumer_id')
+            ->whereHas('invoiceDetails', fn ($q) => $q->where('product_id', $product->id))
+            ->pluck('consumer_id');
+
+        return $fromLines->merge($fromInvoices)->unique()->values();
+    }
+
+    /** "Term 1 Fees — Henry Daniels", so it's clear which child a line is for. */
+    private function lineTitle(string $productName, Consumer $member, int $familySize): string
+    {
+        if (!empty($member->student_name)) {
+            return "{$productName} — {$member->student_name}";
+        }
+
+        return $familySize > 1 ? "{$productName} — {$member->name}" : $productName;
+    }
+
+    /**
+     * Group individuals into families: anyone sharing an email or a mobile
+     * number (matched on the last 9 digits) with someone else in the list ends
+     * up in the same group, directly or through another sibling. People with
+     * no contact details are on their own. Order follows the first appearance.
+     *
+     * @param \Illuminate\Support\Collection<int, Consumer> $consumers
+     * @return \Illuminate\Support\Collection<int, \Illuminate\Support\Collection<int, Consumer>>
+     */
+    private function groupIntoFamilies($consumers): SupportCollection
+    {
+        $root = [];
+        foreach ($consumers as $c) {
+            $root[$c->id] = $c->id;
+        }
+
+        $find = function (int $id) use (&$root) {
+            while ($root[$id] !== $id) {
+                $root[$id] = $root[$root[$id]];
+                $id = $root[$id];
+            }
+
+            return $id;
+        };
+
+        $seen = [];
+        foreach ($consumers as $c) {
+            $keys = [];
+            if (!empty($c->email)) {
+                $keys[] = 'e:' . strtolower(trim($c->email));
+            }
+            $digits = preg_replace('/\D+/', '', (string) $c->mobile_number);
+            if (strlen($digits) >= 9) {
+                $keys[] = 'm:' . substr($digits, -9);
+            }
+
+            foreach ($keys as $key) {
+                if (isset($seen[$key])) {
+                    $a = $find($c->id);
+                    $b = $find($seen[$key]);
+                    if ($a !== $b) {
+                        $root[max($a, $b)] = min($a, $b);
+                    }
+                } else {
+                    $seen[$key] = $c->id;
+                }
+            }
+        }
+
+        return $consumers
+            ->groupBy(fn (Consumer $c) => $find($c->id))
+            ->values()
+            ->map(fn ($group) => $group->values());
     }
 
     public function initiate(int $invoiceId, int $appUserId): ?\App\Models\AppUserPayment

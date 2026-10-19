@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Services\PayerService;
 use App\Services\ProductService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ProductController extends Controller
 {
     public function __construct(
-        protected ProductService $productService
+        protected ProductService $productService,
+        protected PayerService $payerService
     ) {
     }
 
@@ -54,7 +56,6 @@ class ProductController extends Controller
             'custom_fields'                     => 'nullable|array|max:5',
             'custom_fields.*.label'             => 'required_with:custom_fields.*|string|max:100',
             'custom_fields.*.required'          => 'nullable',
-            'redirect_to'                        => 'nullable|in:invoices.create-bulk',
         ]);
 
         if ($validator->fails()) {
@@ -63,22 +64,17 @@ class ProductController extends Controller
                 ->withInput();
         }
 
-        $data = collect($validator->validated())->except('redirect_to')->toArray();
+        $data = $validator->validated();
         $data['merchant_id'] = $merchantId;
         $data['state'] = $data['state'] ?? 'active'; // Default to 'active' if not provided
         $data['custom_fields'] = $this->normaliseCustomFields($data['custom_fields'] ?? null);
 
         $product = $this->productService->create($data);
 
-        // Bulk Invoices links here to create a product without losing the
-        // consumers/CSV step already done on that page.
-        if ($request->input('redirect_to') === 'invoices.create-bulk') {
-            return redirect()->route('merchant.invoices.create-bulk', ['product_id' => $product->id])
-                ->with('success', "Product \"{$product->name}\" created — select it below.");
-        }
-
-        return redirect()->route('merchant.products.index')
-            ->with('success', 'Product created successfully');
+        // Straight to the product so the next step — adding the people who need
+        // to pay — is right there.
+        return redirect()->route('merchant.products.show', $product->id)
+            ->with('success', "Product created. Now add the people who need to pay for \"{$product->name}\".");
     }
 
     public function show(Request $request, int $id): View
@@ -96,10 +92,15 @@ class ProductController extends Controller
             return $payment->invoice->total_fee ?? 0;
         });
 
-        $invoices = $this->productService->getInvoicesForProduct($product, $merchantId);
+        $summary = $this->payerService->summary($product);
+        $payers = $this->payerService->paginate($product, [
+            'status' => $request->get('status'),
+            'link'   => $request->get('link'),
+            'q'      => $request->get('q'),
+        ]);
         $reminders = $product->reminders()->orderBy('send_date')->get();
 
-        return view('merchant.products.show', compact('product', 'payments', 'totalPayments', 'totalAmount', 'invoices', 'reminders'));
+        return view('merchant.products.show', compact('product', 'payments', 'totalPayments', 'totalAmount', 'summary', 'payers', 'reminders'));
     }
 
     public function edit(Request $request, int $id): View

@@ -33,8 +33,8 @@
             <a href="{{ route('merchant.invoices.create') }}" class="btn-primary justify-center py-3">
                 <i class="fas fa-link"></i> New Payment Link
             </a>
-            <a href="{{ route('merchant.invoices.create-bulk') }}" class="btn-primary justify-center py-3">
-                <i class="fas fa-layer-group"></i> Bulk Links
+            <a href="{{ route('merchant.products.index') }}" class="btn-primary justify-center py-3">
+                <i class="fas fa-users"></i> Collect from a List
             </a>
             <a href="{{ route('merchant.products.create') }}" class="btn-secondary justify-center py-3">
                 <i class="fas fa-tag"></i> Add Product

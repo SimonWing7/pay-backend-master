@@ -17,13 +17,22 @@ class ConsumerImportService extends Service
      * re-uploading the same list updates rather than duplicates, while
      * siblings (same parent contact, different student) stay separate.
      *
-     * @return array{rows: int, created: int, updated: int, skipped: int}
+     * `consumer_ids` lists every contact the file referred to (created or
+     * updated), in file order, so the caller can act on exactly those people.
+     * `skipped_rows` says which rows were ignored and why (row 1 is the header).
+     *
+     * @return array{rows: int, created: int, updated: int, skipped: int, consumer_ids: list<int>, skipped_rows: list<array{row: int, reason: string}>}
      */
     public function import(string $csvContents, int $merchantId): array
     {
         $rows = $this->parseRows($csvContents);
 
-        $stats = ['rows' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0];
+        $max = (int) config('invoices.max_import_rows', 5000);
+        if (count($rows) > $max) {
+            throw new \InvalidArgumentException('That file has ' . count($rows) . ' rows — the limit is ' . number_format($max) . ' per upload. Please split it into smaller files.');
+        }
+
+        $stats = ['rows' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0, 'consumer_ids' => [], 'skipped_rows' => []];
 
         foreach ($rows as $row) {
             $stats['rows']++;
@@ -37,6 +46,10 @@ class ConsumerImportService extends Service
 
             if (!$name || (!$email && !$normalizedMobile)) {
                 $stats['skipped']++;
+                $stats['skipped_rows'][] = [
+                    'row'    => $stats['rows'] + 1, // +1: the header is row 1
+                    'reason' => !$name ? 'no parent name' : 'no email or mobile number',
+                ];
                 continue;
             }
 
@@ -63,7 +76,7 @@ class ConsumerImportService extends Service
                 ]);
                 $stats['updated']++;
             } else {
-                Consumer::create([
+                $consumer = Consumer::create([
                     'merchant_id' => $merchantId,
                     'name' => $name,
                     'student_name' => $studentName ?: null,
@@ -71,6 +84,10 @@ class ConsumerImportService extends Service
                     'mobile_number' => $mobile ?: null,
                 ]);
                 $stats['created']++;
+            }
+
+            if (!in_array($consumer->id, $stats['consumer_ids'], true)) {
+                $stats['consumer_ids'][] = $consumer->id;
             }
         }
 

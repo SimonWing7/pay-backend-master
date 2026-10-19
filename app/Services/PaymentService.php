@@ -555,7 +555,8 @@ class PaymentService extends Service
         $payment->update(['status' => PaymentStatus::Failed, 'lean_metadata' => $meta]);
 
         $payment->loadMissing('invoice');
-        if ($payment->invoice && $payment->invoice->status === InvoiceStatus::Draft && ($payment->invoice->link_type ?? 'personal') !== 'open') {
+        // Batch invoices stay payable after a failed attempt (see LeanWebhookController).
+        if ($payment->invoice && $payment->invoice->status === InvoiceStatus::Draft && !in_array($payment->invoice->link_type ?? 'personal', ['open', 'batch'], true)) {
             $payment->invoice->update(['status' => InvoiceStatus::Failed]);
         }
 

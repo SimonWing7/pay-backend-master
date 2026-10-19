@@ -28,6 +28,9 @@ class Invoice extends Model
         'cancel_url',
         'reference',
         'link_type',
+        'link_email_status',
+        'link_emailed_at',
+        'link_email_error',
         'custom_fields',
     ];
 
@@ -59,6 +62,7 @@ class Invoice extends Model
             'total_fee' => 'double',
             'status' => InvoiceStatus::class,
             'custom_fields' => 'array',
+            'link_emailed_at' => 'datetime',
         ];
     }
 

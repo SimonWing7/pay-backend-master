@@ -28,6 +28,9 @@ Schedule::command('payments:flag-pending')->dailyAt('09:00');
 // reviewable (stamped per payment, so each is only emailed once).
 Schedule::command('payments:notify-merchants')->hourly();
 
+// Sends queued payer payment links in batches (see payers:send-links).
+Schedule::command('payers:send-links')->everyMinute()->withoutOverlapping();
+
 // Monthly merchant fee billing (does nothing unless BILLING_ENABLED=true):
 // statements go out on the 1st, cards are charged from the 3rd, and the same
 // daily run picks up retries and merchants who have since added a card.

@@ -139,69 +139,6 @@ class InvoiceController extends Controller
             ->with('success', 'Payment link created successfully');
     }
 
-    public function createBulk(Request $request): View
-    {
-        $merchantId = $request->user()->id;
-        $consumers = \App\Models\Consumer::where('merchant_id', $merchantId)->get();
-        $products = \App\Models\Product::where('merchant_id', $merchantId)->get();
-        $preselectedProductId = $request->get('product_id');
-        return view('merchant.invoices.create-bulk', compact('consumers', 'products', 'preselectedProductId'));
-    }
-
-    public function storeBulk(Request $request): RedirectResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'product_id' => ['required', Rule::exists('products', 'id')->where('merchant_id', $request->user()->id)],
-            'consumer_ids' => 'required|array|min:1',
-            'consumer_ids.*' => ['required', Rule::exists('consumers', 'id')->where('merchant_id', $request->user()->id)],
-            'send_emails' => 'nullable|boolean',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        $data = $validator->validated();
-        $data['merchant_id'] = $request->user()->id;
-        $sendEmails = (bool) ($data['send_emails'] ?? false);
-
-        try {
-            $invoices = $this->invoiceService->createBulk($data);
-            $emailedCount = 0;
-
-            if ($sendEmails) {
-                foreach ($invoices as $invoice) {
-                    if (!$invoice->consumer?->email) {
-                        continue;
-                    }
-
-                    try {
-                        Mail::to($invoice->consumer->email)->send(new InvoicePaymentLinkMail($invoice));
-                        $emailedCount++;
-                    } catch (\Throwable $e) {
-                        Log::error('Bulk invoice payment-link email failed', [
-                            'invoice_id' => $invoice->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-            }
-
-            $message = "{$invoices->count()} invoice(s) created successfully.";
-            if ($sendEmails) {
-                $message .= " {$emailedCount} payment link email(s) sent.";
-            }
-
-            return redirect()->route('merchant.invoices.index')->with('success', $message);
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->withErrors(['error' => $e->getMessage()])
-                ->withInput();
-        }
-    }
-
     public function show(Request $request, int $id): View
     {
         $merchantId = $request->user()->id;
@@ -229,9 +166,11 @@ class InvoiceController extends Controller
 
         try {
             Mail::to($invoice->consumer->email)->send(new InvoicePaymentLinkMail($invoice));
-            return redirect()->back()->with('success', "Payment link resent to {$invoice->consumer->email}.");
+            $invoice->forceFill(['link_email_status' => 'sent', 'link_emailed_at' => now(), 'link_email_error' => null])->save();
+            return redirect()->back()->with('success', "Payment link sent to {$invoice->consumer->email}.");
         } catch (\Throwable $e) {
             Log::error('Resend payment-link email failed', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
+            $invoice->forceFill(['link_email_status' => 'failed', 'link_email_error' => mb_substr($e->getMessage(), 0, 250)])->save();
             return redirect()->back()->with('error', 'Could not send the email — please try again.');
         }
     }

@@ -116,7 +116,10 @@ class LeanWebhookController extends Controller
                     'status'        => PaymentStatus::Failed,
                     'lean_metadata' => $updatedMeta,
                 ]);
-                if ($payment->invoice && $payment->invoice->status === InvoiceStatus::Draft && ($payment->invoice->link_type ?? 'personal') !== 'open') {
+                // Open links and batch (school/club) invoices stay payable after a
+                // failed attempt so the payer can retry from the same link; only a
+                // one-off personal link is closed off by its single failure.
+                if ($payment->invoice && $payment->invoice->status === InvoiceStatus::Draft && !in_array($payment->invoice->link_type ?? 'personal', ['open', 'batch'], true)) {
                     $payment->invoice->update([
                         'status' => InvoiceStatus::Failed,
                     ]);
