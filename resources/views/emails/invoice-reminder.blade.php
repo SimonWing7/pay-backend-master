@@ -10,7 +10,9 @@
 @php
     $merchant = $invoice->merchant;
     $brandName = $merchant->merchant_trading_name ?: $merchant->name;
-    $title = $invoice->invoiceDetails->first()->title ?? 'Payment';
+    $details = $invoice->invoiceDetails;
+    $multi = $details->count() > 1;
+    $title = $details->first()->title ?? 'Payment';
     $paymentUrl = route('public.invoice.show', $invoice->uuid);
 @endphp
 
@@ -42,7 +44,19 @@
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
         <tr><td align="center" style="background:#ece8fc;border-radius:8px;padding:20px;">
-          <p style="margin:0 0 4px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">{{ $title }}</p>
+          @if($multi)
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
+              @foreach($details as $line)
+              <tr>
+                <td style="padding:5px 0;font-size:14px;color:#374151;text-align:left;">{{ $line->title }}</td>
+                <td style="padding:5px 0;font-size:14px;color:#374151;text-align:right;white-space:nowrap;">AED {{ number_format($line->fee, 2) }}</td>
+              </tr>
+              @endforeach
+            </table>
+            <p style="margin:0 0 4px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Total</p>
+          @else
+            <p style="margin:0 0 4px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">{{ $title }}</p>
+          @endif
           <p style="margin:0;font-size:36px;font-weight:700;color:#3d01bd;">AED {{ number_format($invoice->total_fee, 2) }}</p>
         </td></tr>
       </table>
