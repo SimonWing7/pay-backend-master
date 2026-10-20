@@ -6,7 +6,7 @@ For Edfundo staff. Takes about 10 minutes of your time, plus whatever the mercha
 
 1. Collect the trade licence and the owner's email (outside the system).
 2. Create the merchant in admin with the welcome email ticked.
-3. The merchant sets their password and completes four short steps.
+3. The merchant sets their password and completes five short steps.
 4. You review what they submitted, create their Lean payment destination, and approve.
 5. The merchant is live: they can send payment links and take payments.
 
