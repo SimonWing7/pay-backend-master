@@ -60,6 +60,20 @@
                 </label>
             </div>
 
+            <div class="mb-5">
+                <label for="fee_percentage" class="form-label">Edfundo fee <span class="text-gray-400 font-normal">(% of completed payments)</span></label>
+                <div class="flex items-center gap-2">
+                    <input type="number" name="fee_percentage" id="fee_percentage" step="0.01" min="0" max="100"
+                        value="{{ old('fee_percentage', config('billing.default_fee_percentage')) }}"
+                        class="form-input @error('fee_percentage') border-red-400 @enderror" style="max-width:140px;">
+                    <span class="text-sm text-gray-500">%</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">The merchant sees this exact rate on the Fees step of onboarding and agrees to it, so set the rate you've agreed with them here.</p>
+                @error('fee_percentage')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
             <div class="mb-5" id="password-field">
                 <label for="password" class="form-label">Password <span class="text-gray-400 font-normal">(only if not sending the welcome email)</span></label>
                 <input type="password" name="password" id="password"

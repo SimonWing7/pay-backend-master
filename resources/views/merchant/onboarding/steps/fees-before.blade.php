@@ -1,6 +1,6 @@
 @php
     $merchant = $onboarding->merchant;
-    $fee = rtrim(rtrim(number_format((float) ($merchant->fee_percentage ?? config('billing.default_fee_percentage')), 2), '0'), '.');
+    $fee = app(\App\Services\OnboardingService::class)->currentFee($merchant);
     $billingLive = app(\App\Services\OnboardingService::class)->cardRequired();
     $card = $merchant->activeBillingCard;
 @endphp

@@ -49,6 +49,7 @@ class MerchantController extends Controller
             'name'                    => 'required|string|max:255',
             'email'                   => 'required|email|unique:merchants,email|unique:merchant_users,email',
             'password'                => 'nullable|string|min:8|required_without:send_welcome',
+            'fee_percentage'          => 'nullable|numeric|min:0|max:100',
             'is_active'               => 'sometimes|boolean',
             'iban'                    => 'nullable|string|max:34',
             'bank_name'               => 'nullable|string|max:255',
@@ -113,6 +114,11 @@ class MerchantController extends Controller
         }
 
         $sendWelcome = $request->boolean('send_welcome');
+
+        // Blank means "use the standard rate" (the column default).
+        if (!isset($data['fee_percentage']) || $data['fee_percentage'] === '') {
+            unset($data['fee_percentage']);
+        }
 
         // With the welcome email the merchant picks their own password, so
         // the one stored until then is random and never shared.

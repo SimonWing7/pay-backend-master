@@ -80,7 +80,7 @@ class OnboardingController extends Controller
             $input = $this->onboarding->normalise($step, $request->all());
             $validator = Validator::make(
                 $input + $request->allFiles(),
-                $this->onboarding->rules($step, !$strict),
+                $this->onboarding->rules($step, !$strict, $onboarding),
                 $this->onboarding->messages()
             );
 

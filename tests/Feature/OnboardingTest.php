@@ -185,6 +185,80 @@ class OnboardingTest extends TestCase
         $this->assertSame('approved', Merchant::where('email', 'int@school.test')->value('onboarding_status'));
     }
 
+    public function test_the_fee_is_set_at_creation_and_is_what_the_merchant_sees(): void
+    {
+        $this->admin()->post(route('admin.merchants.store'), [
+            'name' => 'New School', 'email' => 'principal@newschool.test', 'send_welcome' => '1', 'is_active' => '1', 'fee_percentage' => '2.25',
+        ])->assertRedirect(route('admin.merchants.index'));
+
+        $merchant = Merchant::where('email', 'principal@newschool.test')->firstOrFail();
+        $this->assertEquals(2.25, (float) $merchant->fee_percentage);
+
+        $this->actingAs($merchant->fresh(), 'merchants')->get(route('merchant.onboarding.show', 'fees'))
+            ->assertOk()->assertSee('2.25%');
+    }
+
+    public function test_a_blank_fee_uses_the_standard_rate_and_bad_values_are_rejected(): void
+    {
+        $this->admin()->post(route('admin.merchants.store'), [
+            'name' => 'A', 'email' => 'a@school.test', 'send_welcome' => '1', 'fee_percentage' => '',
+        ])->assertSessionHasNoErrors();
+        $this->assertEquals(1.5, (float) Merchant::where('email', 'a@school.test')->value('fee_percentage'));
+
+        foreach (['-1', '101', 'abc'] as $bad) {
+            $this->admin()->post(route('admin.merchants.store'), [
+                'name' => 'B', 'email' => 'b@school.test', 'send_welcome' => '1', 'fee_percentage' => $bad,
+            ])->assertSessionHasErrors('fee_percentage');
+        }
+        $this->assertSame(0, Merchant::where('email', 'b@school.test')->count());
+    }
+
+    public function test_the_create_form_offers_the_fee_field_with_the_standard_rate(): void
+    {
+        $this->admin()->get(route('admin.merchants.create'))->assertOk()->assertSee('name="fee_percentage"', false)->assertSee('value="1.5"', false);
+    }
+
+    public function test_the_rate_the_merchant_agreed_to_is_recorded(): void
+    {
+        $this->merchant->update(['fee_percentage' => 2.0]);
+        $this->save('fees', ['terms' => '1']);
+
+        $this->assertSame('2', $this->merchant->fresh()->onboarding->step('fees')['accepted_fee_percentage']);
+    }
+
+    public function test_changing_the_fee_after_agreement_makes_them_agree_again(): void
+    {
+        $svc = app(OnboardingService::class);
+        $this->save('fees', ['terms' => '1']);
+        $this->assertTrue($svc->isStepComplete($this->merchant->fresh()->onboarding, 'fees'));
+
+        $this->merchant->update(['fee_percentage' => 3.0]);
+
+        // The step is incomplete again and the merchant is told why.
+        $this->assertFalse($svc->isStepComplete($this->merchant->fresh()->onboarding, 'fees'));
+        $this->owner()->get(route('merchant.onboarding.show', 'fees'))
+            ->assertSee('Your fee rate has been updated')->assertSee('3%');
+        $this->save('fees')->assertSessionHasErrors('terms');
+
+        // Agreeing again records the new rate.
+        $this->save('fees', ['terms' => '1'])->assertRedirect(route('merchant.onboarding.show', 'review'));
+        $this->assertSame('3', $this->merchant->fresh()->onboarding->step('fees')['accepted_fee_percentage']);
+        $this->assertTrue($svc->isStepComplete($this->merchant->fresh()->onboarding, 'fees'));
+    }
+
+    public function test_admin_is_warned_when_the_merchant_agreed_to_a_different_rate(): void
+    {
+        $this->submitted();
+        $this->merchant->update(['fee_percentage' => 2.5]);
+
+        $this->admin()->get(route('admin.merchants.show', $this->merchant->id))
+            ->assertOk()
+            ->assertSee('agreed to')
+            ->assertSee('1.5%')
+            ->assertSee('2.5%')
+            ->assertSee('Send back for changes');
+    }
+
     public function test_welcome_email_can_be_resent_from_admin(): void
     {
         $this->admin()->post(route('admin.merchants.welcome', $this->merchant->id))->assertSessionHas('success');

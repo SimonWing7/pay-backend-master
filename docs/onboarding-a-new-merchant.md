@@ -34,9 +34,10 @@ Admin → **Merchants** → **New Merchant**.
 2. **Login Email:** the owner's email from above.
 3. Leave **"Email the owner a welcome link"** ticked. They choose their own password, so you never share one.
 4. Make sure **"Account active"** is ticked. If it isn't, they can't sign in.
-5. Leave **"Skip onboarding"** unticked. (That box is only for internal or already-set-up accounts. It makes the merchant live immediately.)
-6. Anything else (support email, phone, website, bank details) is optional. If you fill it in, it appears pre-filled in the merchant's onboarding, which saves them typing.
-7. Click **Create Merchant**.
+5. Set the **Edfundo fee** to the rate you've agreed with the merchant (it starts at the standard 1.5%). **The merchant sees this exact rate on the Fees step and agrees to it**, so get it right now.
+6. Leave **"Skip onboarding"** unticked. (That box is only for internal or already-set-up accounts. It makes the merchant live immediately.)
+7. Anything else (support email, phone, website, bank details) is optional. If you fill it in, it appears pre-filled in the merchant's onboarding, which saves them typing.
+8. Click **Create Merchant**.
 
 The owner now gets an email, "Welcome to Edfundo Pay: set your password to get started", with a button. **The link works once and lasts 7 days.**
 
@@ -95,7 +96,7 @@ While you're in **Edit**, also check:
 
 | Setting | Guidance |
 |---|---|
-| **Fee percentage** | Defaults to the standard rate. Change it **before approving** if you agreed something different, because the merchant sees their rate on the Fees step |
+| **Fee percentage** | Should already be right from step 1. If you change it later, the merchant is asked to agree again, and the Onboarding card warns you if they agreed to a different rate. Use **Send back for changes** if they've already submitted |
 | **Bill this merchant monthly** | Leave **off** until billing is live for the platform *and* the merchant has registered a card |
 | **Let this merchant reconcile their own bank-pending payments** | Optional. Gives them Confirm / Not-received buttons for payments stuck "pending with bank". If off, Edfundo reviews those |
 | **Show reward offer** | On by default. Controls the reward banner on their payment pages |

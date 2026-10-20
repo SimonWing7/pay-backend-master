@@ -77,7 +77,7 @@ class OnboardingService
      * partial answers, so everything required becomes optional but formats
      * are still checked.
      */
-    public function rules(string $step, bool $draft): array
+    public function rules(string $step, bool $draft, ?MerchantOnboarding $onboarding = null): array
     {
         $rules = match ($step) {
             'business' => [
@@ -107,11 +107,11 @@ class OnboardingService
                 'signatory_id' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
                 'bank_letter' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             ],
-            // When a card is required the agreement is given in the same tick as the
-            // card authorisation, so there is nothing to validate on this form.
-            'fees' => $this->cardRequired() ? [] : [
+            // With a card required, the agreement is given in the same tick as the
+            // card authorisation, so there is no separate box to validate.
+            'fees' => (!$onboarding || $this->termsBoxNeeded($onboarding)) ? [
                 'terms' => ['accepted'],
-            ],
+            ] : [],
             default => [],
         };
 
@@ -193,10 +193,11 @@ class OnboardingService
             }
         }
 
-        if ($step === 'fees' && !empty($validated['terms']) && !$onboarding->terms_accepted_at) {
+        if ($step === 'fees' && !empty($validated['terms']) && !$this->agreementIsCurrent($onboarding)) {
             $updates['terms_accepted_at'] = now();
             $updates['terms_accepted_ip'] = $ip;
             $updates['terms_accepted_by'] = $by;
+            $answers['accepted_fee_percentage'] = $this->currentFee($onboarding->merchant);
         }
 
         $data[$step] = $answers;
@@ -205,16 +206,56 @@ class OnboardingService
         return $onboarding;
     }
 
+    /**
+     * Has the merchant agreed to the rate they're currently on? An agreement
+     * made before this was tracked (no rate saved) counts as valid.
+     */
+    public function agreementIsCurrent(MerchantOnboarding $onboarding): bool
+    {
+        if (!$onboarding->terms_accepted_at) {
+            return false;
+        }
+
+        $agreed = $onboarding->step('fees')['accepted_fee_percentage'] ?? null;
+
+        return $agreed === null || $agreed === $this->currentFee($onboarding->merchant);
+    }
+
+    /**
+     * Does the fees screen need its own "I agree" tick-box? Not while the
+     * agreement is being given together with the card authorisation.
+     */
+    public function termsBoxNeeded(MerchantOnboarding $onboarding): bool
+    {
+        if (!$this->cardRequired()) {
+            return true;
+        }
+
+        return $onboarding->merchant->activeBillingCard !== null && !$this->agreementIsCurrent($onboarding);
+    }
+
+    /** The fee rate (as text, e.g. "1.5") the merchant is being shown right now. */
+    public function currentFee(Merchant $merchant): string
+    {
+        $fee = $merchant->fee_percentage ?? config('billing.default_fee_percentage');
+
+        return rtrim(rtrim(number_format((float) $fee, 2, '.', ''), '0'), '.');
+    }
+
     /** Note the agreement (once), e.g. when it is given together with the card authorisation. */
     public function recordTerms(Merchant $merchant, ?string $ip, ?string $by): void
     {
         $onboarding = $this->forMerchant($merchant);
 
-        if (!$onboarding->terms_accepted_at) {
+        if (!$this->agreementIsCurrent($onboarding)) {
+            $data = $onboarding->data ?? [];
+            $data['fees']['accepted_fee_percentage'] = $this->currentFee($merchant);
+
             $onboarding->update([
                 'terms_accepted_at' => now(),
                 'terms_accepted_ip' => $ip,
                 'terms_accepted_by' => $by,
+                'data' => $data,
             ]);
         }
     }
@@ -269,7 +310,7 @@ class OnboardingService
         }
 
         if ($step === 'fees') {
-            if (!$onboarding->terms_accepted_at) {
+            if (!$this->agreementIsCurrent($onboarding)) {
                 return false;
             }
             if ($this->cardRequired() && !$onboarding->merchant->activeBillingCard) {

@@ -12,7 +12,7 @@
         'registration' => [['Trade licence number', $r['trade_license_number'] ?? null], ['Address', $r['address'] ?? null], ['City', $r['city'] ?? null]],
         'bank' => [['Account holder', $k['account_holder_name'] ?? null], ['Bank', $k['bank_name'] ?? null], ['IBAN', $k['iban'] ?? null], ['Account number', $k['account_number'] ?? null], ['SWIFT code', $k['swift_code'] ?? null]],
         'contact' => [['Name', $c['signatory_name'] ?? null], ['Role', $c['signatory_role'] ?? null], ['Mobile', $c['signatory_mobile'] ?? null], ['Email', $c['signatory_email'] ?? null]],
-        'fees' => [['Agreement', $onboarding->terms_accepted_at ? 'Accepted ' . $onboarding->terms_accepted_at->copy()->setTimezone('Asia/Dubai')->format('j M Y') : null]],
+        'fees' => [['Agreement', $svc->agreementIsCurrent($onboarding) ? 'Accepted ' . $onboarding->terms_accepted_at->copy()->setTimezone('Asia/Dubai')->format('j M Y') : null]],
     ];
 @endphp
 

@@ -62,14 +62,24 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm mb-4">
+            @php
+                $currentFee = app(\App\Services\OnboardingService::class)->currentFee($merchant);
+                $agreedFee = $ob->step('fees')['accepted_fee_percentage'] ?? null;
+            @endphp
             @if($ob->terms_accepted_at)
-                <span class="text-green-700"><i class="fas fa-check-circle"></i> Fees &amp; terms accepted {{ $ob->terms_accepted_at->copy()->setTimezone('Asia/Dubai')->format('j M Y, H:i') }}{{ $ob->terms_accepted_by ? ' by ' . $ob->terms_accepted_by : '' }}</span>
+                <span class="text-green-700"><i class="fas fa-check-circle"></i> Fees &amp; terms accepted{{ $agreedFee !== null ? ' at ' . $agreedFee . '%' : '' }} {{ $ob->terms_accepted_at->copy()->setTimezone('Asia/Dubai')->format('j M Y, H:i') }}{{ $ob->terms_accepted_by ? ' by ' . $ob->terms_accepted_by : '' }}</span>
             @else
                 <span class="text-amber-600"><i class="fas fa-exclamation-circle"></i> Terms not accepted yet</span>
             @endif
             @if($ob->signatory_id_path)<a href="{{ route('admin.merchants.onboarding.document', [$merchant->id, 'signatory-id']) }}" style="color:#3d01bd;"><i class="fas fa-download"></i> Contact ID</a>@endif
             @if($ob->bank_letter_path)<a href="{{ route('admin.merchants.onboarding.document', [$merchant->id, 'bank-letter']) }}" style="color:#3d01bd;"><i class="fas fa-download"></i> Bank letter</a>@endif
         </div>
+
+        <p class="text-sm mb-4 text-gray-600">Fee rate on their account: <strong>{{ $currentFee }}%</strong>
+            <a href="{{ route('admin.merchants.edit', $merchant->id) }}" class="text-xs ml-1" style="color:#3d01bd;">change</a></p>
+        @if($agreedFee !== null && $agreedFee !== $currentFee && $status !== 'approved')
+            <p class="text-sm p-3 rounded-lg mb-4" style="background:#fef2f2;color:#991b1b;"><i class="fas fa-exclamation-triangle"></i> The merchant agreed to <strong>{{ $agreedFee }}%</strong> but their rate is now <strong>{{ $currentFee }}%</strong>. {{ $status === 'submitted' ? 'Use "Send back for changes" so they see and agree to the new rate before you approve.' : 'They will need to re-agree to the new rate.' }}</p>
+        @endif
 
         @if($ob->review_note && $status === 'changes_requested')
             <p class="text-sm p-3 rounded-lg mb-4" style="background:#fffbeb;color:#92400e;white-space:pre-line;"><strong>Sent back{{ $ob->reviewed_by ? ' by ' . $ob->reviewed_by : '' }}:</strong> {{ $ob->review_note }}</p>
