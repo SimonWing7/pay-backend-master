@@ -18,14 +18,15 @@ use Illuminate\Support\Facades\Storage;
 class OnboardingService
 {
     /** Every screen, in order. 'welcome' and 'review' hold no questions. */
-    public const STEPS = ['welcome', 'business', 'bank', 'contact', 'fees', 'review'];
+    public const STEPS = ['welcome', 'business', 'registration', 'bank', 'contact', 'fees', 'review'];
 
-    /** The screens that ask questions, shown as "Step n of 4". */
-    public const FORM_STEPS = ['business', 'bank', 'contact', 'fees'];
+    /** The screens that ask questions, shown as "Step n of 5". */
+    public const FORM_STEPS = ['business', 'registration', 'bank', 'contact', 'fees'];
 
     public const TITLES = [
         'welcome'  => 'Welcome',
         'business' => 'Your business',
+        'registration' => 'Business registration',
         'bank'     => 'Where we pay you',
         'contact'  => 'Authorised contact',
         'fees'     => 'Fees & agreement',
@@ -86,10 +87,17 @@ class OnboardingService
                 'website' => ['nullable', 'url', 'max:255'],
                 'logo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,svg,webp', 'max:2048'],
             ],
+            'registration' => [
+                'trade_license_number' => ['required', 'string', 'max:100'],
+                'address' => ['required', 'string', 'max:255'],
+                'city' => ['required', 'string', 'max:255'],
+            ],
             'bank' => [
                 'account_holder_name' => ['required', 'string', 'max:255'],
                 'bank_name' => ['required', 'string', 'max:255'],
                 'iban' => ['required', 'regex:/^AE\d{21}$/'],
+                'account_number' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9]+$/'],
+                'swift_code' => ['required', 'regex:/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/'],
             ],
             'contact' => [
                 'signatory_name' => ['required', 'string', 'max:255'],
@@ -122,6 +130,8 @@ class OnboardingService
     {
         return [
             'iban.regex' => 'Enter a UAE IBAN: "AE" followed by 21 digits (23 characters in total).',
+            'account_number.regex' => 'The account number should be letters and numbers only, with no spaces or dashes.',
+            'swift_code.regex' => 'A SWIFT code is 8 or 11 letters and numbers, for example EBILAEAD.',
             'terms.accepted' => 'Please tick the box to confirm you agree to the fees and terms.',
             'logo.max' => 'The logo must be 2 MB or smaller.',
             'signatory_id.max' => 'Each document must be 5 MB or smaller.',
@@ -132,8 +142,15 @@ class OnboardingService
     /** Tidy what the merchant typed before it is validated. */
     public function normalise(string $step, array $input): array
     {
-        if ($step === 'bank' && isset($input['iban'])) {
-            $input['iban'] = strtoupper(preg_replace('/[\s-]+/', '', (string) $input['iban']));
+        if ($step === 'bank') {
+            foreach (['iban', 'swift_code'] as $field) {
+                if (isset($input[$field])) {
+                    $input[$field] = strtoupper(preg_replace('/[\s-]+/', '', (string) $input[$field]));
+                }
+            }
+            if (isset($input['account_number'])) {
+                $input['account_number'] = preg_replace('/[\s-]+/', '', (string) $input['account_number']);
+            }
         }
 
         return $input;
@@ -233,7 +250,8 @@ class OnboardingService
 
         $required = match ($step) {
             'business' => ['trading_name', 'support_email', 'support_phone'],
-            'bank' => ['account_holder_name', 'bank_name', 'iban'],
+            'registration' => ['trade_license_number', 'address', 'city'],
+            'bank' => ['account_holder_name', 'bank_name', 'iban', 'account_number', 'swift_code'],
             'contact' => ['signatory_name', 'signatory_role', 'signatory_mobile', 'signatory_email'],
             default => [],
         };
@@ -244,7 +262,9 @@ class OnboardingService
             }
         }
 
-        if ($step === 'bank' && !preg_match('/^AE\d{21}$/', (string) $answers['iban'])) {
+        if ($step === 'bank'
+            && (!preg_match('/^AE\d{21}$/', (string) $answers['iban'])
+                || !preg_match('/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/', (string) $answers['swift_code']))) {
             return false;
         }
 

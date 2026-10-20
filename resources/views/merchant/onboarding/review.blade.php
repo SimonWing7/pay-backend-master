@@ -6,10 +6,11 @@
 @php
     $svc = app(\App\Services\OnboardingService::class);
     $missing = $svc->incompleteSteps($onboarding);
-    $b = $onboarding->step('business'); $k = $onboarding->step('bank'); $c = $onboarding->step('contact');
+    $b = $onboarding->step('business'); $r = $onboarding->step('registration'); $k = $onboarding->step('bank'); $c = $onboarding->step('contact');
     $rows = [
         'business' => [['Business name', $b['trading_name'] ?? null], ['Support email', $b['support_email'] ?? null], ['Support phone', $b['support_phone'] ?? null], ['Website', $b['website'] ?? null]],
-        'bank' => [['Account holder', $k['account_holder_name'] ?? null], ['Bank', $k['bank_name'] ?? null], ['IBAN', $k['iban'] ?? null]],
+        'registration' => [['Trade licence number', $r['trade_license_number'] ?? null], ['Address', $r['address'] ?? null], ['City', $r['city'] ?? null]],
+        'bank' => [['Account holder', $k['account_holder_name'] ?? null], ['Bank', $k['bank_name'] ?? null], ['IBAN', $k['iban'] ?? null], ['Account number', $k['account_number'] ?? null], ['SWIFT code', $k['swift_code'] ?? null]],
         'contact' => [['Name', $c['signatory_name'] ?? null], ['Role', $c['signatory_role'] ?? null], ['Mobile', $c['signatory_mobile'] ?? null], ['Email', $c['signatory_email'] ?? null]],
         'fees' => [['Agreement', $onboarding->terms_accepted_at ? 'Accepted ' . $onboarding->terms_accepted_at->copy()->setTimezone('Asia/Dubai')->format('j M Y') : null]],
     ];

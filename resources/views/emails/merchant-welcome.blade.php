@@ -25,7 +25,12 @@
         <a href="{{ $setupUrl }}" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">Set my password</a>
       </td></tr>
     </table>
-    <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#374151;"><strong>What happens next:</strong> the first time you sign in we'll walk you through a short set-up, one step at a time: your business details, where we should pay you, an authorised contact, and our fees. It takes about 5 minutes and you can save and finish later.</p>
+    <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#374151;"><strong>What happens next:</strong> the first time you sign in we'll walk you through a short set-up, one step at a time. It takes about 5 minutes if you have these to hand (and you can save and finish later if you don't):</p>
+    <ul style="margin:0 0 20px;padding-left:20px;font-size:14px;line-height:1.7;color:#374151;">
+      <li><strong>Your trade licence</strong>: licence number and registered address</li>
+      <li><strong>Your business bank details</strong>: IBAN, account number and SWIFT code (from your banking app, a statement or a letter from your bank)</li>
+      <li><strong>An authorised contact</strong>: name, role, mobile and email</li>
+    </ul>
     <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#9ca3af;">This link works once and expires in {{ $days }} days. If the button doesn't work, copy this address into your browser:</p>
     <p style="margin:0 0 20px;font-size:12px;line-height:1.5;color:#6b7280;word-break:break-all;">{{ $setupUrl }}</p>
     <p style="margin:0;font-size:13px;line-height:1.6;color:#9ca3af;">If the link has expired, use "Forgot password" on the sign-in page, or reply to this email and we'll send a new one.</p>

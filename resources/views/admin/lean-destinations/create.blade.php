@@ -30,7 +30,7 @@
 
             <div class="mb-5">
                 <label for="display_name" class="form-label">Display Name <span class="text-red-400">*</span></label>
-                <input type="text" name="display_name" id="display_name" value="{{ old('display_name') }}" required
+                <input type="text" name="display_name" id="display_name" value="{{ old('display_name', $prefill['display_name'] ?? '') }}" required
                     class="form-input @error('display_name') border-red-400 @enderror"
                     placeholder="e.g. Pinnakle Rugby — Dubai Account">
                 @error('display_name')
@@ -40,7 +40,7 @@
 
             <div class="mb-5">
                 <label for="name" class="form-label">Legal Account Holder Name <span class="text-red-400">*</span></label>
-                <input type="text" name="name" id="name" value="{{ old('name') }}" required
+                <input type="text" name="name" id="name" value="{{ old('name', $prefill['name'] ?? '') }}" required
                     class="form-input @error('name') border-red-400 @enderror"
                     placeholder="Letters, numbers, and spaces only">
                 <p class="text-xs text-gray-400 mt-1">Must match the bank account exactly — no punctuation (no "FZ-LLC", no periods).</p>
@@ -51,7 +51,7 @@
 
             <div class="mb-5">
                 <label for="address" class="form-label">Address <span class="text-red-400">*</span></label>
-                <input type="text" name="address" id="address" value="{{ old('address') }}" required
+                <input type="text" name="address" id="address" value="{{ old('address', $prefill['address'] ?? '') }}" required
                     class="form-input @error('address') border-red-400 @enderror">
                 @error('address')
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -60,7 +60,7 @@
 
             <div class="mb-5">
                 <label for="city" class="form-label">City <span class="text-red-400">*</span></label>
-                <input type="text" name="city" id="city" value="{{ old('city') }}" required
+                <input type="text" name="city" id="city" value="{{ old('city', $prefill['city'] ?? '') }}" required
                     class="form-input @error('city') border-red-400 @enderror"
                     placeholder="e.g. Dubai">
                 @error('city')
@@ -70,7 +70,7 @@
 
             <div class="mb-5">
                 <label for="account_number" class="form-label">Account Number <span class="text-red-400">*</span></label>
-                <input type="text" name="account_number" id="account_number" value="{{ old('account_number') }}" required
+                <input type="text" name="account_number" id="account_number" value="{{ old('account_number', $prefill['account_number'] ?? '') }}" required
                     class="form-input @error('account_number') border-red-400 @enderror">
                 @error('account_number')
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -79,7 +79,7 @@
 
             <div class="mb-5">
                 <label for="swift_code" class="form-label">SWIFT Code <span class="text-red-400">*</span></label>
-                <input type="text" name="swift_code" id="swift_code" value="{{ old('swift_code') }}" required
+                <input type="text" name="swift_code" id="swift_code" value="{{ old('swift_code', $prefill['swift_code'] ?? '') }}" required
                     class="form-input @error('swift_code') border-red-400 @enderror"
                     placeholder="e.g. EBILAEAD">
                 @error('swift_code')
@@ -89,7 +89,7 @@
 
             <div class="mb-5">
                 <label for="iban" class="form-label">IBAN <span class="text-red-400">*</span></label>
-                <input type="text" name="iban" id="iban" value="{{ old('iban') }}" required
+                <input type="text" name="iban" id="iban" value="{{ old('iban', $prefill['iban'] ?? '') }}" required
                     class="form-input @error('iban') border-red-400 @enderror"
                     placeholder="AE070331234567890123456">
                 @error('iban')
@@ -110,7 +110,7 @@
 
             <div class="mb-6">
                 <label for="trade_license_number" class="form-label">Trade License Number <span class="text-red-400">*</span></label>
-                <input type="text" name="trade_license_number" id="trade_license_number" value="{{ old('trade_license_number') }}" required
+                <input type="text" name="trade_license_number" id="trade_license_number" value="{{ old('trade_license_number', $prefill['trade_license_number'] ?? '') }}" required
                     class="form-input @error('trade_license_number') border-red-400 @enderror"
                     placeholder="e.g. XX-1234567">
                 @error('trade_license_number')

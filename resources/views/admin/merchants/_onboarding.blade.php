@@ -9,7 +9,7 @@
         'approved' => ['Approved', 'badge-success'],
     ];
     [$label, $badge] = $labels[$status] ?? [$status, 'badge-muted'];
-    $b = $ob?->step('business') ?? []; $k = $ob?->step('bank') ?? []; $c = $ob?->step('contact') ?? [];
+    $b = $ob?->step('business') ?? []; $r = $ob?->step('registration') ?? []; $k = $ob?->step('bank') ?? []; $c = $ob?->step('contact') ?? [];
     $progress = $ob ? app(\App\Services\OnboardingService::class)->progress($ob) : ['done' => 0, 'total' => 4];
 @endphp
 <div class="card p-6 mb-6" id="onboarding">
@@ -32,7 +32,7 @@
             <p class="text-sm text-gray-500 mb-4">{{ $progress['done'] }} of {{ $progress['total'] }} steps completed by the merchant.</p>
         @endif
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm mb-4">
             <div>
                 <p class="text-xs text-gray-400 font-medium mb-1">Business</p>
                 <p class="font-semibold text-gray-800">{{ $b['trading_name'] ?? '—' }}</p>
@@ -41,10 +41,17 @@
                 <p class="text-gray-500">{{ $b['website'] ?? '' }}</p>
             </div>
             <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Registration</p>
+                <p class="font-semibold text-gray-800">Licence {{ $r['trade_license_number'] ?? '—' }}</p>
+                <p class="text-gray-500">{{ $r['address'] ?? '—' }}</p>
+                <p class="text-gray-500">{{ $r['city'] ?? '' }}</p>
+            </div>
+            <div>
                 <p class="text-xs text-gray-400 font-medium mb-1">Bank</p>
                 <p class="font-semibold text-gray-800">{{ $k['account_holder_name'] ?? '—' }}</p>
                 <p class="text-gray-500">{{ $k['bank_name'] ?? '—' }}</p>
                 <p class="text-gray-500 font-mono text-xs">{{ $k['iban'] ?? '—' }}</p>
+                <p class="text-gray-500 text-xs">Acct {{ $k['account_number'] ?? '—' }} · SWIFT {{ $k['swift_code'] ?? '—' }}</p>
             </div>
             <div>
                 <p class="text-xs text-gray-400 font-medium mb-1">Authorised contact</p>
@@ -71,7 +78,7 @@
         @if($status === 'submitted')
             <div class="border-t border-gray-100 pt-4">
                 @if(empty($merchant->lean_destination_id))
-                    <p class="text-sm mb-3" style="color:#b45309;"><i class="fas fa-exclamation-triangle"></i> Set the Lean destination ID (<a href="{{ route('admin.merchants.edit', $merchant->id) }}" style="text-decoration:underline;">Edit merchant</a>) before approving.</p>
+                    <p class="text-sm mb-3" style="color:#b45309;"><i class="fas fa-exclamation-triangle"></i> Before approving, <a href="{{ route('admin.lean-destinations.create', ['merchant' => $merchant->id]) }}" style="text-decoration:underline;">create their Lean destination</a> (pre-filled from these details), then paste the ID into <a href="{{ route('admin.merchants.edit', $merchant->id) }}" style="text-decoration:underline;">Edit merchant</a>.</p>
                 @endif
                 <div class="flex flex-wrap items-start gap-4">
                     <form method="POST" action="{{ route('admin.merchants.onboarding.approve', $merchant->id) }}"

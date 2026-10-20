@@ -73,7 +73,12 @@ class OnboardingTest extends TestCase
 
     private function bank(array $o = []): array
     {
-        return $o + ['account_holder_name' => 'Pinnakle Sports LLC', 'bank_name' => 'Emirates NBD', 'iban' => 'AE070331234567890123456'];
+        return $o + ['account_holder_name' => 'Pinnakle Sports LLC', 'bank_name' => 'Emirates NBD', 'iban' => 'AE070331234567890123456', 'account_number' => '1234567890123456', 'swift_code' => 'EBILAEAD'];
+    }
+
+    private function registration(array $o = []): array
+    {
+        return $o + ['trade_license_number' => 'DED-123456', 'address' => 'Office 12, Al Quoz Business Centre', 'city' => 'Dubai'];
     }
 
     private function contact(array $o = []): array
@@ -84,6 +89,7 @@ class OnboardingTest extends TestCase
     private function completeEverything(): void
     {
         $this->save('business', $this->business());
+        $this->save('registration', $this->registration());
         $this->save('bank', $this->bank());
         $this->save('contact', $this->contact());
         $this->save('fees', ['terms' => '1']);
@@ -217,7 +223,7 @@ class OnboardingTest extends TestCase
         $this->owner()->get(route('merchant.dashboard'))
             ->assertOk()
             ->assertSee('Finish setting up your account')
-            ->assertSee('1 of 4 steps done')
+            ->assertSee('1 of 5 steps done')
             ->assertSee('Continue');
     }
 
@@ -240,7 +246,7 @@ class OnboardingTest extends TestCase
     public function test_business_step_saves_and_moves_on_with_a_logo(): void
     {
         $this->save('business', $this->business(['logo' => UploadedFile::fake()->image('logo.png')]))
-            ->assertRedirect(route('merchant.onboarding.show', 'bank'));
+            ->assertRedirect(route('merchant.onboarding.show', 'registration'));
 
         $ob = $this->merchant->fresh()->onboarding;
         $this->assertSame('Pinnakle Rugby', $ob->step('business')['trading_name']);
@@ -270,7 +276,7 @@ class OnboardingTest extends TestCase
 
     public function test_back_keeps_what_was_typed_and_goes_to_the_previous_step(): void
     {
-        $this->save('bank', ['bank_name' => 'Mashreq'], 'back')->assertRedirect(route('merchant.onboarding.show', 'business'));
+        $this->save('bank', ['bank_name' => 'Mashreq'], 'back')->assertRedirect(route('merchant.onboarding.show', 'registration'));
 
         $this->assertSame('Mashreq', $this->merchant->fresh()->onboarding->step('bank')['bank_name']);
     }
@@ -287,6 +293,87 @@ class OnboardingTest extends TestCase
 
         $this->save('bank', $this->bank(['iban' => 'AE12345']))->assertSessionHasErrors('iban');
         $this->save('bank', $this->bank(['iban' => 'GB82WEST12345698765432']))->assertSessionHasErrors('iban');
+    }
+
+    public function test_registration_step_needs_licence_number_and_address(): void
+    {
+        $this->save('registration', ['trade_license_number' => 'DED-1'])->assertSessionHasErrors(['address', 'city']);
+
+        $this->save('registration', $this->registration())->assertRedirect(route('merchant.onboarding.show', 'bank'));
+        $this->assertSame('DED-123456', $this->merchant->fresh()->onboarding->step('registration')['trade_license_number']);
+    }
+
+    public function test_bank_step_collects_account_number_and_swift_and_tidies_them(): void
+    {
+        $this->save('bank', $this->bank(['account_number' => '1234 5678-9012', 'swift_code' => 'ebil aead']))
+            ->assertRedirect(route('merchant.onboarding.show', 'contact'));
+
+        $bank = $this->merchant->fresh()->onboarding->step('bank');
+        $this->assertSame('123456789012', $bank['account_number']);
+        $this->assertSame('EBILAEAD', $bank['swift_code']);
+
+        $this->save('bank', $this->bank(['swift_code' => 'SHORT']))->assertSessionHasErrors('swift_code');
+        $this->save('bank', $this->bank(['account_number' => '12/34']))->assertSessionHasErrors('account_number');
+        $this->save('bank', array_diff_key($this->bank(), ['account_number' => 1, 'swift_code' => 1]))
+            ->assertSessionHasErrors(['account_number', 'swift_code']);
+    }
+
+    public function test_welcome_tells_merchants_what_to_have_ready(): void
+    {
+        $this->owner()->get(route('merchant.onboarding.show', 'welcome'))
+            ->assertOk()
+            ->assertSee('Please have these ready')
+            ->assertSee('Your trade licence')
+            ->assertSee('IBAN, account number and SWIFT code')
+            ->assertSee('authorised contact', false)
+            ->assertSee('Save &amp; finish later', false);
+    }
+
+    public function test_the_welcome_email_lists_what_to_have_ready(): void
+    {
+        $html = (new MerchantWelcomeMail($this->merchant, 'tok'))->render();
+
+        $this->assertStringContainsString('Your trade licence', $html);
+        $this->assertStringContainsString('SWIFT code', $html);
+    }
+
+    public function test_submit_needs_the_new_steps_too(): void
+    {
+        $this->save('business', $this->business());
+        $this->save('bank', array_diff_key($this->bank(), ['swift_code' => 1]), 'later');
+        $this->save('contact', $this->contact());
+        $this->save('fees', ['terms' => '1']);
+
+        $this->owner()->post(route('merchant.onboarding.submit'))->assertSessionHas('error');
+        $this->assertSame(['registration', 'bank'], app(OnboardingService::class)->incompleteSteps($this->merchant->fresh()->onboarding));
+    }
+
+    public function test_the_lean_destination_form_is_prefilled_from_onboarding(): void
+    {
+        $this->completeEverything();
+        $this->save('bank', $this->bank(['account_holder_name' => 'Pinnakle Sports L.L.C.']));
+
+        $this->admin()->get(route('admin.lean-destinations.create', ['merchant' => $this->merchant->id]))
+            ->assertOk()
+            ->assertSee('value="Pinnakle Sports LLC"', false)   // punctuation removed, as Lean requires
+            ->assertSee('value="AE070331234567890123456"', false)
+            ->assertSee('value="1234567890123456"', false)
+            ->assertSee('value="EBILAEAD"', false)
+            ->assertSee('value="DED-123456"', false)
+            ->assertSee('Office 12, Al Quoz Business Centre')
+            ->assertSee('value="Dubai"', false);
+
+        // Without a merchant it's the plain empty form.
+        $this->admin()->get(route('admin.lean-destinations.create'))->assertOk()->assertDontSee('DED-123456');
+    }
+
+    public function test_admin_sees_the_registration_and_bank_extras(): void
+    {
+        $this->submitted();
+
+        $this->admin()->get(route('admin.merchants.show', $this->merchant->id))
+            ->assertOk()->assertSee('DED-123456')->assertSee('EBILAEAD')->assertSee('1234567890123456')
+            ->assertSee('create their Lean destination');
     }
 
     public function test_contact_step_stores_documents_privately(): void
@@ -371,6 +458,7 @@ class OnboardingTest extends TestCase
     {
         config(['billing.enabled' => true]);
         $this->save('business', $this->business());
+        $this->save('registration', $this->registration());
         $this->save('bank', $this->bank());
         $this->save('contact', $this->contact());
 
@@ -600,7 +688,7 @@ class OnboardingTest extends TestCase
 
     public function test_onboarding_screens_compile(): void
     {
-        foreach (['welcome', 'business', 'bank', 'contact', 'fees', 'review'] as $step) {
+        foreach (['welcome', 'business', 'registration', 'bank', 'contact', 'fees', 'review'] as $step) {
             $this->owner()->get(route('merchant.onboarding.show', $step))->assertOk();
         }
     }
