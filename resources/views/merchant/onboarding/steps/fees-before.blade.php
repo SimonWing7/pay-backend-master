@@ -19,12 +19,16 @@
 
 @if($billingLive)
 <div class="mb-6">
-    <p class="text-sm font-bold mb-2" style="color:#111827;">Card for monthly fees</p>
+    <p class="text-sm font-bold mb-2" style="color:#111827;">Add your card to agree</p>
     @if($card)
         <div class="rounded-xl p-4 text-sm" style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;">
-            <i class="fas fa-check-circle"></i> {{ $card->card_type ?: 'Card' }} ending {{ $card->last4 }} is registered.
+            <i class="fas fa-check-circle"></i> {{ $card->card_type ?: 'Card' }} ending {{ $card->last4 }} is registered, and you've agreed to the fees.
         </div>
     @else
+        @error('card')
+            <div class="rounded-xl p-4 mb-3 text-sm" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;">{{ $message }}</div>
+        @enderror
+        <p class="text-xs mb-3" style="color:#6b7280;">One tick covers both the fees and the monthly card payment. You'll then enter your card on Telr's secure page.</p>
         @include('merchant.billing._card-form', ['card' => null, 'withTopBorder' => false, 'returnTo' => 'onboarding'])
     @endif
 </div>

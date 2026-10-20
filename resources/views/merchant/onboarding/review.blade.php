@@ -25,7 +25,13 @@
         <a href="{{ route('merchant.onboarding.show', $key) }}" class="text-xs font-semibold" style="color:#3d01bd;">{{ in_array($key, $missing, true) ? 'Finish this step' : 'Edit' }}</a>
     </div>
     @if(in_array($key, $missing, true))
-        <p class="text-xs" style="color:#b45309;"><i class="fas fa-exclamation-triangle"></i> Some required details are missing here.</p>
+        <p class="text-xs" style="color:#b45309;"><i class="fas fa-exclamation-triangle"></i>
+            @if($key === 'fees' && $svc->cardRequired() && !$onboarding->merchant->activeBillingCard)
+                Your card hasn't been added yet. Add it to agree to the fees.
+            @else
+                Some required details are missing here.
+            @endif
+        </p>
     @endif
     <dl class="text-sm">
         @foreach($items as [$label, $value])

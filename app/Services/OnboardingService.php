@@ -99,7 +99,9 @@ class OnboardingService
                 'signatory_id' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
                 'bank_letter' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             ],
-            'fees' => [
+            // When a card is required the agreement is given in the same tick as the
+            // card authorisation, so there is nothing to validate on this form.
+            'fees' => $this->cardRequired() ? [] : [
                 'terms' => ['accepted'],
             ],
             default => [],
@@ -184,6 +186,20 @@ class OnboardingService
         $onboarding->forceFill(array_merge($updates, ['data' => $data]))->save();
 
         return $onboarding;
+    }
+
+    /** Note the agreement (once), e.g. when it is given together with the card authorisation. */
+    public function recordTerms(Merchant $merchant, ?string $ip, ?string $by): void
+    {
+        $onboarding = $this->forMerchant($merchant);
+
+        if (!$onboarding->terms_accepted_at) {
+            $onboarding->update([
+                'terms_accepted_at' => now(),
+                'terms_accepted_ip' => $ip,
+                'terms_accepted_by' => $by,
+            ]);
+        }
     }
 
     public function moveTo(MerchantOnboarding $onboarding, string $step): void

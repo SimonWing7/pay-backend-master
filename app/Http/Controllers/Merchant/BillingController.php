@@ -47,6 +47,12 @@ class BillingController extends Controller
         // Registering from the onboarding journey: come back to it afterwards.
         if ($request->input('return_to') === 'onboarding') {
             $request->session()->put('billing_return', 'onboarding');
+            // One tick covers the fees agreement and the card authorisation.
+            app(\App\Services\OnboardingService::class)->recordTerms(
+                $request->user(),
+                (string) $request->ip(),
+                $request->attributes->get('merchant_member')?->name ?? $request->user()->name
+            );
         } else {
             $request->session()->forget('billing_return');
         }

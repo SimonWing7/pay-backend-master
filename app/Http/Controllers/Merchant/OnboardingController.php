@@ -101,6 +101,13 @@ class OnboardingController extends Controller
             );
         }
 
+        // The fees screen can't be passed without the card once billing is live.
+        if ($step === 'fees' && $action === 'next' && !$this->onboarding->isStepComplete($onboarding->fresh(), 'fees')) {
+            return redirect()->back()->withErrors([
+                'card' => 'Please tick the box and press "Agree & add card" to register your card. You can continue once it is added.',
+            ]);
+        }
+
         return match ($action) {
             'later' => $this->saveForLater($onboarding, $step),
             'back' => redirect()->route('merchant.onboarding.show', $this->onboarding->previousStep($step)),

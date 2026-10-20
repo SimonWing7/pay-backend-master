@@ -345,6 +345,54 @@ class OnboardingTest extends TestCase
         $this->assertTrue($svc->isStepComplete($this->merchant->fresh()->onboarding, 'fees'));
     }
 
+    public function test_with_billing_live_there_is_one_agreement_tick_tied_to_the_card(): void
+    {
+        config(['billing.enabled' => true]);
+
+        $html = $this->owner()->get(route('merchant.onboarding.show', 'fees'))->assertOk()->getContent();
+
+        // One checkbox (the card consent), not a separate "terms" one, and no raw Blade left in the text.
+        $this->assertSame(1, substr_count($html, 'type="checkbox"'));
+        $this->assertStringContainsString('name="consent"', $html);
+        $this->assertStringNotContainsString('name="terms"', $html);
+        $this->assertStringContainsString('Agree &amp; add card', $html);
+        $this->assertStringNotContainsString('@if', $html);
+    }
+
+    public function test_continuing_without_a_card_explains_what_to_do_instead_of_silently_looping(): void
+    {
+        config(['billing.enabled' => true]);
+
+        $this->save('fees')->assertSessionHasErrors('card');
+        $this->owner()->get(route('merchant.onboarding.show', 'fees'))->assertSee('Add your card to agree');
+    }
+
+    public function test_review_says_the_card_is_what_is_missing(): void
+    {
+        config(['billing.enabled' => true]);
+        $this->save('business', $this->business());
+        $this->save('bank', $this->bank());
+        $this->save('contact', $this->contact());
+
+        $this->owner()->get(route('merchant.onboarding.show', 'review'))->assertSee("Your card hasn't been added yet", false);
+    }
+
+    public function test_the_card_tick_records_the_agreement_and_the_step_then_completes(): void
+    {
+        config(['billing.enabled' => true, 'telr.store_id' => '1', 'telr.auth_key' => 'k', 'telr.order_auth_key' => 'k', 'telr.remote_url' => 'https://telr.test/remote.xml']);
+        \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response(['method' => 'create', 'order' => ['ref' => 'ABC123', 'url' => 'https://secure.telr.com/gateway/process.html?o=ABC123']], 200)]);
+
+        $this->owner()->post(route('merchant.billing.card.start'), ['consent' => '1', 'return_to' => 'onboarding'])
+            ->assertRedirect('https://secure.telr.com/gateway/process.html?o=ABC123');
+
+        $ob = $this->merchant->fresh()->onboarding;
+        $this->assertNotNull($ob->terms_accepted_at);
+
+        // Card activates (as the return from Telr would do), then Continue works.
+        MerchantBillingCard::where('merchant_id', $this->merchant->id)->update(['status' => 'active', 'last4' => '1111', 'card_type' => 'Visa']);
+        $this->save('fees')->assertRedirect(route('merchant.onboarding.show', 'review'));
+    }
+
     public function test_returning_from_card_registration_lands_back_in_onboarding(): void
     {
         config(['billing.enabled' => true]);
