@@ -12,6 +12,10 @@
         body { background-color: #f5f6fa; min-height: 100vh; color: #111827; }
         .btn-gradient { background: linear-gradient(135deg, #3d01bd, #00bdff); color: white; font-weight: 700; padding: 12px 28px; border-radius: 10px; border: none; cursor: pointer; font-size: 15px; transition: opacity 0.15s; display: inline-block; text-decoration: none; text-align: center; }
         .btn-gradient:hover { opacity: 0.9; }
+        /* The shared billing card form uses the merchant portal's button class, which this standalone page doesn't load. */
+        .btn-primary { background: linear-gradient(135deg, #3d01bd, #00bdff); color: white; font-weight: 700; padding: 12px 24px; border-radius: 10px; border: none; cursor: pointer; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; transition: opacity 0.15s; }
+        .btn-primary:hover { opacity: 0.9; }
+        @media (max-width: 640px) { .btn-primary { width: 100%; } }
         .btn-ghost { background: transparent; color: #4b5563; font-weight: 600; padding: 12px 18px; border-radius: 10px; border: 1.5px solid #e2e5ef; cursor: pointer; font-size: 14px; display: inline-block; text-decoration: none; }
         .btn-ghost:hover { border-color: #c7cbe0; background: #fff; }
         .btn-link { background: none; border: none; color: #6b7280; font-weight: 600; font-size: 14px; cursor: pointer; padding: 12px 6px; text-decoration: underline; }
