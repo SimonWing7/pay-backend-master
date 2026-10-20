@@ -9,10 +9,12 @@ Route::get('/merchant/forgot-password',      [App\Http\Controllers\Merchant\Merc
 Route::post('/merchant/forgot-password',     [App\Http\Controllers\Merchant\MerchantController::class, 'sendResetLink'])->name('merchant.password.forgot.post');
 Route::get('/merchant/reset-password/{token}', [App\Http\Controllers\Merchant\MerchantController::class, 'showResetPasswordForm'])->name('merchant.password.reset');
 Route::post('/merchant/reset-password',      [App\Http\Controllers\Merchant\MerchantController::class, 'resetPassword'])->name('merchant.password.reset.post');
+Route::get('/merchant/team/accept/{token}',  [App\Http\Controllers\Merchant\TeamAcceptController::class, 'show'])->name('merchant.team.accept');
+Route::post('/merchant/team/accept/{token}', [App\Http\Controllers\Merchant\TeamAcceptController::class, 'store'])->middleware('throttle:10,1')->name('merchant.team.accept.post');
 Route::post('/merchant/logout', [App\Http\Controllers\Merchant\MerchantController::class, 'logout'])->name('merchant.logout');
 
 // Merchant protected routes
-Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merchant')->name('merchant.')->group(function () {
+Route::middleware(['auth:merchants', 'merchant.member', 'merchant.password.change'])->prefix('merchant')->name('merchant.')->group(function () {
     // Password change routes (must be accessible even when password change is required)
     Route::get('/password/change', [App\Http\Controllers\Merchant\MerchantController::class, 'showChangePasswordForm'])->name('password.change')->withoutMiddleware('merchant.password.change');
     Route::post('/password/change', [App\Http\Controllers\Merchant\MerchantController::class, 'changePassword'])->name('password.change.post')->withoutMiddleware('merchant.password.change');
@@ -82,7 +84,7 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
     });
     
     // Billing — Edfundo's monthly fee statements and the card they're charged to
-    Route::prefix('billing')->name('billing.')->group(function () {
+    Route::middleware('merchant.owner')->prefix('billing')->name('billing.')->group(function () {
         Route::get('/', [App\Http\Controllers\Merchant\BillingController::class, 'index'])->name('index');
         Route::post('/card', [App\Http\Controllers\Merchant\BillingController::class, 'startCard'])->name('card.start');
         Route::get('/card/return/{cart}', [App\Http\Controllers\Merchant\BillingController::class, 'cardReturn'])->name('card.return');
@@ -99,22 +101,35 @@ Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merch
         Route::post('/{id}/reject', [App\Http\Controllers\Merchant\PaymentController::class, 'reject'])->name('reject');
     });
     
-    // Settings
+    // Settings. The password page is personal to whoever is signed in; the rest
+    // belongs to the account owner.
     Route::prefix('settings')->name('settings.')->group(function () {
-        Route::get('/profile', [App\Http\Controllers\Merchant\MerchantController::class, 'showProfile'])->name('profile');
-        Route::post('/profile', [App\Http\Controllers\Merchant\MerchantController::class, 'updateProfile'])->name('profile.post');
-        Route::post('/profile/regenerate-webhook-secret', [App\Http\Controllers\Merchant\MerchantController::class, 'regenerateWebhookSecret'])->name('profile.regenerate-webhook-secret');
         Route::get('/password', [App\Http\Controllers\Merchant\MerchantController::class, 'showSettingsChangePasswordForm'])->name('password');
         Route::post('/password', [App\Http\Controllers\Merchant\MerchantController::class, 'settingsChangePassword'])->name('password.post');
-        Route::get('/api-keys', [App\Http\Controllers\Merchant\ApiKeyController::class, 'index'])->name('api-keys');
-        Route::post('/api-keys', [App\Http\Controllers\Merchant\ApiKeyController::class, 'store'])->name('api-keys.store');
-        Route::delete('/api-keys/{id}', [App\Http\Controllers\Merchant\ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
+
+        Route::middleware('merchant.owner')->group(function () {
+            Route::get('/profile', [App\Http\Controllers\Merchant\MerchantController::class, 'showProfile'])->name('profile');
+            Route::post('/profile', [App\Http\Controllers\Merchant\MerchantController::class, 'updateProfile'])->name('profile.post');
+            Route::post('/profile/regenerate-webhook-secret', [App\Http\Controllers\Merchant\MerchantController::class, 'regenerateWebhookSecret'])->name('profile.regenerate-webhook-secret');
+            Route::get('/api-keys', [App\Http\Controllers\Merchant\ApiKeyController::class, 'index'])->name('api-keys');
+            Route::post('/api-keys', [App\Http\Controllers\Merchant\ApiKeyController::class, 'store'])->name('api-keys.store');
+            Route::delete('/api-keys/{id}', [App\Http\Controllers\Merchant\ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
+        });
+    });
+
+    // Team: the people who work in this account (owners only)
+    Route::middleware('merchant.owner')->prefix('team')->name('team.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Merchant\TeamController::class, 'index'])->name('index');
+        Route::post('/', [App\Http\Controllers\Merchant\TeamController::class, 'invite'])->name('invite');
+        Route::put('/{id}/role', [App\Http\Controllers\Merchant\TeamController::class, 'updateRole'])->name('role');
+        Route::post('/{id}/resend', [App\Http\Controllers\Merchant\TeamController::class, 'resend'])->name('resend');
+        Route::delete('/{id}', [App\Http\Controllers\Merchant\TeamController::class, 'destroy'])->name('destroy');
     });
 });
 
 
 // ── Referral tracking ─────────────────────────────────────────────────────────
-Route::middleware(['auth:merchants', 'merchant.password.change'])->prefix('merchant')->name('merchant.')->group(function () {
+Route::middleware(['auth:merchants', 'merchant.member', 'merchant.owner', 'merchant.password.change'])->prefix('merchant')->name('merchant.')->group(function () {
     Route::get('/referrals',        [App\Http\Controllers\Merchant\ReferralController::class, 'index'])->name('referrals.index');
     Route::get('/referrals/export', [App\Http\Controllers\Merchant\ReferralController::class, 'export'])->name('referrals.export');
 });

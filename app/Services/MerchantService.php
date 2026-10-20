@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Merchant;
+use App\Models\MerchantUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -27,21 +28,61 @@ class MerchantService extends Service
     {
         $merchant = Merchant::where('email', $email)->first();
 
-        if (!$merchant || !Hash::check($password, $merchant->password)) {
+        if ($merchant) {
+            if (!Hash::check($password, $merchant->password) || !$merchant->is_active) {
+                return false;
+            }
+
+            $this->startSession($merchant, null);
+            return true;
+        }
+
+        // Not an account owner's login: try the people they've invited.
+        $member = MerchantUser::where('email', $email)->whereNotNull('password')->first();
+
+        if (!$member || !Hash::check($password, $member->password)) {
             return false;
         }
 
-        if (!$merchant->is_active) {
+        $parent = $member->merchant;
+
+        if (!$parent || $parent->trashed() || !$parent->is_active) {
             return false;
         }
 
-        Auth::guard('merchants')->login($merchant);
+        $member->forceFill(['last_login_at' => now()])->save();
+        $this->startSession($parent, $member);
+
         return true;
+    }
+
+    /**
+     * Sign in as the merchant account, remembering which member (if any) is
+     * behind it. Always overwrites any earlier member id so a previous
+     * person's role can't leak into the next sign-in on the same browser.
+     */
+    private function startSession(Merchant $merchant, ?MerchantUser $member): void
+    {
+        Auth::guard('merchants')->login($merchant);
+
+        if (app()->bound('session.store') && request()->hasSession()) {
+            request()->session()->regenerate();
+
+            if ($member) {
+                request()->session()->put('merchant_member_id', $member->id);
+            } else {
+                request()->session()->forget('merchant_member_id');
+            }
+        }
     }
 
     public function logout(): void
     {
         Auth::guard('merchants')->logout();
+
+        if (request()->hasSession()) {
+            request()->session()->forget('merchant_member_id');
+        }
     }
 
     public function getAll(array $filters = [], string $sortBy = 'created_at', string $sortDir = 'desc', int $perPage = 15)

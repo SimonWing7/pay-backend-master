@@ -25,6 +25,7 @@
     @endif
 
     {{-- Quick Actions --}}
+    @if(($teamRole ?? 'owner') !== 'viewer')
     <div class="card mb-6 p-6">
         <h3 style="font-size: 14px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;">
             Quick Actions
@@ -44,6 +45,7 @@
             </a>
         </div>
     </div>
+    @endif
 
     {{-- Stats Row 1: Resources --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -127,7 +129,7 @@
 
     </div>
 
-    @if(!empty($upcomingBilling))
+    @if(!empty($upcomingBilling) && ($teamRole ?? 'owner') === 'owner')
     <a href="{{ route('merchant.billing.index') }}" class="stat-card hover:shadow-md transition-shadow mb-6" style="display:block;">
         <div class="flex items-center justify-between">
             <div>

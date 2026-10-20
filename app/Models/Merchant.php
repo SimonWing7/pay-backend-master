@@ -114,6 +114,12 @@ class Merchant extends Authenticatable
         return $this->hasMany(MerchantEntity::class);
     }
 
+    /** People invited into this account (the merchant login itself is the primary owner). */
+    public function members()
+    {
+        return $this->hasMany(MerchantUser::class);
+    }
+
     public function billingCards()
     {
         return $this->hasMany(MerchantBillingCard::class);

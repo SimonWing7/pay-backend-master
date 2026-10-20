@@ -44,7 +44,7 @@ class MerchantController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'                    => 'required|string|max:255',
-            'email'                   => 'required|email|unique:merchants,email',
+            'email'                   => 'required|email|unique:merchants,email|unique:merchant_users,email',
             'password'                => 'required|string|min:8',
             'is_active'               => 'sometimes|boolean',
             'iban'                    => 'nullable|string|max:34',
@@ -171,7 +171,7 @@ class MerchantController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name'                    => 'sometimes|string|max:255',
-            'email'                   => 'sometimes|email|unique:merchants,email,' . $id,
+            'email'                   => 'sometimes|email|unique:merchants,email,' . $id . '|unique:merchant_users,email',
             'password'                => 'nullable|string|min:8',
             'is_active'               => 'sometimes|boolean',
             'iban'                    => 'nullable|string|max:34',

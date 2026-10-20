@@ -25,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
         
         $middleware->alias([
             'merchant.password.change' => \App\Http\Middleware\RequirePasswordChange::class,
+            'merchant.member'          => \App\Http\Middleware\ResolveMerchantMember::class,
+            'merchant.owner'           => \App\Http\Middleware\RequireMerchantOwner::class,
             'merchant.api.auth'        => \App\Http\Middleware\MerchantApiAuthenticate::class,
             'referral.signature'       => \App\Http\Middleware\VerifyEdfundoReferralSignature::class,
             'admin.require-2fa-invite' => \App\Http\Middleware\RequireTwoFactorForInvitedAdmins::class,

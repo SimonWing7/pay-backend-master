@@ -293,17 +293,19 @@
 
             <div class="nav-section-label">Account</div>
 
-            <a href="{{ route('merchant.settings.profile') }}"
-               class="nav-link {{ request()->routeIs('merchant.settings*') ? 'active' : '' }}">
+            <a href="{{ ($teamRole ?? 'owner') === 'owner' ? route('merchant.settings.profile') : route('merchant.settings.password') }}"
+               class="nav-link {{ request()->routeIs('merchant.settings*', 'merchant.team*') ? 'active' : '' }}">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
 
+            @if(($teamRole ?? 'owner') === 'owner')
             <a href="{{ route('merchant.billing.index') }}"
                class="nav-link {{ request()->routeIs('merchant.billing*') ? 'active' : '' }}">
                 <i class="fas fa-file-invoice-dollar"></i>
                 <span>Billing</span>
             </a>
+            @endif
 
         </nav>
 
@@ -311,13 +313,18 @@
         <div class="border-t border-white/10 pt-3">
             <div class="px-8 pb-2">
                 <p class="text-white/40 text-xs font-medium">Signed in as</p>
-                <p class="text-white/80 text-sm font-semibold truncate">{{ auth('merchants')->user()->name }}</p>
+                <p class="text-white/80 text-sm font-semibold truncate">{{ ($teamMember ?? null)?->name ?? auth('merchants')->user()->name }}</p>
+                @if(($teamMember ?? null))
+                <p class="text-white/40 text-xs truncate">{{ $teamMember->roleLabel() }} · {{ auth('merchants')->user()->merchant_trading_name ?: auth('merchants')->user()->name }}</p>
+                @endif
             </div>
+            @if(($teamRole ?? 'owner') === 'owner')
             <a href="{{ route('merchant.referrals.index') }}"
                class="nav-link {{ request()->routeIs('merchant.referrals*') ? 'active' : '' }}">
                 <i class="fas fa-gift"></i>
                 <span>Referrals</span>
             </a>
+            @endif
             <form method="POST" action="{{ route('merchant.logout') }}">
                 @csrf
                 <button type="submit" class="sidebar-logout">
@@ -339,12 +346,19 @@
                 <p class="text-xs text-gray-400 mt-0.5">@yield('page-subtitle', 'Welcome back')</p>
             </div>
             <div class="flex items-center gap-3">
-                @yield('topbar-actions')
+                @if(($teamRole ?? 'owner') !== 'viewer')
+                    @yield('topbar-actions')
+                @endif
             </div>
         </div>
 
         {{-- Flash messages --}}
         <div class="px-8 pt-6">
+            @if(($teamRole ?? 'owner') === 'viewer')
+                <div class="mb-5 flex items-center gap-3 rounded-lg px-4 py-3 text-sm" style="background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;">
+                    <i class="fas fa-eye"></i> You have view-only access. You can look around but not create or change anything.
+                </div>
+            @endif
             @if(session('success'))
                 <div class="alert-success mb-5 flex items-center gap-3">
                     <i class="fas fa-check-circle text-green-500"></i>

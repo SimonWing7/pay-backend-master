@@ -17,7 +17,9 @@ class RequirePasswordChange
     {
         $merchant = auth('merchants')->user();
 
-        if ($merchant && $merchant->must_change_password) {
+        // Invited members chose their own password; the flag is about the
+        // owner's login only and must not force them to change it.
+        if ($merchant && $merchant->must_change_password && !$request->session()->has('merchant_member_id')) {
             // Allow access to password change routes and logout
             if (!$request->routeIs('merchant.password.change') && 
                 !$request->routeIs('merchant.password.change.post') && 

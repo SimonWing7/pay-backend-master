@@ -44,7 +44,9 @@ class MerchantController extends Controller
 
         $merchant = \App\Models\Merchant::where('email', $request->input('email'))->first();
         
-        if ($merchant && !$merchant->is_active) {
+        $owner = $merchant ?? \App\Models\MerchantUser::where('email', $request->input('email'))->first()?->merchant;
+
+        if ($owner && !$owner->is_active) {
             return redirect()->back()
                 ->withErrors(['email' => 'Your account is not active. Please contact administrator.'])
                 ->withInput($request->except('password'));
@@ -63,7 +65,7 @@ class MerchantController extends Controller
 
         // Check if merchant must change password
         $merchant = auth('merchants')->user();
-        if ($merchant && $merchant->must_change_password) {
+        if ($merchant && $merchant->must_change_password && !session()->has('merchant_member_id')) {
             return redirect()->route('merchant.password.change');
         }
 
@@ -253,6 +255,19 @@ class MerchantController extends Controller
 
         $merchant = auth('merchants')->user();
 
+        // An invited member changes their own password, never the account's.
+        if ($member = $request->attributes->get('merchant_member')) {
+            if (!Hash::check($request->input('current_password'), $member->password)) {
+                return redirect()->back()
+                    ->withErrors(['current_password' => 'Current password is incorrect']);
+            }
+
+            $member->update(['password' => $request->input('new_password')]);
+
+            return redirect()->route('merchant.settings.password')
+                ->with('success', 'Password changed successfully');
+        }
+
         // Verify current password
         if (!\Illuminate\Support\Facades\Hash::check($request->input('current_password'), $merchant->password)) {
             return redirect()->back()
@@ -275,6 +290,22 @@ class MerchantController extends Controller
     public function sendResetLink(Request $request): RedirectResponse
     {
         $request->validate(['email' => 'required|email']);
+
+        // Invited members aren't in the merchants table, so the standard
+        // broker can't find them. Give them the same one-time set-password
+        // link used for invites, with a short life. Same message either way.
+        $member = \App\Models\Merchant::where('email', $request->input('email'))->exists()
+            ? null
+            : \App\Models\MerchantUser::where('email', $request->input('email'))->whereNotNull('password')->first();
+
+        if ($member) {
+            if ($member->merchant && $member->merchant->is_active) {
+                $token = $member->issueSetupToken(\App\Models\MerchantUser::RESET_VALID_HOURS);
+                \Illuminate\Support\Facades\Mail::to($member->email)->send(new \App\Mail\TeamInviteMail($member, $token, 'reset'));
+            }
+
+            return back()->with('status', 'If that email is registered, a reset link is on its way.');
+        }
 
         $status = Password::broker('merchants')->sendResetLink(
             $request->only('email')
