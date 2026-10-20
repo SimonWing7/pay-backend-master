@@ -22,8 +22,8 @@ class PublicInvoiceController extends Controller
             ->with(['merchant', 'consumer', 'invoiceDetails.product'])
             ->firstOrFail();
 
-        if (!$invoice->merchant || !$invoice->merchant->is_active) {
-            abort(403, 'This invoice is not available. The merchant account is inactive.');
+        if (!$invoice->merchant || !$invoice->merchant->acceptsPayments()) {
+            abort(403, 'This invoice is not available. This merchant is not able to take payments right now.');
         }
 
         $liveBanks = LeanBank::where('is_available', true)->orderBy('name')->get(['name']);
@@ -37,8 +37,8 @@ class PublicInvoiceController extends Controller
             ->with(['merchant', 'consumer', 'invoiceDetails.product'])
             ->firstOrFail();
 
-        if (!$invoice->merchant || !$invoice->merchant->is_active) {
-            abort(403, 'This invoice is not available. The merchant account is inactive.');
+        if (!$invoice->merchant || !$invoice->merchant->acceptsPayments()) {
+            abort(403, 'This invoice is not available. This merchant is not able to take payments right now.');
         }
 
         if ($invoice->status !== InvoiceStatus::Draft) {

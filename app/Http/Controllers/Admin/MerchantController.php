@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Merchant;
 use App\Models\MerchantApiKey;
 use App\Services\MerchantService;
 use App\Services\PaymentService;
@@ -26,13 +27,15 @@ class MerchantController extends Controller
         $filters = [
             'search' => $request->get('search'),
             'is_active' => $request->get('is_active'),
+            'onboarding' => $request->get('onboarding'),
         ];
         $sortBy = $request->get('sort_by', 'created_at');
         $sortDir = $request->get('sort_dir', 'desc');
         $perPage = $request->get('per_page', 15);
 
         $merchants = $this->merchantService->getAll($filters, $sortBy, $sortDir, $perPage);
-        return view('admin.merchants.index', compact('merchants'));
+        $awaitingReview = \App\Models\Merchant::where('onboarding_status', \App\Models\Merchant::ONBOARDING_SUBMITTED)->count();
+        return view('admin.merchants.index', compact('merchants', 'awaitingReview'));
     }
 
     public function create(): View
@@ -45,7 +48,7 @@ class MerchantController extends Controller
         $validator = Validator::make($request->all(), [
             'name'                    => 'required|string|max:255',
             'email'                   => 'required|email|unique:merchants,email|unique:merchant_users,email',
-            'password'                => 'required|string|min:8',
+            'password'                => 'nullable|string|min:8|required_without:send_welcome',
             'is_active'               => 'sometimes|boolean',
             'iban'                    => 'nullable|string|max:34',
             'bank_name'               => 'nullable|string|max:255',
@@ -109,7 +112,36 @@ class MerchantController extends Controller
             $data['logo_path'] = $request->file('logo')->store('logos', 'public');
         }
 
-        $this->merchantService->create($data);
+        $sendWelcome = $request->boolean('send_welcome');
+
+        // With the welcome email the merchant picks their own password, so
+        // the one stored until then is random and never shared.
+        if (empty($data['password'])) {
+            $data['password'] = \Illuminate\Support\Str::random(40);
+        }
+        unset($data['send_welcome']);
+
+        $data['onboarding_status'] = $request->boolean('skip_onboarding')
+            ? Merchant::ONBOARDING_APPROVED
+            : Merchant::ONBOARDING_NOT_STARTED;
+        $data['must_change_password'] = !$sendWelcome;
+
+        $merchant = $this->merchantService->create($data);
+
+        if ($sendWelcome) {
+            try {
+                $token = \Illuminate\Support\Facades\Password::broker('merchants_welcome')->createToken($merchant);
+                \Illuminate\Support\Facades\Mail::to($merchant->email)->send(new \App\Mail\MerchantWelcomeMail($merchant, $token));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Merchant welcome email failed', ['merchant_id' => $merchant->id, 'error' => $e->getMessage()]);
+
+                return redirect()->route('admin.merchants.show', $merchant->id)
+                    ->with('error', 'Merchant created, but the welcome email could not be sent. Use "Send welcome email" on this page to try again.');
+            }
+
+            return redirect()->route('admin.merchants.index')
+                ->with('success', "Merchant created. A welcome email with a link to set their password was sent to {$merchant->email}.");
+        }
 
         return redirect()->route('admin.merchants.index')
             ->with('success', 'Merchant created successfully');

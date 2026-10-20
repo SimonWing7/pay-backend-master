@@ -23,6 +23,7 @@ class Merchant extends Authenticatable
         'email',
         'password',
         'is_active',
+        'onboarding_status',
         'must_change_password',
         'iban',
         'bank_name',
@@ -112,6 +113,38 @@ class Merchant extends Authenticatable
     public function entities()
     {
         return $this->hasMany(MerchantEntity::class);
+    }
+
+    public const ONBOARDING_NOT_STARTED = 'not_started';
+    public const ONBOARDING_IN_PROGRESS = 'in_progress';
+    public const ONBOARDING_SUBMITTED = 'submitted';
+    public const ONBOARDING_CHANGES_REQUESTED = 'changes_requested';
+    public const ONBOARDING_APPROVED = 'approved';
+
+    public function onboarding()
+    {
+        return $this->hasOne(MerchantOnboarding::class);
+    }
+
+    /** Onboarding approved by Edfundo — the merchant may take real payments. */
+    public function isOnboarded(): bool
+    {
+        // A model built in memory before the DB default is applied has no value yet: that is 'approved'.
+        return ($this->onboarding_status ?? self::ONBOARDING_APPROVED) === self::ONBOARDING_APPROVED;
+    }
+
+    /** Payers can only pay a merchant whose account is active AND approved. */
+    public function acceptsPayments(): bool
+    {
+        return $this->is_active && $this->isOnboarded();
+    }
+
+    /** Still has onboarding to do (including after Edfundo asked for changes). */
+    public function onboardingIncomplete(): bool
+    {
+        return in_array($this->onboarding_status, [
+            self::ONBOARDING_NOT_STARTED, self::ONBOARDING_IN_PROGRESS, self::ONBOARDING_CHANGES_REQUESTED,
+        ], true);
     }
 
     /** People invited into this account (the merchant login itself is the primary owner). */

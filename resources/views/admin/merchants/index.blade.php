@@ -23,6 +23,20 @@
     :sortDir="request('sort_dir', 'desc')"
 />
 
+@if(($awaitingReview ?? 0) > 0 || request('onboarding'))
+<div class="card mt-4 p-4 flex items-center justify-between gap-4" style="border-color:#fcd34d;">
+    <p class="text-sm text-gray-700">
+        <i class="fas fa-clipboard-check text-amber-500"></i>
+        <strong>{{ $awaitingReview }}</strong> {{ \Illuminate\Support\Str::plural('merchant', $awaitingReview) }} waiting for onboarding review
+    </p>
+    @if(request('onboarding') === 'submitted')
+        <a href="{{ route('admin.merchants.index') }}" class="btn-secondary">Show all merchants</a>
+    @else
+        <a href="{{ route('admin.merchants.index', ['onboarding' => 'submitted']) }}" class="btn-secondary">Show only these</a>
+    @endif
+</div>
+@endif
+
 <div class="card overflow-hidden mt-4">
     <table class="data-table w-full">
         <thead>
@@ -64,6 +78,9 @@
                         <span class="badge-success">Active</span>
                     @else
                         <span class="badge-danger">Inactive</span>
+                    @endif
+                    @if($merchant->onboarding_status !== 'approved')
+                        <span class="badge-warning" style="margin-left:4px;">{{ $merchant->onboarding_status === 'submitted' ? 'Review' : 'Onboarding' }}</span>
                     @endif
                 </td>
                 <td class="text-sm text-gray-500">{{ $merchant->created_at->format('d M Y') }}</td>

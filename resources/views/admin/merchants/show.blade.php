@@ -280,6 +280,8 @@
 
 </div>
 
+@include('admin.merchants._onboarding')
+
 {{-- Billing --}}
 <div class="card p-6 mb-6">
     <div class="flex items-center justify-between mb-4">

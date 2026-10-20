@@ -79,6 +79,11 @@ class ProductPayerController extends Controller
     public function send(Request $request, int $id): RedirectResponse
     {
         $product = $this->product($request, $id);
+
+        if (!$request->user()->isOnboarded()) {
+            return redirect()->back()->with('error', 'Payment links can be sent once Edfundo has approved your account. Finish your set-up and we\'ll review it as soon as possible.');
+        }
+
         $queued = $this->payers->queueLinks($product);
 
         return $this->queuedResponse($product, $queued);
@@ -87,6 +92,11 @@ class ProductPayerController extends Controller
     public function retry(Request $request, int $id): RedirectResponse
     {
         $product = $this->product($request, $id);
+
+        if (!$request->user()->isOnboarded()) {
+            return redirect()->back()->with('error', 'Payment links can be sent once Edfundo has approved your account. Finish your set-up and we\'ll review it as soon as possible.');
+        }
+
         $queued = $this->payers->queueLinks($product, ['failed']);
 
         return $this->queuedResponse($product, $queued);

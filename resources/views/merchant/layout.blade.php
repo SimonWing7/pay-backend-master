@@ -354,6 +354,7 @@
 
         {{-- Flash messages --}}
         <div class="px-8 pt-6">
+            @include('merchant._onboarding-banner')
             @if(($teamRole ?? 'owner') === 'viewer')
                 <div class="mb-5 flex items-center gap-3 rounded-lg px-4 py-3 text-sm" style="background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;">
                     <i class="fas fa-eye"></i> You have view-only access. You can look around but not create or change anything.

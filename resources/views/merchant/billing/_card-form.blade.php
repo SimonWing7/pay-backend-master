@@ -1,6 +1,7 @@
 {{-- Consent + start of card registration. Expects: $card (nullable active card), $withTopBorder --}}
 <form method="POST" action="{{ route('merchant.billing.card.start') }}" class="{{ $withTopBorder ? 'border-t border-gray-100 pt-4' : '' }}">
     @csrf
+    @if(!empty($returnTo))<input type="hidden" name="return_to" value="{{ $returnTo }}">@endif
     <label class="flex items-start gap-2 mb-3 cursor-pointer">
         <input type="checkbox" name="consent" value="1" class="mt-1 h-4 w-4 rounded" style="accent-color:#3d01bd;" {{ old('consent') ? 'checked' : '' }}>
         <span class="text-xs text-gray-600 leading-relaxed">

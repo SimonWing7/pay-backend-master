@@ -27,8 +27,8 @@ class PublicProductController extends Controller
             ->with(['merchant', 'merchantEntity'])
             ->firstOrFail();
 
-        if (!$product->merchant || !$product->merchant->is_active) {
-            abort(403, 'This product is not available. The merchant account is inactive.');
+        if (!$product->merchant || !$product->merchant->acceptsPayments()) {
+            abort(403, 'This product is not available. This merchant is not able to take payments right now.');
         }
 
         $liveBanks = LeanBank::where('is_available', true)->orderBy('name')->get(['name']);
@@ -43,8 +43,8 @@ class PublicProductController extends Controller
             ->with('merchant')
             ->firstOrFail();
 
-        if (!$product->merchant || !$product->merchant->is_active) {
-            abort(403, 'This product is not available. The merchant account is inactive.');
+        if (!$product->merchant || !$product->merchant->acceptsPayments()) {
+            abort(403, 'This product is not available. This merchant is not able to take payments right now.');
         }
 
         $rules = [

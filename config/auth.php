@@ -122,6 +122,14 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+        // Same tokens, but valid for a week: used for the welcome email sent
+        // when Edfundo creates a merchant, which may sit unread for a while.
+        'merchants_welcome' => [
+            'provider' => 'merchants',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60 * 24 * 7,
+            'throttle' => 0,
+        ],
     ],
 
     /*

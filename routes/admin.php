@@ -38,6 +38,10 @@ Route::middleware(['auth:admin', 'admin.require-2fa-invite'])->prefix('admin')->
         Route::get('/{id}', [App\Http\Controllers\Admin\MerchantController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [App\Http\Controllers\Admin\MerchantController::class, 'edit'])->name('edit');
         Route::put('/{id}', [App\Http\Controllers\Admin\MerchantController::class, 'update'])->name('update');
+        Route::post('/{id}/onboarding/approve', [App\Http\Controllers\Admin\MerchantOnboardingController::class, 'approve'])->name('onboarding.approve');
+        Route::post('/{id}/onboarding/changes', [App\Http\Controllers\Admin\MerchantOnboardingController::class, 'requestChanges'])->name('onboarding.changes');
+        Route::post('/{id}/welcome', [App\Http\Controllers\Admin\MerchantOnboardingController::class, 'welcome'])->name('welcome');
+        Route::get('/{id}/onboarding/documents/{type}', [App\Http\Controllers\Admin\MerchantOnboardingController::class, 'document'])->name('onboarding.document');
         Route::post('/{id}/toggle-active', [App\Http\Controllers\Admin\MerchantController::class, 'toggleActive'])->name('toggle-active');
         Route::delete('/{id}', [App\Http\Controllers\Admin\MerchantController::class, 'delete'])->name('delete');
 

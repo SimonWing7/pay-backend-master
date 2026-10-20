@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Models\Merchant;
 use App\Services\MerchantService;
 use App\Services\PaymentService;
 use App\Services\WebhookService;
@@ -67,6 +68,13 @@ class MerchantController extends Controller
         $merchant = auth('merchants')->user();
         if ($merchant && $merchant->must_change_password && !session()->has('merchant_member_id')) {
             return redirect()->route('merchant.password.change');
+        }
+
+        // First time in: start the onboarding journey (account owners only).
+        if ($merchant && $merchant->onboarding_status === Merchant::ONBOARDING_NOT_STARTED
+            && (session('merchant_member_id') === null
+                || \App\Models\MerchantUser::whereKey(session('merchant_member_id'))->value('role') === 'owner')) {
+            return redirect()->route('merchant.onboarding.index');
         }
 
         return redirect()->route('merchant.dashboard');
@@ -333,18 +341,24 @@ class MerchantController extends Controller
             'password_confirmation' => 'required',
         ]);
 
-        $status = Password::broker('merchants')->reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($merchant, $password) {
-                $merchant->forceFill([
-                    'password'             => Hash::make($password),
-                    'remember_token'       => Str::random(60),
-                    'must_change_password' => false,
-                ])->save();
+        $apply = function ($merchant, $password) {
+            $merchant->forceFill([
+                'password'             => Hash::make($password),
+                'remember_token'       => Str::random(60),
+                'must_change_password' => false,
+            ])->save();
 
-                event(new PasswordReset($merchant));
-            }
-        );
+            event(new PasswordReset($merchant));
+        };
+
+        $credentials = $request->only('email', 'password', 'password_confirmation', 'token');
+
+        $status = Password::broker('merchants')->reset($credentials, $apply);
+
+        // A welcome-email link is good for a week rather than an hour.
+        if ($status === Password::INVALID_TOKEN) {
+            $status = Password::broker('merchants_welcome')->reset($credentials, $apply);
+        }
 
         return $status === Password::PASSWORD_RESET
             ? redirect()->route('merchant.login')->with('status', 'Password reset successfully. Please sign in.')

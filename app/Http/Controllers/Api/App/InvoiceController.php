@@ -30,9 +30,9 @@ class InvoiceController extends Controller
             ], 404);
         }
 
-        if (!$invoice->merchant || !$invoice->merchant->is_active) {
+        if (!$invoice->merchant || !$invoice->merchant->acceptsPayments()) {
             return response()->json([
-                'message' => 'This invoice is not available. The merchant account is inactive.',
+                'message' => 'This invoice is not available. This merchant is not able to take payments right now.',
             ], 403);
         }
 
@@ -60,9 +60,9 @@ class InvoiceController extends Controller
             ], 404);
         }
 
-        if (!$invoice->merchant || !$invoice->merchant->is_active) {
+        if (!$invoice->merchant || !$invoice->merchant->acceptsPayments()) {
             return response()->json([
-                'message' => 'Payment cannot be initiated. The merchant account is inactive.',
+                'message' => 'Payment cannot be initiated. This merchant is not able to take payments right now.',
             ], 403);
         }
 

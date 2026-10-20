@@ -117,6 +117,14 @@ Route::middleware(['auth:merchants', 'merchant.member', 'merchant.password.chang
         });
     });
 
+    // New-merchant onboarding journey (owners only)
+    Route::middleware('merchant.owner')->prefix('onboarding')->name('onboarding.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Merchant\OnboardingController::class, 'index'])->name('index');
+        Route::post('/submit', [App\Http\Controllers\Merchant\OnboardingController::class, 'submit'])->name('submit');
+        Route::get('/{step}', [App\Http\Controllers\Merchant\OnboardingController::class, 'show'])->where('step', 'welcome|business|bank|contact|fees|review')->name('show');
+        Route::post('/{step}', [App\Http\Controllers\Merchant\OnboardingController::class, 'save'])->where('step', 'welcome|business|bank|contact|fees|review')->name('save');
+    });
+
     // Team: the people who work in this account (owners only)
     Route::middleware('merchant.owner')->prefix('team')->name('team.')->group(function () {
         Route::get('/', [App\Http\Controllers\Merchant\TeamController::class, 'index'])->name('index');

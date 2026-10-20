@@ -160,6 +160,10 @@ class InvoiceController extends Controller
             abort(404, 'Invoice not found');
         }
 
+        if (!$request->user()->isOnboarded()) {
+            return redirect()->back()->with('error', 'Payment links can be sent once Edfundo has approved your account. Finish your set-up and we\'ll review it as soon as possible.');
+        }
+
         if (!$invoice->consumer?->email) {
             return redirect()->back()->with('error', 'This individual has no email address on file.');
         }

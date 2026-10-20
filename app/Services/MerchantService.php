@@ -103,6 +103,10 @@ class MerchantService extends Service
             $query->where('is_active', $filters['is_active']);
         }
 
+        if (!empty($filters['onboarding'])) {
+            $query->where('onboarding_status', $filters['onboarding']);
+        }
+
         // Apply sorting
         $allowedSorts = ['name', 'email', 'created_at', 'updated_at', 'is_active'];
         $sortBy = in_array($sortBy, $allowedSorts) ? $sortBy : 'created_at';
@@ -124,8 +128,9 @@ class MerchantService extends Service
             $data['password'] = Hash::make($data['password']);
         }
 
-        // Set must_change_password to true for new merchants
-        $data['must_change_password'] = true;
+        // New merchants must change an admin-set password, unless they are
+        // choosing their own through the welcome email.
+        $data['must_change_password'] = $data['must_change_password'] ?? true;
 
         return Merchant::create($data);
     }

@@ -49,9 +49,20 @@
                 @enderror
             </div>
 
-            <div class="mb-5">
-                <label for="password" class="form-label">Password <span class="text-red-400">*</span></label>
-                <input type="password" name="password" id="password" required
+            <div class="mb-5 p-4 rounded-lg" style="background:#f5f3ff;border:1px solid #ddd6fe;">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" name="send_welcome" id="send_welcome" value="1" {{ (count(session()->getOldInput()) ? old('send_welcome') : true) ? 'checked' : '' }}
+                        class="mt-1 h-4 w-4 rounded" style="accent-color: #3d01bd;">
+                    <span class="text-sm text-gray-700">
+                        <strong>Email the owner a welcome link</strong> so they choose their own password.
+                        <span class="block text-xs text-gray-500 mt-0.5">No password to share. On first sign-in they're guided through onboarding (business details, bank, contact, fees) and you review it before they can take real payments.</span>
+                    </span>
+                </label>
+            </div>
+
+            <div class="mb-5" id="password-field">
+                <label for="password" class="form-label">Password <span class="text-gray-400 font-normal">(only if not sending the welcome email)</span></label>
+                <input type="password" name="password" id="password"
                     class="form-input @error('password') border-red-400 @enderror">
                 @error('password')
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -232,10 +243,18 @@
             </div>
 
             <div class="mb-6 flex items-center gap-3 p-4 rounded-lg bg-gray-50 border border-gray-200">
-                <input type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active') ? 'checked' : '' }}
+                <input type="checkbox" name="is_active" id="is_active" value="1" {{ (count(session()->getOldInput()) ? old('is_active') : true) ? 'checked' : '' }}
                     class="h-4 w-4 rounded" style="accent-color: #3d01bd;">
                 <label for="is_active" class="text-sm font-medium text-gray-700 cursor-pointer">
                     Account active — merchant can log in immediately
+                </label>
+            </div>
+
+            <div class="mb-6 flex items-center gap-3 p-4 rounded-lg bg-gray-50 border border-gray-200">
+                <input type="checkbox" name="skip_onboarding" id="skip_onboarding" value="1" {{ old('skip_onboarding') ? 'checked' : '' }}
+                    class="h-4 w-4 rounded" style="accent-color: #3d01bd;">
+                <label for="skip_onboarding" class="text-sm font-medium text-gray-700 cursor-pointer">
+                    Skip onboarding — already set up (merchant can take payments straight away)
                 </label>
             </div>
 

@@ -44,9 +44,20 @@ class BillingController extends Controller
             'consent.accepted' => 'Please tick the box to authorise Edfundo to charge this card.',
         ]);
 
+        // Registering from the onboarding journey: come back to it afterwards.
+        if ($request->input('return_to') === 'onboarding') {
+            $request->session()->put('billing_return', 'onboarding');
+        } else {
+            $request->session()->forget('billing_return');
+        }
+
         $result = $this->billing->startCardSetup($request->user(), (string) $request->ip());
 
         if (!$result['success']) {
+            if ($request->session()->pull('billing_return') === 'onboarding') {
+                return redirect()->route('merchant.onboarding.show', 'fees')->with('error', $result['error']);
+            }
+
             return redirect()->route('merchant.billing.index')->with('error', $result['error']);
         }
 
@@ -81,6 +92,10 @@ class BillingController extends Controller
             'declined'       => ['error', 'The card could not be registered. Nothing was charged. Please try again or use a different card.'],
             default          => ['error', 'We could not confirm the card registration just now. Please check again in a minute.'],
         };
+
+        if (request()->session()->pull('billing_return') === 'onboarding') {
+            return redirect()->route('merchant.onboarding.show', 'fees')->with($flash[0], $flash[1]);
+        }
 
         return redirect()->route('merchant.billing.index')->with($flash[0], $flash[1]);
     }

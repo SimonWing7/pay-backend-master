@@ -346,7 +346,7 @@ class InvoiceService extends Service
             return null;
         }
 
-        if (!$invoice->merchant || !$invoice->merchant->is_active) {
+        if (!$invoice->merchant || !$invoice->merchant->acceptsPayments()) {
             return null;
         }
 
