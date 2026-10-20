@@ -238,6 +238,27 @@
             background: rgba(255,255,255,0.06);
             color: rgba(255,255,255,0.8);
         }
+
+        /* ---- Phones and small tablets ---- */
+        .nav-toggle { display: none; background: none; border: none; font-size: 20px; color: #374151; padding: 8px 10px 8px 0; cursor: pointer; }
+        .nav-overlay { display: none; }
+        @media (max-width: 900px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.2s ease; width: 270px; max-width: 85vw; overflow-y: auto; }
+            body.nav-open .sidebar { transform: translateX(0); box-shadow: 8px 0 32px rgba(0,0,38,0.35); }
+            body.nav-open .nav-overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,38,0.45); z-index: 45; }
+            .main-content { margin-left: 0; min-width: 0; }
+            .nav-toggle { display: inline-block; }
+            .topbar { padding: 0 16px; height: auto; min-height: 60px; gap: 10px; }
+            .topbar > div:first-of-type { min-width: 0; flex: 1; display: flex; align-items: center; }
+            .topbar > div:first-of-type > div { min-width: 0; }
+            .topbar h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .topbar p { display: none; }
+            .topbar .btn-primary, .topbar .btn-secondary { white-space: nowrap; padding: 8px 12px; font-size: 13px; }
+            .main-content .px-8 { padding-left: 16px; padding-right: 16px; }
+            /* Wide tables scroll sideways instead of squashing or being cut off. */
+            .main-content .card.overflow-hidden { overflow-x: auto; }
+            .main-content .data-table { min-width: 640px; }
+        }
     </style>
 </head>
 <body>
@@ -246,7 +267,8 @@
 <div class="flex">
 
     {{-- ===================== SIDEBAR ===================== --}}
-    <aside class="sidebar">
+    <div class="nav-overlay" onclick="document.body.classList.remove('nav-open')"></div>
+    <aside class="sidebar" id="sidebar">
 
         {{-- Logo --}}
         <div class="px-6 py-5">
@@ -342,8 +364,11 @@
         {{-- Top bar --}}
         <div class="topbar">
             <div>
+                <button type="button" class="nav-toggle" aria-label="Open menu" onclick="document.body.classList.add('nav-open')"><i class="fas fa-bars"></i></button>
+                <div>
                 <h1 class="text-base font-700 text-gray-800 font-bold">@yield('page-title', 'Dashboard')</h1>
                 <p class="text-xs text-gray-400 mt-0.5">@yield('page-subtitle', 'Welcome back')</p>
+                </div>
             </div>
             <div class="flex items-center gap-3">
                 @if(($teamRole ?? 'owner') !== 'viewer')
@@ -387,6 +412,13 @@
     @yield('content')
 @endauth
 
+<script>
+    // Close the mobile menu after choosing something, or with Escape.
+    document.querySelectorAll('.sidebar a').forEach(function (a) {
+        a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') document.body.classList.remove('nav-open'); });
+</script>
 @stack('scripts')
 </body>
 </html>
