@@ -112,6 +112,8 @@ class LeanWebhookController extends Controller
                 }
 
                 // Payment definitively failed / customer cancelled
+                $alreadyFailed = $payment->status === PaymentStatus::Failed;
+
                 $payment->update([
                     'status'        => PaymentStatus::Failed,
                     'lean_metadata' => $updatedMeta,
@@ -123,6 +125,12 @@ class LeanWebhookController extends Controller
                     $payment->invoice->update([
                         'status' => InvoiceStatus::Failed,
                     ]);
+                }
+
+                // Let the merchant's server know — once, on the transition, even
+                // if the bank repeats the notification.
+                if (!$alreadyFailed) {
+                    $paymentService->notifyPaymentFailed($payment, strtolower((string) $isoStatus));
                 }
                 break;
 

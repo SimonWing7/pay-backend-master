@@ -478,10 +478,8 @@ class PaymentService extends Service
         // browser never made it back to their return URL.
         $merchant = $payment->invoice?->merchant;
         if ($merchant && $payment->invoice) {
-            $this->webhookService->dispatch($merchant, 'payment.paid', [
-                'id'        => $payment->invoice->uuid,
-                'reference' => $payment->invoice->reference,
-            ]);
+            $payment->loadMissing('invoice.consumer', 'invoice.invoiceDetails');
+            $this->webhookService->dispatch($merchant, 'payment.paid', $this->buildWebhookPayload($payment));
         }
 
         if ($sendReceipt && !empty($payment->customer_email)) {
@@ -641,12 +639,16 @@ class PaymentService extends Service
     /**
      * Build the data payload sent to merchant webhooks.
      */
-    private function buildWebhookPayload(AppUserPayment $payment): array
+    private function buildWebhookPayload(AppUserPayment $payment, ?string $failureReason = null): array
     {
         $invoice  = $payment->invoice;
         $consumer = $invoice?->consumer;
 
-        return [
+        $payload = [
+            // `id` and `reference` come first and keep their original meaning:
+            // existing integrations (e.g. the Magento module) read exactly these.
+            'id'              => $invoice?->uuid,
+            'reference'       => $invoice?->reference,
             'payment_link_id' => $invoice?->uuid,
             'payment_id'      => $payment->id,
             'amount'          => (float) ($invoice?->total_fee ?? 0),
@@ -662,6 +664,29 @@ class PaymentService extends Service
                 ? $payment->updated_at?->toIso8601String()
                 : null,
         ];
+
+        if ($failureReason !== null) {
+            $payload['failure_reason'] = $failureReason;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Tell the merchant's webhook receiver that a payment attempt failed or
+     * was cancelled by the customer. The caller decides when this is a real
+     * transition (so a repeated bank notification doesn't send it twice).
+     *
+     * @param string $reason failed | rejected | cancelled
+     */
+    public function notifyPaymentFailed(AppUserPayment $payment, string $reason): void
+    {
+        $payment->loadMissing('invoice.merchant', 'invoice.consumer', 'invoice.invoiceDetails');
+
+        $merchant = $payment->invoice?->merchant;
+        if ($merchant) {
+            $this->webhookService->dispatch($merchant, 'payment.failed', $this->buildWebhookPayload($payment, $reason));
+        }
     }
 
     /**

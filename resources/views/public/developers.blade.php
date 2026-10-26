@@ -276,7 +276,7 @@
         {{-- Hero --}}
         <div class="hero">
             <h1>Edfundo Pay API</h1>
-            <p>Accept UAE Open Banking payments on your website or platform. Create payment links from your server, redirect customers to the hosted checkout page, and receive real-time webhook notifications when payments complete.</p>
+            <p>Accept UAE Open Banking payments on your website or platform. Create payment links from your server, redirect customers to the hosted checkout page, and receive real-time webhook notifications when payments are paid or fail.</p>
             <div class="hero-pills">
                 <span class="pill"><span class="pill-dot"></span> UAE Open Banking (Al Tareq)</span>
                 <span class="pill">AED only</span>
@@ -294,7 +294,7 @@
                 <li>Your server calls <code>POST /api/v1/payment-links</code> with the amount and description.</li>
                 <li>The API returns a <code>payment_url</code>. Redirect your customer to that URL.</li>
                 <li>The customer completes payment on the Edfundo hosted page via their bank.</li>
-                <li>Edfundo redirects the customer to your <code>return_url</code> and fires a webhook to your server.</li>
+                <li>Edfundo sends a signed webhook to your server (<code>payment.paid</code>, or <code>payment.failed</code> if the attempt fails), and the customer sees a confirmation with a button back to your <code>return_url</code>.</li>
             </ol>
         </section>
 
@@ -339,11 +339,13 @@
                 <tbody>
                     <tr><td><code>amount</code></td><td class="type">number</td><td><span class="req">Required</span></td><td>Payment amount in AED. Min 0.01, max 50,000.</td></tr>
                     <tr><td><code>description</code></td><td class="type">string</td><td><span class="req">Required</span></td><td>What the payment is for. Shown on the checkout page. Max 255 characters.</td></tr>
-                    <tr><td><code>return_url</code></td><td class="type">string</td><td><span class="opt">Optional</span></td><td>URL to redirect the customer to after successful payment. Receives <code>?status=paid&payment_link_id={id}</code>.</td></tr>
-                    <tr><td><code>cancel_url</code></td><td class="type">string</td><td><span class="opt">Optional</span></td><td>URL to redirect the customer to if payment fails. Receives <code>?status=failed&payment_link_id={id}</code>.</td></tr>
+                    <tr><td><code>reference</code></td><td class="type">string</td><td><span class="opt">Optional</span></td><td>Your own order or invoice number. Max 100 characters. Returned in responses and in webhooks. A second request with the same reference returns the existing unpaid or paid link instead of creating a duplicate.</td></tr>
+                    <tr><td><code>return_url</code></td><td class="type">string</td><td><span class="opt">Optional</span></td><td>Where the "Back to merchant" button on the confirmation page takes the customer after a successful payment. Receives <code>?status=paid&payment_link_id={id}</code>. This is a button, not an automatic redirect, so rely on the webhook or a status check to fulfil orders.</td></tr>
+                    <tr><td><code>cancel_url</code></td><td class="type">string</td><td><span class="opt">Optional</span></td><td>Where the customer is sent if they go back before paying, or normally when the payment fails (then with <code>?status=failed&payment_link_id={id}</code>).</td></tr>
                     <tr><td><code>customer.name</code></td><td class="type">string</td><td><span class="opt">Optional</span></td><td>Customer's full name.</td></tr>
                     <tr><td><code>customer.email</code></td><td class="type">string</td><td><span class="opt">Optional</span></td><td>Customer's email address.</td></tr>
                     <tr><td><code>customer.mobile</code></td><td class="type">string</td><td><span class="opt">Optional</span></td><td>Customer's mobile number, including country code (e.g. +971501234567).</td></tr>
+                    <tr><td><code>custom_fields</code></td><td class="type">array</td><td><span class="opt">Optional</span></td><td>Extra fields the customer fills in on the checkout page. Each item has a <code>label</code> (required, max 100 characters) and an optional <code>required</code> boolean.</td></tr>
                 </tbody>
             </table>
 
@@ -354,6 +356,7 @@
   -d '{
     "amount": 150.00,
     "description": "Swimming lesson - Term 2",
+    "reference": "ORDER-123",
     "return_url": "https://yoursite.com/orders/123/success",
     "cancel_url": "https://yoursite.com/orders/123/failed",
     "customer": {
@@ -367,11 +370,13 @@
             <pre><code class="language-json">{
   "data": {
     "id": "ebc78a63-abfd-4aa7-bd42-69c765b7759a",
-    "payment_url": "https://pay.edfundo.com/invoice/ebc78a63-abfd-4aa7-bd42-69c765b7759a",
+    "payment_url": "https://pay.edfundo.com/invoice/ebc78a63-abfd-4aa7-bd42-69c765b7759a?customer_name=Ahmed+Al+Mansouri&customer_email=ahmed%40example.com&customer_mobile=%2B971501234567",
     "amount": 150.00,
     "currency": "AED",
     "description": "Swimming lesson - Term 2",
     "status": "pending",
+    "reference": "ORDER-123",
+    "custom_fields": [],
     "return_url": "https://yoursite.com/orders/123/success",
     "cancel_url": "https://yoursite.com/orders/123/failed",
     "customer": {
@@ -383,7 +388,11 @@
     "created_at": "2026-06-28T10:00:00+00:00"
   }
 }</code></pre>
-            <p>Redirect your customer to the <code>payment_url</code> immediately after receiving this response.</p>
+            <p>Redirect your customer to the <code>payment_url</code> immediately after receiving this response. If you supplied <code>customer</code> details, the URL already carries them as query parameters so the checkout page opens pre-filled (the customer can still edit them). You can pre-fill a custom field yourself by appending <code>custom_fields[Label]=value</code> (URL-encoded).</p>
+            <div class="callout callout-info">
+                <span class="callout-icon">ℹ️</span>
+                <span><strong>Links expire after 24 hours.</strong> An unpaid link is then closed and reports <code>failed</code>. A failed payment also closes its link; to let the customer try again, create a new link (you can reuse the same <code>reference</code>, because a failed link is not counted).</span>
+            </div>
         </section>
 
         {{-- Get Payment Link --}}
@@ -416,6 +425,7 @@
     "currency": "AED",
     "description": "Swimming lesson - Term 2",
     "status": "paid",
+    "reference": "ORDER-123",
     "customer": {
       "name": "Ahmed Al Mansouri",
       "email": "ahmed@example.com",
@@ -461,6 +471,7 @@
       "currency": "AED",
       "description": "Swimming lesson - Term 2",
       "status": "complete",
+      "reference": "ORDER-123",
       "customer": {
         "name": "Ahmed Al Mansouri",
         "email": "ahmed@example.com",
@@ -483,10 +494,10 @@
         <section class="doc-section" id="webhook-overview">
             <h2>Webhooks</h2>
             <p>Edfundo sends a signed HTTP POST to your configured webhook URL whenever a payment changes status. Webhooks are the most reliable way to update your system — they fire even if the customer closes their browser before being redirected back to your site.</p>
-            <p>Configure your webhook URL in <strong>Settings → Business Profile</strong>. A secret is auto-generated when you save a URL for the first time.</p>
+            <p>Configure your webhook URL in <strong>Settings → Business Profile</strong>. A secret is auto-generated when you save a URL for the first time. Webhooks are sent from IPv4 address <code>3.124.43.40</code> if you restrict access by IP.</p>
             <div class="callout callout-info">
                 <span class="callout-icon">ℹ️</span>
-                <span>Your endpoint must return a <strong>2xx HTTP status</strong> within 10 seconds. Failed deliveries are logged but not automatically retried in the current version.</span>
+                <span>Your endpoint must return a <strong>2xx HTTP status</strong> within 10 seconds. Failed deliveries are logged but <strong>not retried</strong>, so also confirm any order that is still unpaid after a while with <code>GET /api/v1/payment-links/{id}</code>, and make your handler idempotent.</span>
             </div>
         </section>
 
@@ -494,12 +505,16 @@
         <section class="doc-section" id="webhook-events">
             <h2>Webhook Events</h2>
 
-            <div class="event-badge">⚡ payment.completed</div>
-            <p>Fired when a payment is successfully confirmed by the bank.</p>
+            <p>Every event has the same envelope: <code>event</code>, <code>created_at</code> and a <code>data</code> object. Two fields are always present in <code>data</code> and are the ones to key on: <code>id</code> (the payment link ID) and <code>reference</code> (the reference you supplied, or <code>null</code>).</p>
+
+            <div class="event-badge">⚡ payment.paid</div>
+            <p>Sent once when the customer's bank confirms the payment.</p>
             <pre><code class="language-json">{
-  "event": "payment.completed",
+  "event": "payment.paid",
   "created_at": "2026-06-28T10:05:22+00:00",
   "data": {
+    "id": "ebc78a63-abfd-4aa7-bd42-69c765b7759a",
+    "reference": "ORDER-123",
     "payment_link_id": "ebc78a63-abfd-4aa7-bd42-69c765b7759a",
     "payment_id": 42,
     "amount": 150.00,
@@ -516,11 +531,13 @@
 }</code></pre>
 
             <div class="event-badge">❌ payment.failed</div>
-            <p>Fired when a payment is declined or cancelled by the customer.</p>
+            <p>Sent when a payment attempt is declined or rejected by the bank, or cancelled by the customer. It is sent once per failed attempt. <code>failure_reason</code> is <code>failed</code>, <code>rejected</code> or <code>cancelled</code>.</p>
             <pre><code class="language-json">{
   "event": "payment.failed",
   "created_at": "2026-06-28T10:04:11+00:00",
   "data": {
+    "id": "ebc78a63-abfd-4aa7-bd42-69c765b7759a",
+    "reference": "ORDER-123",
     "payment_link_id": "ebc78a63-abfd-4aa7-bd42-69c765b7759a",
     "payment_id": 42,
     "amount": 150.00,
@@ -528,9 +545,14 @@
     "status": "failed",
     "description": "Swimming lesson - Term 2",
     "customer": { ... },
-    "paid_at": null
+    "paid_at": null,
+    "failure_reason": "rejected"
   }
 }</code></pre>
+            <div class="callout callout-info">
+                <span class="callout-icon">ℹ️</span>
+                <span>No event is sent while a payment is still in progress, for payments the customer simply abandons (they time out after 24 hours), or for payments confirmed manually by a merchant. A single link can have several attempts, so one link may receive a <code>payment.failed</code> and later a <code>payment.paid</code> if it stays payable. Handle events by <code>reference</code>, and treat <code>payment.paid</code> as the authority.</span>
+            </div>
         </section>
 
         {{-- Webhook Verification --}}
@@ -560,10 +582,12 @@ if (!hash_equals($expected, $signature)) {
 
 $event = json_decode($payload, true);
 
-if ($event['event'] === 'payment.completed') {
-    $paymentLinkId = $event['data']['payment_link_id'];
-    $amount        = $event['data']['amount'];
-    // Mark the order as paid in your system
+if ($event['event'] === 'payment.paid') {
+    $reference = $event['data']['reference'];   // your order reference
+    $amount    = $event['data']['amount'];
+    // Find the order by reference, skip it if already paid, otherwise mark it paid
+} elseif ($event['event'] === 'payment.failed') {
+    // Optionally tell the customer or release the order; they can retry with a new link
 }
 
 http_response_code(200);
@@ -580,15 +604,19 @@ app.post('/webhooks/edfundo', express.raw({ type: 'application/json' }), (req, r
         .update(req.body)
         .digest('hex');
 
-    if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) {
+    const a = Buffer.from(expected);
+    const b = Buffer.from(signature);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
         return res.status(401).send('Invalid signature');
     }
 
     const event = JSON.parse(req.body);
 
-    if (event.event === 'payment.completed') {
-        const { payment_link_id, amount } = event.data;
-        // Mark the order as paid in your system
+    if (event.event === 'payment.paid') {
+        const { reference, amount } = event.data;
+        // Find the order by reference, skip it if already paid, otherwise mark it paid
+    } else if (event.event === 'payment.failed') {
+        // Optionally tell the customer or release the order
     }
 
     res.status(200).send('OK');
@@ -613,10 +641,12 @@ def webhook():
 
     event = request.get_json()
 
-    if event['event'] == 'payment.completed':
-        payment_link_id = event['data']['payment_link_id']
-        amount          = event['data']['amount']
-        # Mark the order as paid in your system
+    if event['event'] == 'payment.paid':
+        reference = event['data']['reference']
+        amount    = event['data']['amount']
+        # Find the order by reference, skip it if already paid, otherwise mark it paid
+    elif event['event'] == 'payment.failed':
+        pass  # optionally tell the customer or release the order
 
     return 'OK', 200</code></pre>
                 </div>
@@ -691,7 +721,9 @@ $paymentUrl = $response->json('data.payment_url');</code></pre>
                 <tbody>
                     <tr><td><span class="status s-401">401</span></td><td>Missing or invalid API key. Check your <code>Authorization: Bearer</code> header.</td></tr>
                     <tr><td><span class="status s-404">404</span></td><td>Payment link not found, or it belongs to a different merchant account.</td></tr>
+                    <tr><td><span class="status s-422">409</span></td><td>Another request for the same <code>reference</code> is still being processed. Wait a moment and retry.</td></tr>
                     <tr><td><span class="status s-422">422</span></td><td>Validation failed. The <code>errors</code> field lists which parameters are invalid.</td></tr>
+                    <tr><td><span class="status s-422">429</span></td><td>Rate limit exceeded (600 requests per minute per key). Back off and retry shortly.</td></tr>
                 </tbody>
             </table>
 
@@ -711,13 +743,13 @@ $paymentUrl = $response->json('data.payment_url');</code></pre>
             <table class="param-table">
                 <thead><tr><th>Status</th><th>Applies to</th><th>Meaning</th></tr></thead>
                 <tbody>
-                    <tr><td><code>pending</code></td><td>Payment link</td><td>Link created, awaiting customer payment.</td></tr>
+                    <tr><td><code>pending</code></td><td>Payment link</td><td>Link created. Payment not started, in progress, or waiting for the bank to confirm (this can occasionally take over an hour; do not cancel orders on a short timer).</td></tr>
                     <tr><td><code>paid</code></td><td>Payment link</td><td>Payment confirmed by the bank.</td></tr>
-                    <tr><td><code>failed</code></td><td>Payment link</td><td>Payment was declined or cancelled.</td></tr>
+                    <tr><td><code>failed</code></td><td>Payment link</td><td>Payment was declined or cancelled, or the link expired unpaid (24 hours).</td></tr>
                     <tr><td><code>archived</code></td><td>Payment link</td><td>Link has been archived by the merchant.</td></tr>
                     <tr><td><code>pending</code></td><td>Payment</td><td>Payment initiated but not yet confirmed.</td></tr>
                     <tr><td><code>complete</code></td><td>Payment</td><td>Bank confirmed the transfer.</td></tr>
-                    <tr><td><code>failed</code></td><td>Payment</td><td>Bank declined or customer cancelled.</td></tr>
+                    <tr><td><code>failed</code></td><td>Payment</td><td>Bank declined or rejected the payment, the customer cancelled, or the attempt was abandoned.</td></tr>
                 </tbody>
             </table>
         </section>
