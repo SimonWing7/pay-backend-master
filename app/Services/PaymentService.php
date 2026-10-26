@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Invoice;
 use App\Enums\InvoiceStatus;
 use App\Enums\PaymentStatus;
 use App\Models\AppUserPayment;
@@ -641,28 +642,38 @@ class PaymentService extends Service
      */
     private function buildWebhookPayload(AppUserPayment $payment, ?string $failureReason = null): array
     {
-        $invoice  = $payment->invoice;
+        return $this->webhookData(
+            $payment->invoice,
+            $payment,
+            $payment->status === PaymentStatus::Complete ? 'paid' : 'failed',
+            $failureReason
+        );
+    }
+
+    /**
+     * One payload shape for every merchant webhook. `id` and `reference` come
+     * first and keep their original meaning: existing integrations (e.g. the
+     * Magento module) read exactly these.
+     */
+    private function webhookData(?Invoice $invoice, ?AppUserPayment $payment, string $status, ?string $failureReason = null): array
+    {
         $consumer = $invoice?->consumer;
 
         $payload = [
-            // `id` and `reference` come first and keep their original meaning:
-            // existing integrations (e.g. the Magento module) read exactly these.
             'id'              => $invoice?->uuid,
             'reference'       => $invoice?->reference,
             'payment_link_id' => $invoice?->uuid,
-            'payment_id'      => $payment->id,
+            'payment_id'      => $payment?->id,
             'amount'          => (float) ($invoice?->total_fee ?? 0),
             'currency'        => 'AED',
-            'status'          => $payment->status === PaymentStatus::Complete ? 'paid' : 'failed',
+            'status'          => $status,
             'description'     => $invoice?->invoiceDetails?->first()?->title,
             'customer'        => $consumer ? [
                 'name'   => $consumer->name,
                 'email'  => $consumer->email,
                 'mobile' => $consumer->mobile_number,
             ] : null,
-            'paid_at' => $payment->status === PaymentStatus::Complete
-                ? $payment->updated_at?->toIso8601String()
-                : null,
+            'paid_at' => $status === 'paid' ? $payment?->updated_at?->toIso8601String() : null,
         ];
 
         if ($failureReason !== null) {
@@ -677,7 +688,7 @@ class PaymentService extends Service
      * was cancelled by the customer. The caller decides when this is a real
      * transition (so a repeated bank notification doesn't send it twice).
      *
-     * @param string $reason failed | rejected | cancelled
+     * @param string $reason failed | rejected | cancelled | abandoned
      */
     public function notifyPaymentFailed(AppUserPayment $payment, string $reason): void
     {
@@ -686,6 +697,23 @@ class PaymentService extends Service
         $merchant = $payment->invoice?->merchant;
         if ($merchant) {
             $this->webhookService->dispatch($merchant, 'payment.failed', $this->buildWebhookPayload($payment, $reason));
+        }
+    }
+
+    /**
+     * A payment link nobody ever started paying expired after its validity
+     * window. There is no payment attempt, so `payment_id` is null.
+     */
+    public function notifyLinkExpired(Invoice $invoice): void
+    {
+        $invoice->loadMissing('merchant', 'consumer', 'invoiceDetails');
+
+        if ($invoice->merchant) {
+            $this->webhookService->dispatch(
+                $invoice->merchant,
+                'payment.failed',
+                $this->webhookData($invoice, null, 'failed', 'expired')
+            );
         }
     }
 

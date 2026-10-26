@@ -531,7 +531,7 @@
 }</code></pre>
 
             <div class="event-badge">❌ payment.failed</div>
-            <p>Sent when a payment attempt is declined or rejected by the bank, or cancelled by the customer. It is sent once per failed attempt. <code>failure_reason</code> is <code>failed</code>, <code>rejected</code> or <code>cancelled</code>.</p>
+            <p>Sent when a payment will not complete. It is sent once per failed attempt. <code>failure_reason</code> says why: <code>failed</code> or <code>rejected</code> (the bank could not complete or rejected it), <code>cancelled</code> (the customer cancelled at their bank), <code>abandoned</code> (the customer started paying but never finished, reported after 24 hours), or <code>expired</code> (the link was never used within 24 hours; <code>payment_id</code> is <code>null</code>).</p>
             <pre><code class="language-json">{
   "event": "payment.failed",
   "created_at": "2026-06-28T10:04:11+00:00",
@@ -551,7 +551,7 @@
 }</code></pre>
             <div class="callout callout-info">
                 <span class="callout-icon">ℹ️</span>
-                <span>No event is sent while a payment is still in progress, for payments the customer simply abandons (they time out after 24 hours), or for payments confirmed manually by a merchant. A single link can have several attempts, so one link may receive a <code>payment.failed</code> and later a <code>payment.paid</code> if it stays payable. Handle events by <code>reference</code>, and treat <code>payment.paid</code> as the authority.</span>
+                <span>No event is sent while a payment is still in progress or waiting for the bank, or for payments confirmed manually by a merchant. A payment that is abandoned, or a link that is never used, is reported as <code>payment.failed</code> once the 24-hour window closes, so you can release the order. A single link can have several attempts, so one link may receive a <code>payment.failed</code> and later a <code>payment.paid</code> if it stays payable. Handle events by <code>reference</code>, and treat <code>payment.paid</code> as the authority.</span>
             </div>
         </section>
 

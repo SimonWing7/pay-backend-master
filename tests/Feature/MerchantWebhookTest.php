@@ -201,6 +201,8 @@ class MerchantWebhookTest extends TestCase
         $this->assertStringContainsString('payment.paid', $html);
         $this->assertStringContainsString('payment.failed', $html);
         $this->assertStringContainsString('failure_reason', $html);
+        $this->assertStringContainsString('abandoned', $html);
+        $this->assertStringContainsString('expired', $html);
         $this->assertStringContainsString('3.124.43.40', $html);
         // The older mobile-app event name must not be documented for merchants.
         $this->assertStringNotContainsString('payment.completed', $html);
