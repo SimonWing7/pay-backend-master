@@ -58,6 +58,7 @@ class ProductPayerController extends Controller
             'student_name' => 'nullable|string|max:255',
             'email'        => 'nullable|email|max:255',
             'mobile'       => 'nullable|string|max:50',
+            'amount'       => 'nullable|numeric|gt:0|max:1000000',
         ]);
 
         $validator->after(function ($v) use ($request) {
@@ -156,9 +157,10 @@ class ProductPayerController extends Controller
         return response()->streamDownload(function () {
             $out = fopen('php://output', 'w');
             fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($out, ['Parent Name', 'Student/Player Name', 'Parent Email', 'Parent Mobile']);
-            fputcsv($out, ['Chris Daniels', 'Henry Daniels', 'chris@example.com', '+971501234567']);
-            fputcsv($out, ['Chris Daniels', 'Poppy Daniels', 'chris@example.com', '+971501234567']);
+            fputcsv($out, ['Parent Name', 'Student/Player Name', 'Parent Email', 'Parent Mobile', 'Amount']);
+            fputcsv($out, ['Chris Daniels', 'Henry Daniels', 'chris@example.com', '+971501234567', '14500']);
+            fputcsv($out, ['Chris Daniels', 'Poppy Daniels', 'chris@example.com', '+971501234567', '13050']);
+            fputcsv($out, ['Sam Jones', 'Ella Jones', 'sam@example.com', '+971507654321', '']);
             fclose($out);
         }, 'payers_template.csv', ['Content-Type' => 'text/csv']);
     }
@@ -192,6 +194,9 @@ class ProductPayerController extends Controller
             ? "{$r['children']} " . ($r['children'] === 1 ? 'payer' : 'payers') . ' added'
             : "{$r['children']} children added as {$r['invoices']} " . ($r['invoices'] === 1 ? 'invoice' : 'invoices') . ' (families combined)';
 
+        if (($r['custom'] ?? 0) > 0) {
+            $parts[] = "{$r['custom']} with their own amount from the file";
+        }
         if ($r['already'] > 0) {
             $parts[] = "{$r['already']} already on this product";
         }

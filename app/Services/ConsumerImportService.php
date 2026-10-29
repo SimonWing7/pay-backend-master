@@ -6,6 +6,12 @@ use App\Models\Consumer;
 
 class ConsumerImportService extends Service
 {
+    /** Header names accepted for a row's own amount (lower-cased). */
+    private const AMOUNT_COLUMNS = ['amount', 'amount (aed)', 'amount aed', 'amount due', 'fee', 'fee (aed)', 'term fee'];
+
+    /** Anything above this is almost certainly a typo (an extra zero, a phone number in the wrong column). */
+    private const MAX_AMOUNT = 1000000;
+
     /**
      * Bulk-create/update Consumer records for a merchant from a CSV of
      * parent/student contacts, so they're ready to check off on the Bulk
@@ -17,11 +23,17 @@ class ConsumerImportService extends Service
      * re-uploading the same list updates rather than duplicates, while
      * siblings (same parent contact, different student) stay separate.
      *
+     * An optional Amount column (Amount, Amount (AED), Fee, ...) gives that
+     * row's own amount; blank means "use the product's fee". A value that isn't
+     * a positive number skips the row rather than guessing.
+     *
      * `consumer_ids` lists every contact the file referred to (created or
      * updated), in file order, so the caller can act on exactly those people.
-     * `skipped_rows` says which rows were ignored and why (row 1 is the header).
+     * `amounts` maps contact id => that contact's own amount (only those rows
+     * that had one). `skipped_rows` says which rows were ignored and why (row 1
+     * is the header).
      *
-     * @return array{rows: int, created: int, updated: int, skipped: int, consumer_ids: list<int>, skipped_rows: list<array{row: int, reason: string}>}
+     * @return array{rows: int, created: int, updated: int, skipped: int, consumer_ids: list<int>, amounts: array<int, float>, skipped_rows: list<array{row: int, reason: string}>}
      */
     public function import(string $csvContents, int $merchantId): array
     {
@@ -32,7 +44,7 @@ class ConsumerImportService extends Service
             throw new \InvalidArgumentException('That file has ' . count($rows) . ' rows — the limit is ' . number_format($max) . ' per upload. Please split it into smaller files.');
         }
 
-        $stats = ['rows' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0, 'consumer_ids' => [], 'skipped_rows' => []];
+        $stats = ['rows' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0, 'consumer_ids' => [], 'amounts' => [], 'skipped_rows' => []];
 
         foreach ($rows as $row) {
             $stats['rows']++;
@@ -44,11 +56,21 @@ class ConsumerImportService extends Service
 
             $normalizedMobile = $this->normalizeMobile($mobile);
 
-            if (!$name || (!$email && !$normalizedMobile)) {
+            $rawAmount = trim((string) $this->firstValue($row, self::AMOUNT_COLUMNS));
+            $amount = $rawAmount === '' ? null : $this->parseAmount($rawAmount);
+
+            $reason = match (true) {
+                !$name                                   => 'no parent name',
+                !$email && !$normalizedMobile            => 'no email or mobile number',
+                $rawAmount !== '' && $amount === null    => "amount \"{$rawAmount}\" is not a valid amount (use a number such as 14500 or 14,500.50)",
+                default                                  => null,
+            };
+
+            if ($reason !== null) {
                 $stats['skipped']++;
                 $stats['skipped_rows'][] = [
                     'row'    => $stats['rows'] + 1, // +1: the header is row 1
-                    'reason' => !$name ? 'no parent name' : 'no email or mobile number',
+                    'reason' => $reason,
                 ];
                 continue;
             }
@@ -89,6 +111,10 @@ class ConsumerImportService extends Service
             if (!in_array($consumer->id, $stats['consumer_ids'], true)) {
                 $stats['consumer_ids'][] = $consumer->id;
             }
+
+            if ($amount !== null) {
+                $stats['amounts'][$consumer->id] = $amount;
+            }
         }
 
         return $stats;
@@ -119,6 +145,23 @@ class ConsumerImportService extends Service
         return $sameStudent ?? $candidates->first(
             fn (Consumer $c) => $c->student_name === null || trim($c->student_name) === ''
         );
+    }
+
+    /**
+     * "14,500", "AED 14500.50", "14 500" -> a positive amount with at most two
+     * decimals, or null when it isn't one.
+     */
+    private function parseAmount(string $raw): ?float
+    {
+        $clean = preg_replace('/(?i:aed|dhs?|dirhams?)|[\s,]/u', '', $raw);
+
+        if (!preg_match('/^\d+(\.\d{1,2})?$/', $clean)) {
+            return null;
+        }
+
+        $value = round((float) $clean, 2);
+
+        return $value > 0 && $value <= self::MAX_AMOUNT ? $value : null;
     }
 
     private function firstValue(array $row, array $keys): ?string

@@ -193,7 +193,10 @@ class InvoiceService extends Service
      * @param list<int> $consumerIds in the order they should appear
      * @return array{invoices: SupportCollection, children: int, already: int}
      */
-    public function addPayersToProduct(Product $product, array $consumerIds, bool $combine = true): array
+    /**
+     * @param array<int, float> $amounts contact id => that person's own amount; anyone missing pays the product's fee
+     */
+    public function addPayersToProduct(Product $product, array $consumerIds, bool $combine = true, array $amounts = []): array
     {
         $order = array_flip($consumerIds);
 
@@ -211,16 +214,20 @@ class InvoiceService extends Service
             : $fresh->map(fn (Consumer $c) => collect([$c]));
 
         $invoices = collect();
+        $custom = 0;
 
         foreach ($groups as $members) {
             // The invoice (and its email) goes to a family member we can
             // actually email, if there is one.
             $primary = $members->first(fn (Consumer $c) => !empty($c->email)) ?? $members->first();
 
+            // Each child pays their own amount from the file, or the product's fee.
+            $feeFor = fn (Consumer $c) => (float) ($amounts[$c->id] ?? $product->fee);
+
             $invoice = Invoice::create([
                 'consumer_id' => $primary->id,
                 'merchant_id' => $product->merchant_id,
-                'total_fee' => round($product->fee * $members->count(), 2),
+                'total_fee' => round($members->sum($feeFor), 2),
                 'status' => InvoiceStatus::Draft,
                 // Not matched by ExpireStaleInvoices' personal/null check, so
                 // these stay open for as long as reminders keep running
@@ -234,16 +241,19 @@ class InvoiceService extends Service
                     'invoice_id' => $invoice->id,
                     'product_id' => $product->id,
                     'consumer_id' => $member->id,
-                    'fee' => $product->fee,
+                    'fee' => $feeFor($member),
                     'title' => $this->lineTitle($product->name, $member, $members->count()),
                 ]);
             }
+
+            $custom += $members->filter(fn (Consumer $c) => isset($amounts[$c->id]))->count();
 
             $invoices->push($invoice->load(['consumer', 'merchant', 'invoiceDetails.product', 'invoiceDetails.consumer']));
         }
 
         return [
             'invoices' => $invoices,
+            'custom'   => $custom,
             'children' => $fresh->count(),
             'already'  => $consumers->count() - $fresh->count(),
         ];

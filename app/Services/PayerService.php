@@ -28,14 +28,14 @@ class PayerService
      * create their invoices for this product, all in one transaction so a
      * failed upload leaves nothing half-done. Nothing is emailed.
      *
-     * @return array{contacts_created: int, contacts_updated: int, skipped: int, skipped_rows: list<array{row: int, reason: string}>, invoices: int, children: int, already: int}
+     * @return array{contacts_created: int, contacts_updated: int, skipped: int, skipped_rows: list<array{row: int, reason: string}>, invoices: int, custom: int, children: int, already: int}
      * @throws \InvalidArgumentException when the file is too large
      */
     public function importCsv(Product $product, string $csv, bool $combine = true): array
     {
         return DB::transaction(function () use ($product, $csv, $combine) {
             $import = $this->consumerImport->import($csv, $product->merchant_id);
-            $added = $this->invoiceService->addPayersToProduct($product, $import['consumer_ids'], $combine);
+            $added = $this->invoiceService->addPayersToProduct($product, $import['consumer_ids'], $combine, $import['amounts']);
 
             return [
                 'contacts_created' => $import['created'],
@@ -43,6 +43,7 @@ class PayerService
                 'skipped'          => $import['skipped'],
                 'skipped_rows'     => $import['skipped_rows'],
                 'invoices'         => $added['invoices']->count(),
+                'custom'           => $added['custom'],
                 'children'         => $added['children'],
                 'already'          => $added['already'],
             ];
@@ -52,13 +53,13 @@ class PayerService
     /**
      * Add one person by hand, through the same path as a CSV row.
      *
-     * @param array{name: string, student_name?: ?string, email?: ?string, mobile?: ?string} $payer
+     * @param array{name: string, student_name?: ?string, email?: ?string, mobile?: ?string, amount?: float|string|null} $payer
      */
     public function addOne(Product $product, array $payer): array
     {
         $out = fopen('php://temp', 'r+');
-        fputcsv($out, ['Parent Name', 'Student/Player Name', 'Parent Email', 'Parent Mobile']);
-        fputcsv($out, [$payer['name'], $payer['student_name'] ?? '', $payer['email'] ?? '', $payer['mobile'] ?? '']);
+        fputcsv($out, ['Parent Name', 'Student/Player Name', 'Parent Email', 'Parent Mobile', 'Amount']);
+        fputcsv($out, [$payer['name'], $payer['student_name'] ?? '', $payer['email'] ?? '', $payer['mobile'] ?? '', $payer['amount'] ?? '']);
         rewind($out);
         $csv = stream_get_contents($out);
         fclose($out);

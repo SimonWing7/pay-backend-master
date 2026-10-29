@@ -540,7 +540,112 @@ class ProductPayersTest extends TestCase
 
         $template = $this->actingAs($this->merchant, 'merchants')->get(route('merchant.products.payers.template', $this->term1->id))->streamedContent();
         $header = str_getcsv(ltrim(strtok($template, "\n"), "\xEF\xBB\xBF"));
-        $this->assertSame(['Parent Name', 'Student/Player Name', 'Parent Email', 'Parent Mobile'], $header);
+        $this->assertSame(['Parent Name', 'Student/Player Name', 'Parent Email', 'Parent Mobile', 'Amount'], $header);
+    }
+
+    // -- each payer's own amount ------------------------------------------
+
+    private const AMOUNT_HEADER = "Parent Name,Student/Player Name,Parent Email,Parent Mobile,Amount\n";
+
+    public function test_an_amount_column_gives_each_payer_their_own_amount_and_blank_uses_the_product_fee(): void
+    {
+        $this->upload($this->term1, self::AMOUNT_HEADER
+            . "Chris Daniels,Henry Daniels,chris@example.com,0501234567,14500\n"
+            . "Pat Jones,Sam Jones,pat@example.com,0507654321,\n"
+            . "Lee Wong,Amy Wong,lee@example.com,0509999999,\"9,750.50\"\n")
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success', fn ($m) => str_contains($m, '2 with their own amount'));
+
+        $byParent = Invoice::with('consumer', 'invoiceDetails')->get()->keyBy(fn ($i) => $i->consumer->name);
+        $this->assertSame(14500.0, (float) $byParent['Chris Daniels']->total_fee);
+        $this->assertSame(1000.0, (float) $byParent['Pat Jones']->total_fee);
+        $this->assertSame(9750.5, (float) $byParent['Lee Wong']->total_fee);
+        $this->assertSame(14500.0, (float) $byParent['Chris Daniels']->invoiceDetails->first()->fee);
+    }
+
+    public function test_a_file_without_an_amount_column_still_charges_the_product_fee(): void
+    {
+        $this->upload($this->term1, self::HEADER . "Chris Daniels,Henry Daniels,chris@example.com,0501234567\n");
+
+        $this->assertSame(1000.0, (float) Invoice::first()->total_fee);
+    }
+
+    public function test_aed_prefix_and_thousand_separators_are_understood(): void
+    {
+        $this->upload($this->term1, self::AMOUNT_HEADER
+            . "A One,Kid A,a@example.com,,AED 12 500\n"
+            . "B Two,Kid B,b@example.com,,\"AED 8,250.00\"\n");
+
+        $this->assertEqualsCanonicalizing([12500.0, 8250.0], Invoice::pluck('total_fee')->map(fn ($f) => (float) $f)->all());
+    }
+
+    public function test_siblings_each_pay_their_own_amount_and_the_family_invoice_adds_them_up(): void
+    {
+        $this->upload($this->term1, self::AMOUNT_HEADER
+            . "Chris Daniels,Henry Daniels,chris@example.com,0501234567,14500\n"
+            . "Chris Daniels,Poppy Daniels,chris@example.com,0501234567,13050\n"
+            . "Chris Daniels,Tom Daniels,chris@example.com,0501234567,\n", true);
+
+        $this->assertSame(1, Invoice::count());
+        $invoice = Invoice::with('invoiceDetails')->first();
+        $this->assertSame(14500.0 + 13050.0 + 1000.0, (float) $invoice->total_fee);
+        $this->assertEqualsCanonicalizing([14500.0, 13050.0, 1000.0], $invoice->invoiceDetails->pluck('fee')->map(fn ($f) => (float) $f)->all());
+    }
+
+    public function test_a_bad_amount_skips_that_row_with_a_reason_and_nothing_else_is_affected(): void
+    {
+        $this->upload($this->term1, self::AMOUNT_HEADER
+            . "Chris Daniels,Henry,chris@example.com,,lots\n"
+            . "Pat Jones,Sam,pat@example.com,,0\n"
+            . "Lee Wong,Amy,lee@example.com,,-50\n"
+            . "Max Wide,Kid,max@example.com,,99999999\n"
+            . "Good Parent,Kid,good@example.com,,2500\n")
+            ->assertSessionHas('payer_skipped', function ($rows) {
+                return count($rows) === 4
+                    && $rows[0]['row'] === 2
+                    && str_contains($rows[0]['reason'], 'not a valid amount');
+            });
+
+        $this->assertSame(1, Invoice::count());
+        $this->assertSame(2500.0, (float) Invoice::first()->total_fee);
+    }
+
+    public function test_the_same_parents_can_pay_different_amounts_on_a_different_product(): void
+    {
+        $this->upload($this->term1, self::AMOUNT_HEADER . "Chris Daniels,Henry Daniels,chris@example.com,0501234567,14500\n");
+        $this->upload($this->term2, self::AMOUNT_HEADER . "Chris Daniels,Henry Daniels,chris@example.com,0501234567,15200\n");
+
+        $totals = Invoice::orderBy('id')->pluck('total_fee')->map(fn ($f) => (float) $f)->all();
+        $this->assertSame([14500.0, 15200.0], $totals);
+    }
+
+    public function test_a_single_person_can_be_added_with_their_own_amount(): void
+    {
+        $this->actingAs($this->merchant, 'merchants')
+            ->post(route('merchant.products.payers.store', $this->term1->id), [
+                'name' => 'Chris Daniels', 'student_name' => 'Henry Daniels', 'email' => 'chris@example.com', 'amount' => '11250.50',
+            ])->assertSessionHasNoErrors();
+        $this->assertSame(11250.5, (float) Invoice::first()->total_fee);
+
+        $this->actingAs($this->merchant, 'merchants')
+            ->post(route('merchant.products.payers.store', $this->term1->id), [
+                'name' => 'Pat Jones', 'student_name' => 'Sam', 'email' => 'pat@example.com', 'amount' => '-5',
+            ])->assertSessionHasErrors('amount', null, 'addPayer');
+        $this->assertSame(1, Invoice::count());
+    }
+
+    public function test_the_payment_link_email_shows_each_childs_own_amount(): void
+    {
+        $this->upload($this->term1, self::AMOUNT_HEADER
+            . "Chris Daniels,Henry Daniels,chris@example.com,0501234567,14500\n"
+            . "Chris Daniels,Poppy Daniels,chris@example.com,0501234567,13050\n", true);
+
+        $invoice = Invoice::with(['consumer', 'merchant', 'invoiceDetails.product', 'invoiceDetails.consumer'])->first();
+        $html = (new InvoicePaymentLinkMail($invoice))->render();
+
+        $this->assertStringContainsString('14,500.00', $html);
+        $this->assertStringContainsString('13,050.00', $html);
+        $this->assertStringContainsString('27,550.00', $html);
     }
 
     // -- around the flow ---------------------------------------------------

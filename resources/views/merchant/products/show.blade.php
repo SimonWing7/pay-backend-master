@@ -62,7 +62,7 @@
                 <p class="text-sm text-gray-600">{{ $product->description }}</p>
             </div>
             <div>
-                <p class="text-xs text-gray-400 font-medium mb-1">Fee</p>
+                <p class="text-xs text-gray-400 font-medium mb-1">Standard fee</p>
                 <p class="text-2xl font-bold gradient-text">AED {{ number_format($product->fee, 2) }}</p>
             </div>
             <div>
@@ -149,6 +149,7 @@
     <h3 class="text-sm font-semibold text-gray-700 mb-1">{{ $hasPayers ? 'Add more payers' : 'Add the people who need to pay' }}</h3>
     <p class="text-xs text-gray-400 mb-4">
         Upload a CSV with Parent Name, Student/Player Name, Parent Email and Parent Mobile.
+        Add an optional <strong>Amount</strong> column if people pay different amounts; leave it blank (or leave the column out) and they pay the standard fee of AED {{ number_format($product->fee, 2) }}.
         Each person is added to <strong>this product only</strong>, so other products and terms stay separate.
         Nothing is emailed until you click "Send payment links".
         <a href="{{ route('merchant.products.payers.template', $product->id) }}" style="color:#3d01bd;">Download a template</a>.
@@ -181,7 +182,7 @@
 
     <details {{ $errors->hasBag('addPayer') ? 'open' : '' }}>
         <summary class="text-xs font-medium cursor-pointer" style="color:#3d01bd;">Or add one person</summary>
-        <form method="POST" action="{{ route('merchant.products.payers.store', $product->id) }}" class="grid grid-cols-1 md:grid-cols-5 gap-3 mt-3 items-start">
+        <form method="POST" action="{{ route('merchant.products.payers.store', $product->id) }}" class="grid grid-cols-1 md:grid-cols-6 gap-3 mt-3 items-start">
             @csrf
             <div>
                 <input type="text" name="name" value="{{ old('name') }}" placeholder="Parent name *" required class="form-input text-sm">
@@ -193,6 +194,10 @@
                 @if($errors->addPayer->has('email'))<p class="text-red-500 text-xs mt-1">{{ $errors->addPayer->first('email') }}</p>@endif
             </div>
             <div><input type="text" name="mobile" value="{{ old('mobile') }}" placeholder="Mobile" class="form-input text-sm"></div>
+            <div>
+                <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount') }}" placeholder="Amount (AED)" class="form-input text-sm">
+                @if($errors->addPayer->has('amount'))<p class="text-red-500 text-xs mt-1">{{ $errors->addPayer->first('amount') }}</p>@endif
+            </div>
             <button type="submit" class="btn-secondary justify-center"><i class="fas fa-plus"></i> Add</button>
         </form>
     </details>
