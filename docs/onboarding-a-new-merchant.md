@@ -4,6 +4,7 @@ For Edfundo staff. Takes about 10 minutes of your time, plus whatever the mercha
 
 **The short version**
 
+0. *(Recommended for anyone integrating by API or website)* Set up a test account on **staging** first.
 1. Collect the trade licence and the owner's email (outside the system).
 2. Create the merchant in admin with the welcome email ticked.
 3. The merchant sets their password and completes five short steps.
@@ -11,6 +12,47 @@ For Edfundo staff. Takes about 10 minutes of your time, plus whatever the mercha
 5. The merchant is live: they can send payment links and take payments.
 
 Until step 4 is done the merchant can sign in and set up products and payers, but **nobody can pay them and they cannot send payment links**.
+
+---
+
+## Step 0. Try it on staging first (recommended)
+
+Staging is a practice copy of Edfundo Pay at **https://staging-pay.edfundo.com**. It is completely separate from production: its own admin, merchants, API keys, webhook secrets and payments. Payments use Lean's **sandbox** (test banks), so **no real money moves**.
+
+| Merchant type | Use staging? |
+|---|---|
+| Integrating by **API**, **Magento** or a **custom website** | **Yes.** Their developers build and test there before anything goes live |
+| Only creating payment links from the **dashboard** | Optional. Useful for a practice run or training: create a link, pay it, watch it show as Paid |
+
+Nothing carries over from staging. When the merchant is ready, you create them again **on production** (Steps 1 to 5 below), and they get a new API key and webhook secret there.
+
+### Set up the staging account
+
+1. Sign in to the **staging** admin (the same admin sign-in as production, but on the staging address, with your staging admin login). Go to **Merchants → New Merchant**.
+2. Fill in the name and the merchant's login email as in Step 1. **Use a real mailbox they check:** staging sends real emails, so the welcome email genuinely arrives.
+3. Leave **"Email the owner a welcome link"** and **"Account active"** ticked, and **tick "Skip onboarding"**. The staging account is then usable straight away: no trade licence, bank details or approval needed, and payments settle to Lean's test destination automatically.
+4. Click **Create Merchant**. The merchant gets a welcome email pointing at staging. They set a password (a **different** one from their production password) and sign in.
+
+> **Want them to see the onboarding screens too?** Leave "Skip onboarding" unticked instead. They complete the steps, you review them as in Step 3, then to approve you need a destination ID and an IBAN on the merchant (Edit). Use Lean's sandbox destination ID (print it on the staging server with `sudo grep LEAN_PAYMENT_DESTINATION_ID /var/www/edfundo-pay/.env`) and any IBAN-format value.
+
+### Make a test payment (everyone)
+
+1. In the merchant's staging dashboard, create a small payment link (for example AED 1.00): **Invoices → New**, or from a product.
+2. Open the link and pay it with a Lean **sandbox test bank**. The test bank login is in section 13 of the *Edfundo Pay Merchant API Integration Guide*.
+3. Back in the dashboard, check the payment shows as **Paid**.
+
+### For merchants integrating by API or website
+
+1. The owner creates an API key under **Settings → API & Integrations**, and sets their webhook URL and secret in **Settings → Business Profile**. These are **staging-only**: a staging key does not work on production.
+2. Send them the **Edfundo Pay Merchant API Integration Guide** (v2.1 or later). Their developers use `https://staging-pay.edfundo.com/api/v1` as the base URL and follow the test sequence in section 13 of the guide.
+3. **Webhook sender address:** staging sends from a different server from production. If the merchant's firewall only allows certain IP addresses, give them the staging server's address (find it with `curl -4 -s https://checkip.amazonaws.com` on the staging server), **not** the production one.
+4. When their tests pass, set up the production account (Steps 1 to 5) and tell them to switch the base URL, API key and webhook secret over, ideally from environment variables.
+
+### Things to watch on staging
+
+- **Real emails are sent.** Welcome emails, payment links and reminders all go to real addresses. Don't upload real parents or customers on staging; use test addresses you control.
+- **Staging is not live.** A merchant working on staging still cannot take real payments. They are live only once approved on production.
+- **Clean up.** After go-live, untick **Account active** on the staging account (or delete it) so old test accounts don't pile up.
 
 ---
 
@@ -35,7 +77,7 @@ Admin → **Merchants** → **New Merchant**.
 3. Leave **"Email the owner a welcome link"** ticked. They choose their own password, so you never share one.
 4. Make sure **"Account active"** is ticked. If it isn't, they can't sign in.
 5. Set the **Edfundo fee** to the rate you've agreed with the merchant (it starts at the standard 1.5%). **The merchant sees this exact rate on the Fees step and agrees to it**, so get it right now.
-6. Leave **"Skip onboarding"** unticked. (That box is only for internal or already-set-up accounts. It makes the merchant live immediately.)
+6. On production, leave **"Skip onboarding"** unticked. (That box is only for internal or already-set-up accounts. It makes the merchant live immediately.)
 7. Anything else (support email, phone, website, bank details) is optional. If you fill it in, it appears pre-filled in the merchant's onboarding, which saves them typing.
 8. Click **Create Merchant**.
 
@@ -141,12 +183,15 @@ Open the merchant → **Onboarding** card → **Approve** → confirm.
 | Merchant wants to change something after submitting | Click **Send back for changes** with a short note. That reopens editing |
 | "That email address already has access" when creating | The email is already a merchant login or a team member's. Use a different address |
 | Merchant exists already and shouldn't go through onboarding | Create them with **Skip onboarding** ticked (existing live merchants were left untouched when this feature launched) |
+| Staging payment won't start ("No Lean payment destination configured") | Staging's `.env` is missing `LEAN_PAYMENT_DESTINATION_ID`, or the merchant has an empty destination. Set it, run `sudo php artisan config:clear` and restart Apache |
+| A staging API key gives "unauthorised" on production (or the reverse) | Keys and secrets are separate per environment. Create a new key on the environment they're calling |
 | Payers see "This merchant is not able to take payments right now" | The merchant isn't approved yet (or the account is inactive). Approve them, or tick **Account active** |
 
 ---
 
 ## Quick checklist
 
+- [ ] (API / website merchants) Staging account created, test payment made, webhook and return page tested
 - [ ] Trade licence copy and owner email received
 - [ ] Merchant created in admin with welcome email ticked and Account active ticked
 - [ ] Merchant has set their password and submitted onboarding
