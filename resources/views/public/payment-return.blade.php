@@ -70,7 +70,7 @@
                         Return to {{ $invoice->merchant->name }} &#8594;
                     </a>
                     <p class="text-xs text-gray-500 mt-3" id="returnNote">
-                        Taking you back automatically in <span id="returnSecs">8</span> seconds.
+                        Taking you back automatically in <span id="returnSecs">20</span> seconds.
                         <button type="button" id="returnStay" class="underline text-gray-500 hover:text-gray-700">Stay on this page</button>
                     </p>
                 </div>
@@ -137,7 +137,7 @@
         // (staying, or opening the reward link) stops the countdown.
         (function () {
             var url   = @json($merchantReturnUrl);
-            var secs  = 8;
+            var secs  = 20;
             var label = document.getElementById('returnSecs');
             var note  = document.getElementById('returnNote');
             var timer = setInterval(function () {

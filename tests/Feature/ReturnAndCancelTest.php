@@ -83,8 +83,8 @@ class ReturnAndCancelTest extends TestCase
         $response->assertSee('id="returnBtn"', false);
         $response->assertSee('Taking you back automatically in', false);
         $response->assertSee('Stay on this page', false);
-        // 8 seconds, then straight to the merchant carrying the payment link id
-        $response->assertSee('var secs  = 8;', false);
+        // 20 seconds, then straight to the merchant carrying the payment link id
+        $response->assertSee('var secs  = 20;', false);
         $response->assertSee('href="' . e('https://smartrunners.test/done?status=paid&payment_link_id=' . $invoice->uuid) . '"', false);
     }
 
