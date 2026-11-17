@@ -56,7 +56,7 @@
                         <p class="text-3xl font-extrabold mb-2">AED 50</p>
                         <p class="text-sm opacity-90 mb-3 leading-relaxed">Sign up for an Edfundo family money management account to unlock your reward.</p>
                         <a href="https://edfundo.com/edfundo-pay-rewards/?ref={{ $invoice->merchant->id ?? '' }}&utm_source=edfundo_pay&utm_medium=payment_success"
-                           target="_blank"
+                           target="_blank" id="rewardLink"
                            class="inline-block bg-white text-orange-600 font-bold py-2 px-6 rounded-full hover:bg-orange-50 transition duration-200 text-sm shadow">
                             Claim your AED 50 reward &#8594;
                         </a>
@@ -64,10 +64,16 @@
                 </div>
                 @endif
                 @if($merchantReturnUrl)
-                <a href="{{ $merchantReturnUrl }}"
-                   class="inline-block mt-4 text-sm text-gray-500 hover:text-gray-700">
-                    &#8592; Back to {{ $invoice->merchant->name }}
-                </a>
+                <div class="mt-5" id="returnBox">
+                    <a href="{{ $merchantReturnUrl }}" id="returnBtn"
+                       class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                        Return to {{ $invoice->merchant->name }} &#8594;
+                    </a>
+                    <p class="text-xs text-gray-500 mt-3" id="returnNote">
+                        Taking you back automatically in <span id="returnSecs">8</span> seconds.
+                        <button type="button" id="returnStay" class="underline text-gray-500 hover:text-gray-700">Stay on this page</button>
+                    </p>
+                </div>
                 @endif
             </div>
 
@@ -124,6 +130,35 @@
             </div>
         </div>
     </div>
+    @if($merchantReturnUrl ?? null)
+    <script>
+        // Send the customer back to the merchant after a few seconds, so they
+        // are not left wondering what to do next. Anything they interact with
+        // (staying, or opening the reward link) stops the countdown.
+        (function () {
+            var url   = @json($merchantReturnUrl);
+            var secs  = 8;
+            var label = document.getElementById('returnSecs');
+            var note  = document.getElementById('returnNote');
+            var timer = setInterval(function () {
+                secs -= 1;
+                if (secs <= 0) {
+                    clearInterval(timer);
+                    window.location.href = url;
+                    return;
+                }
+                label.textContent = secs;
+            }, 1000);
+            function stop() {
+                clearInterval(timer);
+                note.textContent = '';
+            }
+            document.getElementById('returnStay').addEventListener('click', stop);
+            var reward = document.getElementById('rewardLink');
+            if (reward) { reward.addEventListener('click', stop); }
+        })();
+    </script>
+    @endif
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const params           = new URLSearchParams(window.location.search);

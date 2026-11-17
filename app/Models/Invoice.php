@@ -67,6 +67,51 @@ class Invoice extends Model
     }
 
     /**
+     * Add query parameters to a URL, keeping any it already has.
+     *
+     * @param array<string, string> $params
+     */
+    public static function appendQuery(string $url, array $params): string
+    {
+        $parsed   = parse_url($url);
+        $existing = [];
+        if (!empty($parsed['query'])) {
+            parse_str($parsed['query'], $existing);
+        }
+        $merged = array_merge($existing, $params);
+
+        $base = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '');
+        if (!empty($parsed['port'])) {
+            $base .= ':' . $parsed['port'];
+        }
+        if (!empty($parsed['path'])) {
+            $base .= $parsed['path'];
+        }
+
+        return $base . '?' . http_build_query($merged);
+    }
+
+    /** Schemes that must never be put in a link on our page. */
+    public static function isScriptUrl(string $url): bool
+    {
+        return (bool) preg_match('/^\s*(javascript|data|vbscript):/i', $url);
+    }
+
+    /**
+     * Where the "choose another payment method" button sends the customer: the
+     * merchant's own cancel_url, marked as cancelled so their handler can undo
+     * the order and put the cart back. Null when the link has no cancel_url.
+     */
+    public function cancelReturnUrl(): ?string
+    {
+        if (empty($this->cancel_url) || self::isScriptUrl($this->cancel_url)) {
+            return null;
+        }
+
+        return self::appendQuery($this->cancel_url, ['status' => 'cancelled', 'payment_link_id' => $this->uuid]);
+    }
+
+    /**
      * Get the consumer that owns the invoice.
      */
     public function consumer()

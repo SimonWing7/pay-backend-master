@@ -1,4 +1,5 @@
-{{-- Shared by the payment link page and the product page. Expects: $merchant, $entity (nullable), $amount --}}
+{{-- Shared by the payment link page and the product page. Expects: $merchant, $entity (nullable), $amount.
+     Optional (payment link page only): $cancelUrl (the merchant's cancel handler) --}}
                 <div id="loadingState" class="hidden mt-4 text-center">
                     <div class="inline-flex items-center gap-3 text-sm font-medium" style="color:#3d01bd;">
                         <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -21,6 +22,10 @@
                     $fallbackIban        = $entity?->iban ?: $merchant->iban;
                     $fallbackReferenceNote = $entity?->fallback_reference_note ?: $merchant->fallback_reference_note;
                     $fallbackType    = $merchant->fallback_type ?? null;
+                    // Set on payment links made through the API that have a cancel_url:
+                    // a way back to the merchant's own checkout to pick another method.
+                    $cancelUrl       = $cancelUrl ?? null;
+                    $merchantLabel   = $merchant->merchant_trading_name ?? $merchant->name;
                     $hasCardFallback = $fallbackType === 'payment_gateway' && !empty($merchant->fallback_payment_url);
                     $toggleLabel     = $hasCardFallback
                         ? "Can't find your bank? Pay by card instead"
@@ -115,6 +120,16 @@
                                 @if(!$merchant->support_email && !$merchant->support_phone)
                                 <p class="text-sm" style="color:#9ca3af;">Contact the merchant directly for alternative payment options.</p>
                                 @endif
+                            </div>
+                        @endif
+
+                        @if($cancelUrl)
+                            <div class="{{ $fallbackType ? 'mt-4 pt-4 border-t border-gray-100' : 'mt-1' }}">
+                                <a href="{{ $cancelUrl }}" id="chooseAnotherMethod"
+                                    style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 16px;border-radius:10px;font-weight:600;font-size:14px;background:#fff;color:#3d01bd;border:1.5px solid #3d01bd;text-decoration:none;">
+                                    <i class="fas fa-arrow-left text-xs"></i>
+                                    Back to {{ $merchantLabel }} to choose another payment method
+                                </a>
                             </div>
                         @endif
                     </div>

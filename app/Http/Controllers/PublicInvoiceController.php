@@ -148,12 +148,21 @@ class PublicInvoiceController extends Controller
             $isPaid   = $invoice->status === InvoiceStatus::Paid;
             $isFailed = $invoice->status === InvoiceStatus::Failed;
 
-            // Paid invoices with a return_url no longer redirect immediately —
-            // the reward page below shows first, with a "Back to {merchant}"
-            // link that carries the customer onward from here instead.
-            if ($isPaid && $invoice->return_url) {
+            // The customer is sent back to the merchant from the page below
+            // (a button plus an automatic redirect after a few seconds), so
+            // the reward offer still gets seen first. That applies as soon as
+            // the payment is submitted, not only once Lean has confirmed it:
+            // the bank's confirmation often arrives after the customer does,
+            // and they would otherwise be left with no way back. Merchants
+            // verify the status themselves, so an unconfirmed payment is
+            // reported as "pending" rather than "paid".
+            $submitted = $isPaid
+                || $status === 'success'
+                || $payment?->status === PaymentStatus::Complete;
+
+            if ($submitted && $invoice->return_url && !Invoice::isScriptUrl($invoice->return_url)) {
                 $merchantReturnUrl = $this->appendQueryParams($invoice->return_url, [
-                    'status'          => 'paid',
+                    'status'          => $isPaid ? 'paid' : 'pending',
                     'payment_link_id' => $invoice->uuid,
                 ]);
             }
@@ -195,17 +204,6 @@ class PublicInvoiceController extends Controller
 
     private function appendQueryParams(string $url, array $params): string
     {
-        $parsed   = parse_url($url);
-        $existing = [];
-        if (!empty($parsed['query'])) {
-            parse_str($parsed['query'], $existing);
-        }
-        $merged = array_merge($existing, $params);
-
-        $base = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '');
-        if (!empty($parsed['port'])) $base .= ':' . $parsed['port'];
-        if (!empty($parsed['path'])) $base .= $parsed['path'];
-
-        return $base . '?' . http_build_query($merged);
+        return Invoice::appendQuery($url, $params);
     }
 }

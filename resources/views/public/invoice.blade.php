@@ -209,7 +209,7 @@
 
                     @include('public.partials.pay-button')
                 </form>
-                @include('public.partials.pay-bottom', ['merchant' => $invoice->merchant, 'entity' => $invoice->merchantEntity, 'amount' => $invoice->total_fee])
+                @include('public.partials.pay-bottom', ['merchant' => $invoice->merchant, 'entity' => $invoice->merchantEntity, 'amount' => $invoice->total_fee, 'cancelUrl' => $invoice->cancelReturnUrl()])
 
                 @elseif($invoice->status->value === 10 && ($invoice->link_type ?? 'personal') !== 'open')
                 <div class="text-center py-6">
