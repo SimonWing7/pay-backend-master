@@ -59,7 +59,14 @@ class PaymentController extends Controller
             abort(404, 'Payment not found');
         }
 
-        return view('admin.payments.show', compact('payment'));
+        $deliveries = collect();
+        if ($payment->invoice && $payment->invoice->reference !== null) {
+            $deliveries = \App\Models\WebhookDelivery::where('merchant_id', $payment->invoice->merchant_id)
+                ->where('reference', $payment->invoice->reference)
+                ->latest('id')->limit(10)->get();
+        }
+
+        return view('admin.payments.show', compact('payment', 'deliveries'));
     }
 
     /**
@@ -100,6 +107,28 @@ class PaymentController extends Controller
 
         return redirect()->route('admin.payments.show', $id)
             ->with('success', "Payment #{$payment->id} marked as failed.");
+    }
+
+    /**
+     * Replay payment.paid to the merchant's webhook for a completed payment.
+     */
+    public function resendWebhook(int $id): RedirectResponse
+    {
+        $payment = AppUserPayment::with('invoice.merchant')->findOrFail($id);
+
+        $delivery = $this->paymentService->resendPaidWebhook($payment);
+
+        if (!$delivery) {
+            return redirect()->route('admin.payments.show', $id)
+                ->with('error', 'Nothing sent: the payment is not Complete or the merchant has no webhook configured.');
+        }
+
+        return redirect()->route('admin.payments.show', $id)->with(
+            $delivery->status === 'delivered' ? 'success' : 'error',
+            $delivery->status === 'delivered'
+                ? 'Webhook delivered to the merchant (HTTP ' . $delivery->last_http_status . ').'
+                : 'The merchant\'s server did not accept it (' . ($delivery->last_http_status ? 'HTTP ' . $delivery->last_http_status : 'no response') . '). It will be retried automatically.'
+        );
     }
 
     public function exportCsv(Request $request): Response

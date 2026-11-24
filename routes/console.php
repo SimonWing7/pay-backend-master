@@ -36,3 +36,6 @@ Schedule::command('payers:send-links')->everyMinute()->withoutOverlapping();
 // daily run picks up retries and merchants who have since added a card.
 Schedule::command('billing:generate')->monthlyOn(1, '06:00')->timezone('Asia/Dubai')->withoutOverlapping();
 Schedule::command('billing:charge')->dailyAt('09:00')->timezone('Asia/Dubai')->withoutOverlapping();
+
+// Re-send merchant webhooks that failed (merchant down, firewall block, etc.).
+Schedule::command('webhooks:retry')->everyMinute()->withoutOverlapping();

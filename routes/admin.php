@@ -76,6 +76,7 @@ Route::middleware(['auth:admin', 'admin.require-2fa-invite'])->prefix('admin')->
         Route::get('/{id}', [App\Http\Controllers\Admin\PaymentController::class, 'show'])->name('show');
         Route::post('/{id}/confirm', [App\Http\Controllers\Admin\PaymentController::class, 'confirm'])->name('confirm');
         Route::post('/{id}/reject', [App\Http\Controllers\Admin\PaymentController::class, 'reject'])->name('reject');
+        Route::post('/{id}/resend-webhook', [App\Http\Controllers\Admin\PaymentController::class, 'resendWebhook'])->name('resend_webhook');
     });
     
     // App Users management

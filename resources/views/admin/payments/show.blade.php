@@ -168,4 +168,39 @@
     @endif
 
 </div>
+
+@if($payment->invoice && $payment->invoice->merchant && $payment->invoice->merchant->webhook_url)
+<div class="card p-6 mt-6">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Merchant webhook</h3>
+        @if($payment->status === \App\Enums\PaymentStatus::Complete)
+        <form method="POST" action="{{ route('admin.payments.resend_webhook', $payment->id) }}"
+            onsubmit="return confirm('Send payment.paid to the merchant\'s webhook again?');">
+            @csrf
+            <button type="submit" class="btn-secondary text-sm"><i class="fas fa-paper-plane"></i> Resend payment.paid</button>
+        </form>
+        @endif
+    </div>
+    @if($deliveries->isEmpty())
+        <p class="text-sm text-gray-500">No notifications recorded for this payment link.</p>
+    @else
+        <table class="w-full text-sm">
+            <thead><tr class="text-left text-xs text-gray-400"><th class="pb-2">When</th><th class="pb-2">Event</th><th class="pb-2">Result</th><th class="pb-2">Tries</th></tr></thead>
+            <tbody>
+            @foreach($deliveries as $d)
+                <tr class="border-t border-gray-100">
+                    <td class="py-2 text-gray-700">{{ $d->created_at->format('d M Y, H:i:s') }}</td>
+                    <td class="py-2 font-mono text-xs text-gray-700">{{ $d->event }}</td>
+                    <td class="py-2 text-gray-700">
+                        {{ ucfirst($d->status) }}@if($d->last_http_status) · HTTP {{ $d->last_http_status }}@endif
+                        @if($d->status === 'pending' && $d->next_attempt_at) · retry {{ $d->next_attempt_at->format('H:i') }}@endif
+                    </td>
+                    <td class="py-2 text-gray-700">{{ $d->attempts }}</td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+    @endif
+</div>
+@endif
 @endsection

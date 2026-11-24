@@ -638,9 +638,26 @@ class PaymentService extends Service
     }
 
     /**
+     * Send the merchant a fresh `payment.paid` for a payment that is already
+     * Complete — used to replay a notification they missed (blocked by a
+     * firewall, endpoint down, etc.). Returns null when nothing was sent.
+     */
+    public function resendPaidWebhook(AppUserPayment $payment): ?\App\Models\WebhookDelivery
+    {
+        $payment->loadMissing('invoice.merchant', 'invoice.consumer', 'invoice.invoiceDetails');
+
+        $merchant = $payment->invoice?->merchant;
+        if ($payment->status !== PaymentStatus::Complete || !$merchant) {
+            return null;
+        }
+
+        return $this->webhookService->dispatch($merchant, 'payment.paid', $this->buildWebhookPayload($payment));
+    }
+
+    /**
      * Build the data payload sent to merchant webhooks.
      */
-    private function buildWebhookPayload(AppUserPayment $payment, ?string $failureReason = null): array
+    public function buildWebhookPayload(AppUserPayment $payment, ?string $failureReason = null): array
     {
         return $this->webhookData(
             $payment->invoice,
