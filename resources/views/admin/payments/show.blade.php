@@ -111,6 +111,10 @@
                 <p class="text-xs font-mono text-gray-600">{{ $payment->invoice->uuid }}</p>
             </div>
             <div>
+                <p class="text-xs text-gray-400 font-medium mb-1">Reference</p>
+                <p class="text-sm font-mono text-gray-700">{{ $payment->invoice->reference ?: '—' }}</p>
+            </div>
+            <div>
                 <p class="text-xs text-gray-400 font-medium mb-1">Amount</p>
                 <p class="text-2xl font-bold gradient-text">AED {{ number_format($payment->invoice->total_fee, 2) }}</p>
             </div>
